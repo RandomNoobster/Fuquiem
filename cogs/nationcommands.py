@@ -48,7 +48,7 @@ class General(commands.Cog):
         n = 1
         for x in people:
             if n < 25:
-                content = f"[{x['leader']}](https://politicsandwar.com/nation/id={x['nationid']}) has {x['turns_since_last_city']-120} turns"
+                content = f"[{x['leader']}](https://politicsandwar.com/nation/id={x['nationid']}) has {120-x['turns_since_last_city']} turns"
                 embed.add_field(name='\u200b', value=content, inline=False)
                 n += 1
             else:
@@ -75,7 +75,7 @@ class General(commands.Cog):
         n = 1
         for x in people:
             if n < 25:
-                content = f"[{x['leader']}](https://politicsandwar.com/nation/id={x['nationid']}) has {x['turns_since_last_project']-120} turns"
+                content = f"[{x['leader']}](https://politicsandwar.com/nation/id={x['nationid']}) has {120-x['turns_since_last_project']} turns"
                 embed.add_field(name='\u200b', value=content, inline=False)
                 n += 1
             else:
@@ -1010,27 +1010,27 @@ class General(commands.Cog):
                     pollution -= int(city['subway']) * subw_poll_red
                     pollution += int(city['shopping_malls']) * 2
                     pollution += int(city['stadiums']) * 5
-
-                    city['real_pollution'] = pollution
-                    if pollution < 0:
-                        pollution = 0
-                    city['pollution'] = pollution
-
+                    
                     commerce += int(city['subway']) * 8
                     commerce += int(city['supermarkets']) * 3 
                     commerce += int(city['banks']) * 5 
                     commerce += int(city['shopping_malls']) * 9
                     commerce += int(city['stadiums']) * 12 
 
-                    city['real_commerce'] = commerce
-                    if commerce > max_commerce:
-                        commerce = max_commerce
-                    city['commerce'] = commerce
-
                     mil_upkeep += int(city['barracks']) * 3000 * 1.25
                     mil_upkeep += int(city['factories']) * 250 * 50
                     mil_upkeep += int(city['hangars']) * 15 * 500
                     mil_upkeep += int(city['drydocks']) * 5 * 3750
+
+                city['real_commerce'] = commerce
+                if commerce > max_commerce:
+                    commerce = max_commerce
+                city['commerce'] = commerce
+                
+                city['real_pollution'] = pollution
+                if pollution < 0:
+                    pollution = 0
+                city['pollution'] = pollution
 
                 city['real_crime_rate'] = ((103 - commerce)**2 + (float(city['infrastructure']) * 100))/(111111) - int(city['police_stations']) * pol_cri_red
                 if city['real_crime_rate'] < 0:

@@ -139,7 +139,7 @@ class Economic(commands.Cog):
         return {"time": pytz.utc.localize(datetime.utcnow()).isoformat(), "prices": prices}
 
     @commands.command(brief='Withdraw resources from the alliance bank', help='This command may only be used by Cardinals. Usage: "$withdraw <type of resource> - <amount of resource>, <type of resource> - <amount of resource>... <recipient>" Recipient can be nation name, nation id, nation link, leader name, discord id, discord name, or discord mention. Please note that spaces are ignored, so it does not matter if you type "-" and "," or " - " and ", "', aliases=['with', 'wd'])
-    @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role('Pam', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def withdraw(self, ctx, recipient, *, rss):
         async with aiohttp.ClientSession() as session:
             Database = self.bot.get_cog('Database')
@@ -229,21 +229,22 @@ class Economic(commands.Cog):
                     except:
                         pretty_data[k.replace('with', '')] = f'{pretty_data.pop(k)}'
 
-                try:
-                    await ctx.send(f'Are you sure you want to continue with this transaction? (yes/no)\n```json\n{pretty_data}```')
-                    msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=40)
+                if ctx.author.id != 891875198704431155:
+                    try:
+                        await ctx.send(f'Are you sure you want to continue with this transaction? (yes/no)\n```json\n{pretty_data}```')
+                        msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=40)
 
-                    if msg.content.lower() in ['yes', 'y']:
-                        start_time = (datetime.utcnow() - timedelta(seconds=5))
-                        end_time = (datetime.utcnow() + timedelta(seconds=5))
-                        p = s.post(withdraw_url, data=withdraw_data)
-                        print(f'Response: {p}')
-                    elif msg.content.lower() in ['no', 'n']:
-                        await ctx.send('Transaction was canceled')
+                        if msg.content.lower() in ['yes', 'y']:
+                            start_time = (datetime.utcnow() - timedelta(seconds=5))
+                            end_time = (datetime.utcnow() + timedelta(seconds=5))
+                            p = s.post(withdraw_url, data=withdraw_data)
+                            print(f'Response: {p}')
+                        elif msg.content.lower() in ['no', 'n']:
+                            await ctx.send('Transaction was canceled')
+                            return
+                    except asyncio.TimeoutError:
+                        await ctx.send('Command timed out, you were too slow to respond.')
                         return
-                except asyncio.TimeoutError:
-                    await ctx.send('Command timed out, you were too slow to respond.')
-                    return
 
                 success = False
                 await asyncio.sleep(1)
@@ -750,7 +751,7 @@ class Economic(commands.Cog):
             await message.edit(content='', embed=embed)
     
     @commands.command(brief='Send people grants', help='This command may only be used by Cardinals. Usage: "$grant <type of resource> - <amount of resource>, <type of resource> - <amount of resource>... <recipient>" Recipient can be nation name, nation id, nation link, leader name, discord id, discord name, or discord mention. Please note that spaces are ignored, so it does not matter if you type "-" and "," or " - " and ", "')
-    @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role('Pam', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def grant(self, ctx, recipient, *, rss):
         async with aiohttp.ClientSession() as session:
             Database = self.bot.get_cog('Database')
@@ -840,21 +841,22 @@ class Economic(commands.Cog):
                     except:
                         pretty_data[k.replace('with', '')] = f'{pretty_data.pop(k)}'
 
-                try:
-                    await ctx.send(f'Are you sure you want to continue with this grant? (yes/no)\n```json\n{pretty_data}```')
-                    msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=40)
+                if ctx.author.id != 891875198704431155:
+                    try:
+                        await ctx.send(f'Are you sure you want to continue with this grant? (yes/no)\n```json\n{pretty_data}```')
+                        msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=40)
 
-                    if msg.content.lower() in ['yes', 'y']:
-                        start_time = (datetime.utcnow() - timedelta(seconds=5))
-                        end_time = (datetime.utcnow() + timedelta(seconds=5))
-                        p = s.post(withdraw_url, data=withdraw_data)
-                        print(f'Response: {p}')
-                    elif msg.content.lower() in ['no', 'n']:
-                        await ctx.send('Grant was canceled')
+                        if msg.content.lower() in ['yes', 'y']:
+                            start_time = (datetime.utcnow() - timedelta(seconds=5))
+                            end_time = (datetime.utcnow() + timedelta(seconds=5))
+                            p = s.post(withdraw_url, data=withdraw_data)
+                            print(f'Response: {p}')
+                        elif msg.content.lower() in ['no', 'n']:
+                            await ctx.send('Grant was canceled')
+                            return
+                    except asyncio.TimeoutError:
+                        await ctx.send('Command timed out, you were too slow to respond.')
                         return
-                except asyncio.TimeoutError:
-                    await ctx.send('Command timed out, you were too slow to respond.')
-                    return
 
                 success = False
                 await asyncio.sleep(1)
