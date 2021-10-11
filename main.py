@@ -13,7 +13,6 @@ import os
 import ssl
 import discord
 from discord.ext import commands
-from discord.app import Option
 intents = discord.Intents.default()
 intents.members = True
 load_dotenv()
