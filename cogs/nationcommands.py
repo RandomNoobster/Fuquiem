@@ -43,7 +43,7 @@ class General(commands.Cog):
 
         embed = discord.Embed(title='City timers:', description='Here is up to 25 people sorted by the shortest timer:',
                               color=0x00ff00, timestamp=datetime.utcnow())
-        people = sorted(nations, key=lambda k: k['turns_since_last_city'])
+        people = sorted(nations, key=lambda k: k['turns_since_last_city'], reverse=True)
         content = ''
         n = 1
         for x in people:
@@ -70,7 +70,7 @@ class General(commands.Cog):
 
         embed = discord.Embed(title='Project timers:', description='Here is up to 25 people sorted by the shortest timer:',
                               color=0x00ff00, timestamp=datetime.utcnow())
-        people = sorted(nations, key=lambda k: k['turns_since_last_project'])
+        people = sorted(nations, key=lambda k: k['turns_since_last_project'], reverse=True)
         content = ''
         n = 1
         for x in people:
