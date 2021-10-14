@@ -1017,6 +1017,7 @@ class Economic(commands.Cog):
         policy_bonus = 1
         new_player_bonus = 1
         mil_cost = 1
+        total_infra = 0
         starve_net_text = ""
         starve_money_text = ""
         starve_exp_text = ""
@@ -1086,6 +1087,7 @@ class Economic(commands.Cog):
             #print(city)
 
         for city in nation['cities']:
+            total_infra += city['infrastructure']
             base_pop = city['infrastructure'] * 100
             pollution = 0
             unpowered_infra = city['infrastructure']
@@ -1282,8 +1284,12 @@ class Economic(commands.Cog):
             starve_money_text = f" (${round(money_income * policy_bonus * new_player_bonus * 0.67 + color_bonus - power_upkeep - rss_upkeep - military_upkeep * mil_cost - civil_upkeep):,})"
             starve_net_text = f" (${round(money_income * policy_bonus * new_player_bonus * 0.67 + color_bonus - power_upkeep - rss_upkeep - military_upkeep * mil_cost - civil_upkeep + coal * prices['coal'] + oil * prices['oil'] + uranium * prices['uranium'] + lead * prices['lead'] + iron * prices['iron'] + bauxite * prices['bauxite'] + gasoline * prices['gasoline'] + munitions * prices['munitions'] + steel * prices['steel'] + aluminum * prices['aluminum'] + food * prices['food']):,})"
         
+        max_infra = sorted(nation['cities'], key=lambda k: k['infrastructure'], reverse=True)[0]['infrastructure']
+
         rev_obj = {}
         rev_obj['nation'] = nation
+        rev_obj['max_infra'] = max_infra
+        rev_obj['avg_infra'] = round(total_infra / nation['num_cities'])
         rev_obj['income_txt']=f"National Tax Revenue: ${round(money_income):,}{color_text}{new_player_text}{policy_bonus_text}{treasure_text}"
         rev_obj['expenses_txt']=f"Power Plant Upkeep: ${round(power_upkeep):,}\n\nResource Prod. Upkeep: ${round(rss_upkeep):,}\n\nMilitary Upkeep (excl. spies): ${round(military_upkeep * mil_cost):,}\n\nCity Improvement Upkeep: ${round(civil_upkeep):,}{starve_exp_text}"
         rev_obj['net_rev_txt']=f"Coal: {round(coal):,}\nOil: {round(oil):,}\nUranium: {round(uranium):,}\nLead: {round(lead):,}\nIron: {round(iron):,}\nBauxite: {round(bauxite):,}\nGasoline: {round(gasoline):,}\nMunitions: {round(munitions):,}\nSteel: {round(steel):,}\nAluminum: {round(aluminum):,}\nFood: {round(food):,}\nMoney: ${round(money_income * policy_bonus * new_player_bonus * nation_treasure_bonus + color_bonus - power_upkeep - rss_upkeep - military_upkeep * mil_cost - civil_upkeep):,}{starve_money_text}"
