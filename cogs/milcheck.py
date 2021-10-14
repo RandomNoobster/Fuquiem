@@ -34,43 +34,37 @@ class Military(commands.Cog):
 
     @commands.command(brief='Returns military statistics', help='Accepts an optional argument "convent"')
     @commands.has_any_role('Deacon', 'Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
-    async def milcheck(self, ctx, alliance=None):
-        message = await ctx.send('Hang on...')
-        if alliance is None:
-            alliance = 'church'
-            aa = requests.get(
-                f'http://politicsandwar.com/api/alliance-members/?allianceid=4729&key={api_key}').json()
-        elif alliance.lower() in 'convent':
-            alliance = 'convent'
-            aa = requests.get(
-                f'http://politicsandwar.com/api/alliance-members/?allianceid=7531&key={convent_key}').json()
-        else:
-            await message.edit(content='That is not a valid argument!')
-            return
-        fields1 = []
+    async def milcheck(self, ctx):
+        async with aiohttp.ClientSession() as session:
+            message = await ctx.send('Hang on...')
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 first:500 alliance_id:4729){{data{{id leader_name nation_name alliance_id color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium espionage_available offensive_wars{{winner turnsleft}} defensive_wars{{winner turnsleft}} cities{{infrastructure barracks factory airforcebase drydock}}}}}}}}"}) as temp:
+                nations = (await temp.json())['data']['nations']['data']
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(page:1 first:500 alliance_id:7531){{data{{id leader_name nation_name alliance_id color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium espionage_available offensive_wars{{winner turnsleft}} defensive_wars{{winner turnsleft}} cities{{infrastructure barracks factory airforcebase drydock}}}}}}}}"}) as temp:
+                nations += (await temp.json())['data']['nations']['data']
+
         fields2 = []
         fields3 = []
         fields4 = []
         fields5 = []
-        f = list(mongo[f'{alliance}_nations'].find({}))[0]
-        nations = f['results']
-        n = 0
+
         for x in nations:
-            f = list(mongo[f'{alliance}_cities'].find({}))[0]
-            cinfo = f['results'][n]['cities']
-            max_soldiers = 0
-            max_tanks = 0
-            max_aircraft = 0
-            max_ships = 0
-            for z in cinfo:
-                max_soldiers += (int(z['barracks']) * 3000)
-                max_tanks += (int(z['factories']) * 250)
-                max_aircraft += (int(z['hangars']) * 15)
-                max_ships += (int(z['drydocks']) * 5)
-            print(f"{x['name']} - soldiers: {x['soldiers']}/{max_soldiers}, tanks: {x['tanks']}/{max_tanks}, aircraft: {x['aircraft']}/{max_aircraft}, ships: {x['ships']}/{max_ships}")
-            fields1.append(
-                {'name': f"{x['leadername']}", 'value': f"Soldiers: {x['soldiers']}/{max_soldiers}\nTanks: {x['tanks']}/{max_tanks}\nAircraft: {x['aircraft']}/{max_aircraft}\nShips: {x['ships']}/{max_ships}"})
+            barracks = 0
+            factories = 0
+            hangars = 0
+            drydocks = 0
+            
+            for city in x['cities']:
+                barracks += city['barracks']
+                factories += city['factory']
+                hangars += city['airforcebase']
+                drydocks += city['drydock']
+
+            max_soldiers = 3000 * barracks
+            max_tanks = 250 * factories
+            max_aircraft = 15 * hangars
+            max_ships = 5 * drydocks
             rebuy = ''
+
             if int(x['soldiers']) - max_soldiers < 0 or int(x['tanks']) - max_tanks < 0 or int(x['aircraft']) - max_aircraft < 0 or int(x['ships']) - max_ships < 0:
                 rebuy += f"They can rebuy:\n"
                 if int(x['soldiers']) - max_soldiers < 0:
@@ -82,44 +76,53 @@ class Military(commands.Cog):
                 if int(x['ships']) - max_ships < 0:
                     rebuy += f"{max_ships - int(x['ships'])} ships\n"
                 fields2.append(
-                    {'name': f"{x['leadername']}", 'value': rebuy})
-            avg_bar = (max_soldiers / 3000 / x['cities'])
-            avg_fac = (max_tanks / 250 / x['cities'])
-            avg_han = (max_aircraft / 15 / x['cities'])
-            avg_dry = (max_ships / 5 / x['cities'])
+                    {'name': f"{x['leader_name']}", 'value': rebuy})
+            
+
+            avg_bar = (barracks / x['num_cities'])
+            avg_fac = (factories / x['num_cities'])
+            avg_han = (hangars / x['num_cities'])
+            avg_dry = (drydocks / x['num_cities'])
+
             fields3.append(
-                {'name': f"{x['leadername']}", 'value': f'Average improvements:\n{round(avg_bar, 1)}/{round(avg_fac, 1)}/{round(avg_han, 1)}/{round(avg_dry, 1)}'})
-            n += 1
-        for y in aa['nations']:
-            city_count = y['cities']
-            fields4.append({'name': f"{y['leader']}", 'value': f"Warchest:\nMoney: ${round(float(y['money']) / 1000000)}M/${round(city_count * 500000 / 1000000)}M\nMunis: {round(float(y['munitions']) / 1000)}k/{round(city_count * 361.2 / 1000)}k\nGas: {round(float(y['gasoline']) / 1000)}k/{round(city_count * 320.25 / 1000)}k\nSteel: {round(float(y['steel']) / 1000)}k/{round(city_count * 619.5 / 1000)}k\n Alum: {round(float(y['aluminum']) / 1000)}k/{round(city_count * 315 / 1000)}k"})
+                {'name': f"{x['leader_name']}", 'value': f'Average improvements:\n{round(avg_bar, 1)}/{round(avg_fac, 1)}/{round(avg_han, 1)}/{round(avg_dry, 1)}'})
+            
+            city_count = x['num_cities']
+            fields4.append({'name': f"{x['leader_name']}", 'value': f"Warchest:\nMoney: ${round(float(x['money']) / 1000000)}M/${round(city_count * 500000 / 1000000)}M\nMunis: {round(float(x['munitions']) / 1000)}k/{round(city_count * 361.2 / 1000)}k\nGas: {round(float(x['gasoline']) / 1000)}k/{round(city_count * 320.25 / 1000)}k\nSteel: {round(float(x['steel']) / 1000)}k/{round(city_count * 619.5 / 1000)}k\n Alum: {round(float(x['aluminum']) / 1000)}k/{round(city_count * 315 / 1000)}k"})
+
+            offensive_used_slots = 0
+            for war in x['offensive_wars']:
+                if war['turnsleft'] > 0:
+                    offensive_used_slots += 1
+
+            defensive_used_slots = 0
+            for war in x['defensive_wars']:
+                if war['turnsleft'] > 0:
+                    defensive_used_slots += 1
+
             fields5.append(
-                {'name': f"{y['leader']}", 'value': f"Offensive: {y['offensivewars']} wars\nDefensive: {y['defensivewars']} wars"})
-        temp_time = dateutil.parser.parse(f['time'])
-        embed_time = temp_time.replace(tzinfo=pytz.UTC)
-        embed = discord.Embed(title="Militarization pt. 1",
-                              description="", color=0x00ff00, timestamp=embed_time)
-        embed2 = discord.Embed(title="Militarization pt. 2",
-                               description="", color=0x00ff00, timestamp=embed_time)
-        embed3 = discord.Embed(title="Militarization pt. 3",
-                               description="", color=0x00ff00, timestamp=embed_time)
-        embed4 = discord.Embed(title="Militarization pt. 4", description="",
+                {'name': f"{x['leader_name']}", 'value': f"Offensive: {offensive_used_slots} wars\nDefensive: {defensive_used_slots} wars"})
+
+        embed2 = discord.Embed(title="Militarization pt. 1",
+                               description="", color=0x00ff00)
+        embed3 = discord.Embed(title="Militarization pt. 2",
+                               description="", color=0x00ff00)
+        embed4 = discord.Embed(title="Militarization pt. 3", description="",
                                color=0x00ff00, timestamp=pytz.utc.localize(datetime.utcnow()))
-        embed5 = discord.Embed(title="Militarization pt. 5", description="",
+        embed5 = discord.Embed(title="Militarization pt. 4", description="",
                                color=0x00ff00, timestamp=pytz.utc.localize(datetime.utcnow()))
 
         async def add_fields(fields, count, embed):
             for x in fields:
-                if count == 25:
+                if count == 24:
                     await ctx.send(embed=embed)
                     embed.clear_fields()
-                    f = 0
+                    count = 0
                 embed.add_field(name=x['name'], value=x['value'])
                 count += 1
             if len(embed.fields) > 0:
                 await ctx.send(embed=embed)
 
-        await add_fields(fields1, 0, embed)
         await add_fields(fields2, 0, embed2)
         await add_fields(fields3, 0, embed3)
         await add_fields(fields4, 0, embed4)
@@ -1074,30 +1077,49 @@ class Military(commands.Cog):
                     beige = False
                     break
 
+            async def call_api(url, json):
+                async with session.post(url, json=json) as temp:
+                    resp = await temp.json()
+                    print("future recieved")
+                    return resp
+
             target_list = []
-            applicant_futures = []
+            futures = []
             pages = 1
             
             await message.clear_reactions()
             await message.edit(content="Getting targets...", embed=None)
             waiting_gif = await ctx.send(file=gif)
-            
+
+            #start_time = time.time()
+
             if applicants == True:
                 async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 first:300 min_score:{minscore} max_score:{maxscore} vmode:false alliance_position:1){{paginatorInfo{{lastPage}}}}}}"}) as temp:
                     pages += (await temp.json())['data']['nations']['paginatorInfo']['lastPage']
-                applicant_futures = [session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:{n} first:300 min_score:{minscore} max_score:{maxscore} vmode:false alliance_position:1){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name id}} offensive_wars{{winner}} defensive_wars{{date winner turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities cities{{powered infrastructure}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) for n in range(1, pages)]
+
+                for n in range(1, pages):
+                    #print(n)
+                    url = f"https://api.politicsandwar.com/graphql?api_key={api_key}"
+                    json = {'query': f"{{nations(page:{n} first:300 min_score:{minscore} max_score:{maxscore} vmode:false alliance_position:1){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name id}} offensive_wars{{winner}} defensive_wars{{date winner turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities cities{{powered infrastructure}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
+                    futures.append(asyncio.ensure_future(call_api(url, json)))
+                    await asyncio.sleep(0.2)
 
             async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 first:300 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{paginatorInfo{{lastPage}}}}}}"}) as temp1:
                 pages += (await temp1.json())['data']['nations']['paginatorInfo']['lastPage']
-            start = datetime.utcnow()
+            
+            for n in range(1, pages):
+                #print(n)
+                url = f"https://api.politicsandwar.com/graphql?api_key={api_key}"
+                json = {'query': f"{{nations(page:{n} first:300 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name id}} offensive_wars{{winner}} defensive_wars{{date winner turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities cities{{powered infrastructure}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
+                futures.append(asyncio.ensure_future(call_api(url, json)))
+                await asyncio.sleep(0.2)
 
-            futures = [session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:{n} first:300 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name id}} offensive_wars{{winner}} defensive_wars{{date winner turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities cities{{powered infrastructure}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) for n in range(1, pages)] + applicant_futures
+            #print("--- %s seconds ---" % (time.time() - start_time))
             done_jobs = await asyncio.gather(*futures)
-            end = datetime.utcnow()
-            #print((end - start).seconds, 'sec')
+            #print("--- %s seconds ---" % (time.time() - start_time))
+            
             await message.edit(content="Caching targets...")
             for done_job in done_jobs:
-                done_job = await done_job.json()
                 for x in done_job['data']['nations']['data']:
                     if beige:
                         pass
@@ -1223,7 +1245,7 @@ class Military(commands.Cog):
                     else:
                         target['time_since_war'] = "Ongoing"
                     if war['winner'] in [0, target['id']]:
-                        rating += 10
+                        pass
                     else:
                         nation_loot = 0
                         aa_loot = 0
@@ -1292,8 +1314,7 @@ class Military(commands.Cog):
                 embed.add_field(name="Slots", value=f"{target['def_slots']}/3 used slots") 
 
                 target['beige_loot'] = None
-                rating = 0 
-                #need to add ratings for all the attributes
+
                 if target['last_active'] == '-0001-11-30 00:00:00':
                     days_inactive = 0
                 else:
@@ -1327,10 +1348,55 @@ class Military(commands.Cog):
                 rev_obj = await Economic.revenue_calc(message, target, radiation, treasures, prices, colors, seasonal_mod, None)
 
                 target['monetary_net_num'] = rev_obj['monetary_net_num']
-                target['net_cash'] = rev_obj['net_cash_num']
-                
                 embed.add_field(name="Monetary Net Income", value=rev_obj['mon_net_txt'])
+                
+                target['net_cash_num'] = rev_obj['net_cash_num']
                 embed.add_field(name="Net Cash Income", value=rev_obj['money_txt'])
+
+                target['max_infra'] = rev_obj['max_infra']
+                target['avg_infra'] = rev_obj['avg_infra']
+                embed.add_field(name="Infra", value=f"Max: {rev_obj['max_infra']}\nAvg: {rev_obj['avg_infra']}")
+
+                try:
+                    x = (target['soldiers'] * 1.75 + target['tanks'] * 40) / (atck_ntn['soldiers'] * 1.75 + atck_ntn['tanks'] * 40 + atck_ntn['population'] * 0.0025)
+                    if x > 2:
+                        ground_win_rate = 0
+                    elif x < 0.4:
+                        ground_win_rate = 1
+                    else:
+                        ground_win_rate = 1 - (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
+                except ZeroDivisionError:
+                    ground_win_rate = 0
+                target['groundwin'] = ground_win_rate
+                embed.add_field(name="Chance to win ground rolls", value=str(round(100*ground_win_rate)) + "%")
+
+                try:
+                    x = (atck_ntn['aircraft'] * 3) / (target['aircraft'] * 3)
+                    if x > 2:
+                        air_win_rate = 1
+                    elif x < 0.4:
+                        air_win_rate = 0
+                    else:
+                        air_win_rate = 1 - (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
+                except ZeroDivisionError:
+                    air_win_rate = 1
+                target['airwin'] = air_win_rate
+                embed.add_field(name="Chance to win air rolls", value=str(round(100*air_win_rate)) + "%")
+
+                try:
+                    x = (atck_ntn['ships'] * 4) / (target['ships'] * 4)
+                    if x > 2:
+                        naval_win_rate = 1
+                    elif x < 0.4:
+                        naval_win_rate = 0
+                    else:
+                        naval_win_rate = 1 - (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
+                except ZeroDivisionError:
+                    naval_win_rate = 1
+                target['navalwin'] = naval_win_rate
+                embed.add_field(name="Chance to win naval rolls", value=str(round(100*naval_win_rate)) + "%")
+
+                target['winchance'] = round((ground_win_rate+air_win_rate+naval_win_rate)*100/3)
 
                 win_rate = 0
 
@@ -1368,7 +1434,6 @@ class Military(commands.Cog):
                     win_rate += 1
 
                 target['winchance'] = round((win_rate*100)/3)
-                embed.add_field(name="Chance to win battles", value=f"{round(win_rate/3)}%")
                 if not webpage:
                     target['embed'] = embed
                 
@@ -1569,8 +1634,12 @@ class Military(commands.Cog):
         embed1 = discord.Embed(title="Battle Simulator",
                               description=f"These are the results for when [{defender_nation['nation_name']}](https://politicsandwar.com/nation/id={defender_nation['id']}) attacks [{attacker_nation['nation_name']}](https://politicsandwar.com/nation/id={attacker_nation['id']})\nIf you want to use custom troop counts, you can use the [in-game battle simulators](https://politicsandwar.com/tools/)", color=0x00ff00)
 
+        casualties = {}
+        attacker_army_value = attacker_nation['soldiers'] * 1.75 + attacker_nation['tanks'] * 40
+        defender_army_value = defender_nation['soldiers'] * 1.75 + defender_nation['tanks'] * 40 + defender_nation['population'] * 0.0025
+
         try:
-            x = (attacker_nation['soldiers'] * 1.75 + attacker_nation['tanks'] * 40) / (defender_nation['soldiers'] * 1.75 + defender_nation['tanks'] * 40 + defender_nation['population'] * 0.0025)
+            x = attacker_army_value / defender_army_value
             print(x)
             if x > 2:
                 ground_win_rate = 1
@@ -1581,8 +1650,25 @@ class Military(commands.Cog):
         except ZeroDivisionError:
             ground_win_rate = 1
 
+        winning = "loss"
+        losing = "win"
+        if attacker_army_value > defender_army_value:
+            winning = "win"
+            losing = "loss"
+        
+        for party in ["attacker", "defender"]:
+            for variant in [{"type": "avg", "rate": 0.7}, {"type": "diff", "rate": 0.3}]:
+                for fighter in [{"fighter": "soldiers", "win_cas_rate": 125, "loss_cas_rate": 125}, {"fighter": "tanks", "win_cas_rate": 1650, "loss_cas_rate": 1550}]:
+                    if party == "attacker":
+                        casualties[f"ground_{party}_{variant['type']}_{fighter['fighter']}"] = round(defender_army_value * variant['rate'] / fighter[f"{winning}_cas_rate"] * 3)
+                    elif party == "defender":
+                        casualties[f"ground_{party}_{variant['type']}_{fighter['fighter']}"] = round(attacker_army_value * variant['rate'] / fighter[f"{losing}_cas_rate"] * 3)
+
+        attacker_army_value = attacker_nation['soldiers'] * 1.75 + attacker_nation['tanks'] * 40 + attacker_nation['population'] * 0.0025
+        defender_army_value = defender_nation['soldiers'] * 1.75 + defender_nation['tanks'] * 40
+
         try:
-            x = (defender_nation['soldiers'] * 1.75 + defender_nation['tanks'] * 40) / (attacker_nation['soldiers'] * 1.75 + attacker_nation['tanks'] * 40 + attacker_nation['population'] * 0.0025)
+            x = defender_army_value / attacker_army_value
             print(x)
             if x > 2:
                 ground_loss_rate = 1
@@ -1592,6 +1678,20 @@ class Military(commands.Cog):
                 ground_loss_rate = (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
         except ZeroDivisionError:
             ground_loss_rate = 1
+
+        winning = "loss"
+        losing = "win"
+        if attacker_army_value > defender_army_value:
+            winning = "win"
+            losing = "loss"
+
+        for party in ["attacker", "defender"]:
+            for variant in [{"type": "avg", "rate": 0.7}, {"type": "diff", "rate": 0.3}]:
+                for fighter in [{"fighter": "soldiers", "win_cas_rate": 125, "loss_cas_rate": 125}, {"fighter": "tanks", "win_cas_rate": 1650, "loss_cas_rate": 1550}]:
+                    if party == "attacker":
+                        casualties[f"ground_opposite_{party}_{variant['type']}_{fighter['fighter']}"] = round(attacker_army_value * variant['rate'] / fighter[f"{winning}_cas_rate"] * 3)
+                    elif party == "defender":
+                        casualties[f"ground_opposite_{party}_{variant['type']}_{fighter['fighter']}"] = round(defender_army_value * variant['rate'] / fighter[f"{losing}_cas_rate"] * 3)
 
         try:
             x = (attacker_nation['aircraft'] * 3) / (defender_nation['aircraft'] * 3)
@@ -1605,9 +1705,18 @@ class Military(commands.Cog):
         except ZeroDivisionError:
             air_win_rate = 1
 
+        airtoair_attacker_avg = round(defender_nation['aircraft'] * 3 * 0.7 * 0.01 * 3)
+        airtoair_attacker_diff = round(defender_nation['aircraft'] * 3 * 0.3 * 0.01 * 3)
+        airtoair_defender_avg = round(attacker_nation['aircraft'] * 3 * 0.7 * 0.018337 * 3)
+        airtoair_defender_diff = round(attacker_nation['aircraft'] * 3 * 0.3 * 0.018337 * 3)
+
+        airtoground_attacker_avg = round(defender_nation['aircraft'] * 3 * 0.7 * 0.015385 * 3)
+        airtoground_attacker_diff = round(defender_nation['aircraft'] * 3 * 0.3 * 0.015385 * 3)
+        airtoground_defender_avg = round(attacker_nation['aircraft'] * 3 * 0.7 * 0.009091 * 3)
+        airtoground_defender_diff = round(attacker_nation['aircraft'] * 3 * 0.3 * 0.009091 * 3)
+        
         try:
             x = (attacker_nation['ships'] * 4) / (defender_nation['ships'] * 4)
-            print(x)
             if x > 2:
                 naval_win_rate = 1
             elif x < 0.4:
@@ -1617,7 +1726,11 @@ class Military(commands.Cog):
         except ZeroDivisionError:
             naval_win_rate = 1
 
-        print(ground_win_rate, ground_loss_rate, air_win_rate, naval_win_rate)
+        naval_attacker_avg = round(defender_nation['ships'] * 4 * 0.7 * 0.01375 * 3)
+        naval_attacker_diff = round(defender_nation['ships'] * 4 * 0.3 * 0.01375 * 3)
+        naval_defender_avg = round(attacker_nation['ships'] * 4 * 0.7 * 0.01375 * 3)
+        naval_defender_diff = round(attacker_nation['ships'] * 4 * 0.3 * 0.01375 * 3)
+
 
         ground_it = ground_win_rate**3
         ground_mod = ground_win_rate**2 * (1 - ground_win_rate) * 3
@@ -1660,7 +1773,16 @@ class Military(commands.Cog):
         else:
             embed.add_field(name="Naval Battle", value="Nobody has any forces!")
             embed1.add_field(name="Naval Battle", value="Nobody has any forces!")
+
+        embed.add_field(name="Casualties", value=f"Att. Sol.: {casualties['ground_attacker_avg_soldiers']:,} ± {casualties['ground_attacker_diff_soldiers']:,}\nAtt. Tnk.: {casualties['ground_attacker_avg_tanks']:,} ± {casualties['ground_attacker_diff_tanks']:,}\nDef. Sol.: {casualties['ground_defender_avg_soldiers']:,} ± {casualties['ground_defender_diff_soldiers']:,}\nDef. Tnk.: {casualties['ground_defender_avg_tanks']:,} ± {casualties['ground_defender_diff_tanks']:,}")        
+        embed1.add_field(name="Casualties", value=f"Att. Sol.: {casualties['ground_opposite_attacker_avg_soldiers']:,} ± {casualties['ground_opposite_attacker_diff_soldiers']:,}\nAtt. Tnk.: {casualties['ground_opposite_attacker_avg_tanks']:,} ± {casualties['ground_opposite_attacker_diff_tanks']:,}\nDef. Sol.: {casualties['ground_opposite_defender_avg_soldiers']:,} ± {casualties['ground_opposite_defender_diff_soldiers']:,}\nDef. Tnk.: {casualties['ground_opposite_defender_avg_tanks']:,} ± {casualties['ground_opposite_defender_diff_tanks']:,}")        
         
+        embed.add_field(name="Casualties", value=f"*Targeting air:*\nAtt. Plane: {airtoair_attacker_avg:,} ± {airtoair_attacker_diff:,}\nDef. Plane: {airtoair_defender_avg:,} ± {airtoair_defender_diff:,}\n*Targeting other:*\nAtt Plane: {airtoground_attacker_avg:,} ± {airtoground_attacker_diff:,}\nDef. Plane: {airtoground_defender_avg:,} ± {airtoground_defender_diff:,}")        
+        embed1.add_field(name="Casualties", value=f"*Targeting air:*\nAtt. Plane: {airtoair_defender_avg:,} ± {airtoair_defender_diff:,}\nDef. Plane: {airtoair_attacker_avg:,} ± {airtoair_attacker_diff:,}\n*Targeting other:*\nAtt. Plane: {airtoground_defender_avg:,} ± {airtoground_defender_diff:,}\nDef. Plane: {airtoground_attacker_avg:,} ± {airtoground_attacker_diff:,}")        
+
+        embed.add_field(name="Casualties", value=f"Att. Ships: {naval_attacker_avg:,} ± {naval_attacker_diff:,}\nDef. Ships: {naval_defender_avg:,} ± {naval_defender_diff:,}")        
+        embed1.add_field(name="Casualties", value=f"Att. Ships: {naval_defender_avg:,} ± {naval_defender_diff:,}\nDef. Ships: {naval_attacker_avg:,} ± {naval_attacker_diff:,}")        
+
         await message.edit(embed=embed, content="")
         await message.add_reaction("↔️")
         cur_page = 1
