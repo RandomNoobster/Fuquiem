@@ -732,78 +732,83 @@ class Military(commands.Cog):
         <head>
             <link rel="icon" href="https://i.ibb.co/2dX2WYW/atomism-ICONSSS.png">
             <title>Raid targets</title>
+            <style>
+                table {
+                    font-family: Verdana, Arial, Monaco;
+                    font-size: 80%;
+                    border-collapse: collapse;
+                    width: 100%;
+                }
+
+                th {
+                    text-align: left;
+                    padding: 6px;
+                }
+
+                tr:nth-child(even) {
+                    background-color: #f2f2f2
+                }
+
+                th {
+                    background-color: #383838;
+                    color: white;
+                    cursor: pointer;
+                }
+
+                th:hover {
+                    background-color: #008000;
+                }
+
+                td {
+                    position: relative;
+                    text-align: left;
+                    padding: 1px 6px;
+                    white-space: nowrap;
+                }
+
+                tr.strikeout td:before {
+                    content: " ";
+                    position: absolute;
+                    top: 50%;
+                    left: 0;
+                    border-bottom: 1px solid #111;
+                    width: 100%;
+                }
+
+                p {
+                    font-family: sans-serif;
+                    font-size: small;
+                }
+
+            </style>
+            <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+            <script>
+                function postreq(id, turns, name, btn_id) {
+                    console.log('button click registered')
+                    var to_parse = {turns: turns, invoker: "${invoker}", id: id, endpoint: "${endpoint}"}
+
+                    $.ajax({
+                        url: 'https://fuquiem.karemcbob.repl.co/raids/${endpoint}',
+                        type: 'POST',
+                        data: JSON.stringify(to_parse),
+                        contentType: "application/json; charset=utf-8",
+                        dataType: "text",
+                        success: function(data) {
+                            console.log(data);
+                            var abc = document.getElementById(btn_id);
+                            abc.innerHTML = "Reminder active";
+                        },
+                        error: function(er) {
+                            console.log(er);
+                            var abc = document.getElementById(btn_id);
+                            abc.innerHTML = "<b>Error! Try reloading the page.</b>";
+                        }
+                    });
+                };
+            </script>
         </head>
         <body>
             <div style="overflow-x:auto;">
-                <style>
-                    table {
-                        font-family: Verdana, Arial, Monaco;
-                        font-size: 80%;
-                        border-collapse: collapse;
-                        width: 100%;
-                    }
-
-                    th {
-                        text-align: left;
-                        padding: 6px;
-                    }
-
-                    tr:nth-child(even) {
-                        background-color: #f2f2f2
-                    }
-
-                    th {
-                        background-color: #4CAF50;
-                        color: white;
-                        cursor: pointer;
-                    }
-
-                    th:hover {
-                        background-color: #008000;
-                    }
-
-                    td {
-                        position: relative;
-                        text-align: left;
-                        padding: 1px 6px;
-                        white-space: nowrap;
-                    }
-
-                    tr.strikeout td:before {
-                        content: " ";
-                        position: absolute;
-                        top: 50%;
-                        left: 0;
-                        border-bottom: 1px solid #111;
-                        width: 100%;
-                    }
-
-                </style>
-                <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-                <script>
-                    function postreq(id, turns, name, btn_id) {
-                        console.log('button click registered')
-                        var to_parse = {turns: turns, invoker: "${invoker}", id: id, endpoint: "${endpoint}"}
-
-                        $.ajax({
-                            url: 'https://fuquiem.karemcbob.repl.co/raids/${endpoint}',
-                            type: 'POST',
-                            data: JSON.stringify(to_parse),
-                            contentType: "application/json; charset=utf-8",
-                            dataType: "text",
-                            success: function(data) {
-                                console.log(data);
-                                var abc = document.getElementById(btn_id);
-                                abc.innerHTML = "Reminder active";
-                            },
-                            error: function(er) {
-                                console.log(er);
-                                var abc = document.getElementById(btn_id);
-                                abc.innerHTML = "<b>Error! Try reloading the page.</b>";
-                            }
-                        });
-                    };
-                </script>
                 <table id="grid">
                     <tbody>
                         <tr>
@@ -897,9 +902,10 @@ class Military(commands.Cog):
                             % endif
                         </tr>
                         % endfor
-
+                    </tbody>
                 </table>
                 <p>Last updated: ${datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC<br><a href="http://www.timezoneconverter.com/cgi-bin/tzc.tzc" target="_blank">Timezone converter</a></p>
+                <p style="color:gray">Please report bugs to RandomNoobster#0093<br>Courtesy of Church of Atom</p>
                 <script>
                     const getCellValue = (tr, idx) => tr.children[idx].innerText || tr.children[idx].textContent;
 
