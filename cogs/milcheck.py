@@ -889,7 +889,7 @@ class Military(commands.Cog):
                             <td>${nation['winchance']}</td>
                             <td>${nation['def_slots']}/3</td>
                             <td style="text-align:right">${nation['monetary_net_num']}</td>
-                            <td style="text-align:right">${nation['net_cash']}</td>
+                            <td style="text-align:right">${nation['net_cash_num']}</td>
                             <td style="text-align:right">${nation['time_since_war']}</td>
                             <td style="text-align:right">${nation['nation_loot']}</td>
                             <td style="text-align:right">${nation['aa_loot']}</td>
@@ -1083,15 +1083,22 @@ class Military(commands.Cog):
                     beige = False
                     break
 
+            target_list = []
+            futures = []
+            tot_pages = 0
+            app_pages = 1
+            any_pages = 1
+            progress = 0
+            
             async def call_api(url, json):
+                nonlocal progress
+                await message.edit(content=f"Getting targets... ({progress}/{tot_pages})")
                 async with session.post(url, json=json) as temp:
                     resp = await temp.json()
                     print("future recieved")
+                    progress += 1
+                    await message.edit(content=f"Getting targets... ({progress}/{tot_pages})")
                     return resp
-
-            target_list = []
-            futures = []
-            pages = 1
             
             await message.clear_reactions()
             await message.edit(content="Getting targets...", embed=None)
@@ -1101,29 +1108,32 @@ class Military(commands.Cog):
 
             if applicants == True:
                 async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 first:300 min_score:{minscore} max_score:{maxscore} vmode:false alliance_position:1){{paginatorInfo{{lastPage}}}}}}"}) as temp:
-                    pages += (await temp.json())['data']['nations']['paginatorInfo']['lastPage']
-
-                for n in range(1, pages):
-                    #print(n)
-                    url = f"https://api.politicsandwar.com/graphql?api_key={api_key}"
-                    json = {'query': f"{{nations(page:{n} first:300 min_score:{minscore} max_score:{maxscore} vmode:false alliance_position:1){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name id}} offensive_wars{{winner}} defensive_wars{{date winner turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities cities{{powered infrastructure}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
-                    futures.append(asyncio.ensure_future(call_api(url, json)))
-                    await asyncio.sleep(0.2)
+                    tot_pages += (await temp.json())['data']['nations']['paginatorInfo']['lastPage']
+                    app_pages += (await temp.json())['data']['nations']['paginatorInfo']['lastPage']
 
             async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 first:300 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{paginatorInfo{{lastPage}}}}}}"}) as temp1:
-                pages += (await temp1.json())['data']['nations']['paginatorInfo']['lastPage']
+                tot_pages += (await temp1.json())['data']['nations']['paginatorInfo']['lastPage']
+                any_pages += (await temp1.json())['data']['nations']['paginatorInfo']['lastPage']
+
+            if applicants == True:
+                for n in range(1, app_pages):
+                    #print(n)
+                    url = f"https://api.politicsandwar.com/graphql?api_key={api_key}"
+                    json = {'query': f"{{nations(page:{n} first:300 min_score:{minscore} max_score:{maxscore} vmode:false alliance_position:1){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name id}} offensive_wars{{winner}} defensive_wars{{date winner turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
+                    futures.append(asyncio.ensure_future(call_api(url, json)))
+                    await asyncio.sleep(0.2)
             
-            for n in range(1, pages):
+            for n in range(1, any_pages):
                 #print(n)
                 url = f"https://api.politicsandwar.com/graphql?api_key={api_key}"
-                json = {'query': f"{{nations(page:{n} first:300 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name id}} offensive_wars{{winner}} defensive_wars{{date winner turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities cities{{powered infrastructure}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
+                json = {'query': f"{{nations(page:{n} first:300 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name id}} offensive_wars{{winner}} defensive_wars{{date winner turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
                 futures.append(asyncio.ensure_future(call_api(url, json)))
                 await asyncio.sleep(0.2)
 
             #print("--- %s seconds ---" % (time.time() - start_time))
             done_jobs = await asyncio.gather(*futures)
             #print("--- %s seconds ---" % (time.time() - start_time))
-            
+
             await message.edit(content="Caching targets...")
             for done_job in done_jobs:
                 for x in done_job['data']['nations']['data']:
@@ -1141,6 +1151,8 @@ class Military(commands.Cog):
                         for attack in war['attacks']:
                             if attack['loot_info']:
                                 attack['loot_info'] = attack['loot_info'].replace("\r\n", "")
+                    if x['alliance_id'] in ["4729", "7531"]:
+                        continue
                     if used_slots > max_wars:
                         continue
                     target_list.append(x)
