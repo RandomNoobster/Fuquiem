@@ -1204,6 +1204,8 @@ class Economic(commands.Cog):
             if crime_deaths < 0:
                 crime_deaths = 0
             disease_rate = (((((base_pop / city['land'])**2) * 0.01) - 25)/100) + (base_pop/100000) + pollution * 0.05 - city['hospital'] * hos_dis_red
+            if disease_rate > 100:
+                disease_rate = 100
             disease_deaths = base_pop * (disease_rate/100)
             if disease_deaths < 0:
                 disease_deaths = 0
