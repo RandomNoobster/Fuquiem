@@ -880,16 +880,16 @@ class Military(commands.Cog):
                             <td>${(datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%d %H:%M:%S")).days}</td>
                             % endif
 
-                            <td>${nation['soldiers']}</td>
-                            <td>${nation['tanks']}</td>
+                            <td>${f"{nation['soldiers']:,}"}</td>
+                            <td>${f"{nation['tanks']:,}"}</td>
                             <td>${nation['aircraft']}</td>
                             <td>${nation['ships']}</td>
                             <td>${nation['missiles']}</td>
                             <td>${nation['nukes']}</td>
                             <td>${nation['winchance']}</td>
                             <td>${nation['def_slots']}/3</td>
-                            <td style="text-align:right">${nation['monetary_net_num']}</td>
-                            <td style="text-align:right">${nation['net_cash_num']}</td>
+                            <td style="text-align:right">${f"{nation['monetary_net_num']:,}"}</td>
+                            <td style="text-align:right">${f"{nation['net_cash_num']:,}"}</td>
                             <td style="text-align:right">${nation['time_since_war']}</td>
                             <td style="text-align:right">${nation['nation_loot']}</td>
                             <td style="text-align:right">${nation['aa_loot']}</td>
@@ -907,7 +907,7 @@ class Military(commands.Cog):
                 <p>Last updated: ${datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC<br><a href="http://www.timezoneconverter.com/cgi-bin/tzc.tzc" target="_blank">Timezone converter</a></p>
                 <p style="color:gray">Please report bugs to RandomNoobster#0093<br>Courtesy of Church of Atom</p>
                 <script>
-                    const getCellValue = (tr, idx) => tr.children[idx].innerText || tr.children[idx].textContent;
+                    const getCellValue = (tr, idx) => tr.children[idx].innerText.replace(/,/g, '') || tr.children[idx].textContent.replace(/,/g, '');
 
                     const comparer = (idx, asc) => (a, b) => ((v1, v2) => 
                         v1 !== '' && v2 !== '' && !isNaN(v1) && !isNaN(v2) ? v1 - v2 : v1.toString().localeCompare(v2)
@@ -1309,15 +1309,15 @@ class Military(commands.Cog):
                                         aa_loot += amount * price
                                 else:
                                     continue
-                        target['nation_loot'] = round(nation_loot)
-                        target['aa_loot'] = round(aa_loot)
+                        target['nation_loot'] = f"{round(nation_loot):,}"
+                        target['aa_loot'] = f"{round(aa_loot):,}"
                         target['same_aa'] = same_aa
-                        embed.add_field(name="Previous nation loot", value=f"${round(target['nation_loot']):,}")
+                        embed.add_field(name="Previous nation loot", value=f"${round(nation_loot):,}")
 
                         if same_aa or target['aa_loot'] == 0:
-                            embed.add_field(name="Previous aa loot", value=f"${round(target['aa_loot']):,}")
+                            embed.add_field(name="Previous aa loot", value=f"${round(aa_loot):,}")
                         else:
-                            embed.add_field(name="Previous aa loot", value=f"${round(target['aa_loot']):,}\nNOTE: Different aa!")
+                            embed.add_field(name="Previous aa loot", value=f"${round(aa_loot):,}\nNOTE: Different aa!")
 
                 if prev_nat_loot == False:
                     embed.add_field(name="Previous nation loot", value="NaN")
@@ -1329,9 +1329,8 @@ class Military(commands.Cog):
                     else:
                         target['aa_loot'] = 0
                     target['same_aa'] = "Irrelevant"
-                embed.add_field(name="Slots", value=f"{target['def_slots']}/3 used slots") 
 
-                target['beige_loot'] = None
+                embed.add_field(name="Slots", value=f"{target['def_slots']}/3 used slots") 
 
                 if target['last_active'] == '-0001-11-30 00:00:00':
                     days_inactive = 0
