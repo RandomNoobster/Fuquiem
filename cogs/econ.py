@@ -962,7 +962,7 @@ class Economic(commands.Cog):
                 seasonal_mod['af'] = 1.2
                 seasonal_mod['au'] = 1.2
 
-        rev_obj = await self.revenue_calc(message, nation, radiation, treasures, prices, colors, seasonal_mod, None)
+        rev_obj = await self.revenue_calc(message, nation, radiation, treasures, prices, colors, seasonal_mod, build)
 
         if build != None:
             build_txt = "daily city revenue with this build"
