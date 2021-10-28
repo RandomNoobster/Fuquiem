@@ -980,6 +980,7 @@ class Economic(commands.Cog):
         embed.add_field(name="Expenses", value=rev_obj['expenses_txt'])
         embed.add_field(name="Net Revenue", value=rev_obj['net_rev_txt'])
         embed.add_field(name="Monetary Net Income", inline=False, value=rev_obj['mon_net_txt'])
+        embed.set_footer(text=rev_obj['footer'])
 
         await message.edit(content="", embed=embed)
 
@@ -1025,6 +1026,7 @@ class Economic(commands.Cog):
         new_player_text = ""
         policy_bonus_text = ""
         treasure_text = ""
+        footer = ""
         
         if nation['ironw'] == True:
             ste_mod = 1.36
@@ -1282,13 +1284,15 @@ class Economic(commands.Cog):
             mil_cost = 0.95
             policy_bonus_text = f"\n\nImperialism Bonus: ${round(military_upkeep * 0.05):,}"
         if food < 0:
-            starve_exp_text = f"\n\nPossible Starvation Penalty: ${round(money_income * policy_bonus * new_player_bonus * 0.33):,}"
-            starve_money_text = f" (${round(money_income * policy_bonus * new_player_bonus * 0.67 + color_bonus - power_upkeep - rss_upkeep - military_upkeep * mil_cost - civil_upkeep):,})"
-            starve_net_text = f" (${round(money_income * policy_bonus * new_player_bonus * 0.67 + color_bonus - power_upkeep - rss_upkeep - military_upkeep * mil_cost - civil_upkeep + coal * prices['coal'] + oil * prices['oil'] + uranium * prices['uranium'] + lead * prices['lead'] + iron * prices['iron'] + bauxite * prices['bauxite'] + gasoline * prices['gasoline'] + munitions * prices['munitions'] + steel * prices['steel'] + aluminum * prices['aluminum'] + food * prices['food']):,})"
+            starve_exp_text = f"\n\nPossible Starvation Penalty: ${round(money_income * policy_bonus * new_player_bonus * 0.33):,}*"
+            starve_money_text = f" (${round(money_income * policy_bonus * new_player_bonus * 0.67 + color_bonus - power_upkeep - rss_upkeep - military_upkeep * mil_cost - civil_upkeep):,}*)"
+            starve_net_text = f" (${round(money_income * policy_bonus * new_player_bonus * 0.67 + color_bonus - power_upkeep - rss_upkeep - military_upkeep * mil_cost - civil_upkeep + coal * prices['coal'] + oil * prices['oil'] + uranium * prices['uranium'] + lead * prices['lead'] + iron * prices['iron'] + bauxite * prices['bauxite'] + gasoline * prices['gasoline'] + munitions * prices['munitions'] + steel * prices['steel'] + aluminum * prices['aluminum'] + food * prices['food']):,}*)"
+            footer = "* The income if the nation is suffering from a starvation penalty"
         
         max_infra = sorted(nation['cities'], key=lambda k: k['infrastructure'], reverse=True)[0]['infrastructure']
 
         rev_obj = {}
+        rev_obj['footer'] = footer
         rev_obj['nation'] = nation
         rev_obj['max_infra'] = max_infra
         rev_obj['avg_infra'] = round(total_infra / nation['num_cities'])
