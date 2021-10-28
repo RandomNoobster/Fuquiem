@@ -34,7 +34,6 @@ class General(commands.Cog):
         milcom = "[Raiding Guide](https://docs.google.com/document/d/1a5xWQUKVH8-vJmBdXgQVUpR_U-DhLwPWMPjPvEVTFqQ/edit#)\n[CTO](https://ctowned.net)\n[Slotter](https://slotter.bsnk.dev/search)\n[WarNet Plus](https://plus.bsnk.dev)"
         ia = "[CoA's Guide to P&W](https://docs.google.com/document/u/1/d/1lrPGQpaAGygRCmZP1U6y5S2ryzMApByPagFNUzdwtJU/edit#)\n[Nations sheet](https://fuquiem.karemcbob.repl.co/sheet)\n[Multi-Buster Tool](https://politicsandwar.com/index.php?id=178)\n"
         fa = "[Discord invite link](https://discord.gg/uszcTxr)\n[FA Discord invite link](https://discord.gg/dZ9u53Tqpm)\n"
-        text = ""
         embed = discord.Embed(title='Links:', description="", color=0x00ff00)
         embed.add_field(name="Internal Affairs", value=ia)
         embed.add_field(name="Military Affairs", value=milcom)
