@@ -110,10 +110,10 @@ class General(commands.Cog):
         reminders = ""
         person['beige_alerts'] = sorted(person['beige_alerts'], key=lambda k: k['time'], reverse=True)
         for x in person['beige_alerts']:
-            reminders += (f"\n{datetime.strftime(x['time'], '%d %B, %H:%M')} UTC ({round((x['time'] - datetime.utcnow()).total_seconds() // 3600)}h {round(((x['time'] - datetime.utcnow()).total_seconds() % 3600 // 60))}m) - <https://politicsandwar.com/nation/id={x['id']}>")
+            reminders += (f"\n<t:{round(x['time'].timestamp())}> (<t:{round(x['time'].timestamp())}:R>) - <https://politicsandwar.com/nation/id={x['id']}>")
         await message.edit(content=f"Here are your reminders:\n{reminders}")
     
-    @commands.command(brief='Delete a beige reminder', help='', aliases=['delalert', 'delrem'])
+    @commands.command(brief='Delete a beige reminder', help='', aliases=['delalert', 'delrem', 'del_reminder'])
     async def delreminder(self, ctx, id):
         message = await ctx.send('Fuck requiem...')
         id = str(re.sub("[^0-9]", "", id))
@@ -130,7 +130,7 @@ class General(commands.Cog):
             await message.edit(content="I did not find a reminder for that nation!")
         await message.edit(content=f"Your beige reminder for https://politicsandwar.com/nation/id={id} was deleted.")
 
-    @commands.command(brief='Add a beige reminder', help='', aliases=['ar', 'remindme', 'addreminder'])
+    @commands.command(brief='Add a beige reminder', help='', aliases=['ar', 'remindme', 'addreminder', 'add_reminder'])
     async def remind(self, ctx, arg):
         message = await ctx.send('Fuck requiem...')
         Database = self.bot.get_cog('Database')
