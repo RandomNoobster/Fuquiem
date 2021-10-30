@@ -45,7 +45,7 @@ class General(commands.Cog):
         Database = self.bot.get_cog('Database')
         if api_nation['allianceposition'] > '2':
             await message.edit(content="I cannot let you change the perms of a person of such high ranking!")
-            return
+            return {}
         if api_nation['allianceid'] == '4729':
             admin_id = 465463547200012298
         elif api_nation['allianceid'] == '7531':
@@ -208,7 +208,7 @@ class General(commands.Cog):
                         if msg.content.lower() in ['yes', 'y']:
                             await msg.delete()
                             await message.edit(content="Continue I shall.")
-                            return
+                            break
                         elif msg.content.lower() in ['no', 'n']:
                             await msg.delete()
                             await message.edit(content="Canceled by user.")
@@ -226,7 +226,9 @@ class General(commands.Cog):
                 variant = 1
                 await message.edit(embed=None, content="Thinking...")
                 await message.clear_reactions()
-                await last_message(variant)
+                res = await last_message(variant)
+                if res == {}:
+                    return
                 if api_nation['allianceposition'] == '1':
                     try:
                         while True:
@@ -266,7 +268,9 @@ class General(commands.Cog):
                 variant = 2
                 await message.edit(embed=None, content="Thinking...")
                 await message.clear_reactions()
-                await last_message(variant)
+                res = await last_message(variant)
+                if res == {}:
+                    return
                 res = await discord_dm()                
                 if res == {}:
                     return
@@ -278,7 +282,9 @@ class General(commands.Cog):
                 variant = 3
                 await message.edit(embed=None, content="Thinking...")
                 await message.clear_reactions()
-                await last_message(variant)
+                res = await last_message(variant)
+                if res == {}:
+                    return
                 subject = "Incomplete application, please complete it!"
                 text = f"Hi {nation['leader']},\n\nI can see that you are currently applying to our alliance. Please note that you have to apply on discord as well in order to become a member.\n\nJoin the Church of Atom discord <a href=\"https://discord.gg/uszcTxr\">here</a>. After joining the discord, go to the channel called #apply-here to create an application ticket.\n\nLet me know if you have any questions.\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
                 break
@@ -287,7 +293,9 @@ class General(commands.Cog):
                 variant = 4
                 await message.edit(embed=None, content="Thinking...")
                 await message.clear_reactions()
-                await last_message(variant)
+                res = await last_message(variant)
+                if res == {}:
+                    return
                 try:
                     while True:
                         await message.edit(content=f"I noticed that {api_nation['leadername']} of {api_nation['name']} (<https://politicsandwar.com/nation/id={api_nation['nationid']}>) is currently a member, do you want me to move them to applicant?")
@@ -573,7 +581,7 @@ class General(commands.Cog):
                 await msg.delete()
                 await message.edit(content='I will attempt to change their status.')
                 await asyncio.sleep(2)
-                res = await self.change_perm(message, response, "0")
+                res = await self.change_perm(message, response, "2")
                 if res == {}:
                     return
             elif msg.content.lower() in ['no', 'n']:
@@ -584,7 +592,6 @@ class General(commands.Cog):
         except asyncio.TimeoutError:
             await ctx.send('Command timed out, you were too slow to respond.')
             return
-        await self.change_perm(message, response, "2")
         
     def buildspage(self, builds, rss, land, unique_builds):
         template = """
