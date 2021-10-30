@@ -213,7 +213,7 @@ class Database(commands.Cog):
     @commands.dm_only()
     async def mycredentials(self, ctx):
         cipher_suite = Fernet(key)
-        person = await self.find_user(self, ctx.author.id)
+        person = await self.find_user(ctx.author.id)
         try:
             email = str(cipher_suite.decrypt(person['email'].encode()))[2:-1]
             pwd = str(cipher_suite.decrypt(person['pwd'].encode()))[2:-1]
@@ -330,7 +330,7 @@ class Database(commands.Cog):
 
     @commands.command(brief='Anyways, who is that guy?', aliases=['whois'])
     async def who(self, ctx, *, arg):
-        person = await self.find_user(self, arg)
+        person = await self.find_user(arg)
         if person == {} or person == None:
             try:
                 result = list(mongo.world_nations.find({"nation": arg}).collation(
