@@ -110,6 +110,18 @@ class Database(commands.Cog):
                 except:
                     result = None
         return result
+    
+    async def find_nation_plus(self, arg):
+        nation = await self.find_nation(arg)
+        if nation == None:
+            nation = await self.find_user(arg)
+            if nation == {}:
+                return None
+            else:
+                nation = await self.find_nation(nation['nationid'])
+                if nation == None:
+                    return None
+        return nation
 
 
     @commands.command(brief='Meant for debugging purposes')
@@ -201,7 +213,7 @@ class Database(commands.Cog):
     @commands.dm_only()
     async def mycredentials(self, ctx):
         cipher_suite = Fernet(key)
-        person = await Database.find_user(self, ctx.author.id)
+        person = await self.find_user(self, ctx.author.id)
         try:
             email = str(cipher_suite.decrypt(person['email'].encode()))[2:-1]
             pwd = str(cipher_suite.decrypt(person['pwd'].encode()))[2:-1]
@@ -318,7 +330,7 @@ class Database(commands.Cog):
 
     @commands.command(brief='Anyways, who is that guy?', aliases=['whois'])
     async def who(self, ctx, *, arg):
-        person = await Database.find_user(self, arg)
+        person = await self.find_user(self, arg)
         if person == {} or person == None:
             try:
                 result = list(mongo.world_nations.find({"nation": arg}).collation(
