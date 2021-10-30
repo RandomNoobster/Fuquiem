@@ -1,6 +1,7 @@
 import random
 import discord
 import requests
+from requests import api
 from main import mongo
 from datetime import datetime, timedelta
 from discord.ext import commands
@@ -27,6 +28,9 @@ class Raffle(commands.Cog):
         api_nation = requests.get(f"http://politicsandwar.com/api/nation/id={x['nationid']}&key=e5171d527795e8").json()
         if api_nation['allianceid'] != "7531":
             await ctx.send("You are not in the Convent!")
+            return
+        elif api_nation['cities'] >= 15:
+            await ctx.send(f"You have {api_nation['cities']} cities. You should be reaching towards the Church!")
         else:
             if x['signedup']:
                 await ctx.send('You have already signed up!')
