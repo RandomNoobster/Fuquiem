@@ -102,6 +102,8 @@ class General(commands.Cog):
                     await message.edit(content='I could not find that nation!')
                     return
 
+        msg_hist = mongo.message_history.find_one({"nationid": nation['nationid']})
+
         api_nation = requests.get(f"http://politicsandwar.com/api/nation/id={nation['nationid']}&key=e5171d527795e8").json()
 
         invoker = await Database.find_user(ctx.author.id)
@@ -145,31 +147,72 @@ class General(commands.Cog):
             if user == None:
                 await message.edit(content="Do you want to cancel this process and add them to the db? Then I can attempt to DM them on discord. (y/n)")
                 try:
-                    msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
-                    if msg.content.lower() in ['yes', 'y']:
-                        await msg.delete()
-                        await message.edit(content="I canceled this process, now you can use $dba to add them to the database.")
-                        return
-                    elif msg.content.lower() in ['no', 'n']:
-                        await msg.delete()
-                        await message.edit(content="Alright, I'll keep on going then.")
-                        await asyncio.sleep(2)
+                    while True:
+                        msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
+                        if msg.content.lower() in ['yes', 'y']:
+                            await msg.delete()
+                            await message.edit(content="I canceled this process, now you can use $dba to add them to the database.")
+                            return {}
+                        elif msg.content.lower() in ['no', 'n']:
+                            await msg.delete()
+                            await message.edit(content="Alright, I'll keep on going then.")
+                            await asyncio.sleep(2)
+                            break
                 except asyncio.TimeoutError:
                     await message.edit(content='Command timed out, you were too slow to respond.')
                     return {}
             else:
                 await message.edit(content="Do you want me to DM them on discord? (y/n)")
                 try:
-                    msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
-                    if msg.content.lower() in ['yes', 'y']:
-                        await msg.delete()
-                        dm = True
-                        await message.edit(content="Alright, will do.")
-                        await asyncio.sleep(2)
-                    elif msg.content.lower() in ['no', 'n']:
-                        await msg.delete()
-                        await message.edit(content="Calm your tits, no reason to be rude. I suppose I won't do that then.")
-                        await asyncio.sleep(2)
+                    while True:
+                        msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
+                        if msg.content.lower() in ['yes', 'y']:
+                            await msg.delete()
+                            dm = True
+                            await message.edit(content="Alright, will do.")
+                            await asyncio.sleep(2)
+                            break
+                        elif msg.content.lower() in ['no', 'n']:
+                            await msg.delete()
+                            await message.edit(content="Calm your tits, no reason to be rude. I suppose I won't do that then.")
+                            await asyncio.sleep(2)
+                            break
+                except asyncio.TimeoutError:
+                    await message.edit(content='Command timed out, you were too slow to respond.')
+                    return {}
+
+        async def last_message(variant):
+            nonlocal ctx, message, msg_hist
+            if msg_hist == None:
+                return
+            #print(msg_hist)
+            relevant_msg_hist = [x for x in msg_hist['log'] if x['variant'] == variant]
+            if len(relevant_msg_hist) > 0:
+                message_content = "A message with regards to this was sent by"
+                n = 0
+                for x in relevant_msg_hist:
+                    n += 1
+                    sender = await self.bot.fetch_user(x['sender'])
+                    message_content += f" `{sender}` <t:{x['epoch']}:R>"
+                    if len(relevant_msg_hist) - n == 1:
+                        message_content += " and"
+                    elif len(relevant_msg_hist) - n == 0:
+                        message_content += ""
+                    else:
+                        message_content += ","
+                message_content += ". Do you want to continue?"
+                await message.edit(content=message_content)
+                try:
+                    while True:
+                        msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
+                        if msg.content.lower() in ['yes', 'y']:
+                            await msg.delete()
+                            await message.edit(content="Continue I shall.")
+                            return
+                        elif msg.content.lower() in ['no', 'n']:
+                            await msg.delete()
+                            await message.edit(content="Canceled by user.")
+                            return {}
                 except asyncio.TimeoutError:
                     await message.edit(content='Command timed out, you were too slow to respond.')
                     return {}
@@ -180,25 +223,29 @@ class General(commands.Cog):
                 continue
 
             if str(reaction.emoji) == "1\N{variation selector-16}\N{combining enclosing keycap}":
+                variant = 1
                 await message.edit(embed=None, content="Thinking...")
                 await message.clear_reactions()
+                await last_message(variant)
                 if api_nation['allianceposition'] == '1':
                     try:
-                        await message.edit(content=f"I noticed that {api_nation['leadername']} of {api_nation['name']} (<https://politicsandwar.com/nation/id={api_nation['nationid']}>) is currently an applicant, do you want me to remove them?")
-                        msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
+                        while True:
+                            await message.edit(content=f"I noticed that {api_nation['leadername']} of {api_nation['name']} (<https://politicsandwar.com/nation/id={api_nation['nationid']}>) is currently an applicant, do you want me to remove them?")
+                            msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
 
-                        if msg.content.lower() in ['yes', 'y']:
-                            await msg.delete()
-                            await message.edit(content='I will attempt to change their status.')
-                            await asyncio.sleep(2)
-                            res = await self.change_perm(message, api_nation, "0")
-                            if res == {}:
+                            if msg.content.lower() in ['yes', 'y']:
+                                await msg.delete()
+                                await message.edit(content='I will attempt to change their status.')
+                                await asyncio.sleep(2)
+                                res = await self.change_perm(message, api_nation, "0")
+                                if res == {}:
+                                    return
+                                break
+                            elif msg.content.lower() in ['no', 'n']:
+                                await msg.delete()
+                                await message.edit(content='I will not change their status.')
+                                await asyncio.sleep(2)
                                 return
-                        elif msg.content.lower() in ['no', 'n']:
-                            await msg.delete()
-                            await message.edit(content='I will not change their status.')
-                            await asyncio.sleep(2)
-                            return
 
                     except asyncio.TimeoutError:
                         await ctx.send('Command timed out, you were too slow to respond.')
@@ -216,8 +263,10 @@ class General(commands.Cog):
                 break
 
             elif str(reaction.emoji) == "2\N{variation selector-16}\N{combining enclosing keycap}":
+                variant = 2
                 await message.edit(embed=None, content="Thinking...")
                 await message.clear_reactions()
+                await last_message(variant)
                 res = await discord_dm()                
                 if res == {}:
                     return
@@ -226,30 +275,37 @@ class General(commands.Cog):
                 break
                 
             elif str(reaction.emoji) == "3\N{variation selector-16}\N{combining enclosing keycap}":
+                variant = 3
                 await message.edit(embed=None, content="Thinking...")
                 await message.clear_reactions()
+                await last_message(variant)
                 subject = "Incomplete application, please complete it!"
                 text = f"Hi {nation['leader']},\n\nI can see that you are currently applying to our alliance. Please note that you have to apply on discord as well in order to become a member.\n\nJoin the Church of Atom discord <a href=\"https://discord.gg/uszcTxr\">here</a>. After joining the discord, go to the channel called #apply-here to create an application ticket.\n\nLet me know if you have any questions.\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
                 break
 
             elif str(reaction.emoji) == "4\N{variation selector-16}\N{combining enclosing keycap}":
+                variant = 4
                 await message.edit(embed=None, content="Thinking...")
                 await message.clear_reactions()
+                await last_message(variant)
                 try:
-                    await message.edit(content=f"I noticed that {api_nation['leadername']} of {api_nation['name']} (<https://politicsandwar.com/nation/id={api_nation['nationid']}>) is currently a member, do you want me to move them to applicant?")
-                    msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
+                    while True:
+                        await message.edit(content=f"I noticed that {api_nation['leadername']} of {api_nation['name']} (<https://politicsandwar.com/nation/id={api_nation['nationid']}>) is currently a member, do you want me to move them to applicant?")
+                        msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
 
-                    if msg.content.lower() in ['yes', 'y']:
-                        await msg.delete()
-                        await message.edit(content='I will attempt to change their status.')
-                        await asyncio.sleep(2)
-                        res = await self.change_perm(message, api_nation, "1")
-                        if res == {None}:
-                            return
-                    elif msg.content.lower() in ['no', 'n']:
-                        await msg.delete()
-                        await message.edit(content='I will not change their status.')
-                        await asyncio.sleep(2)
+                        if msg.content.lower() in ['yes', 'y']:
+                            await msg.delete()
+                            await message.edit(content='I will attempt to change their status.')
+                            await asyncio.sleep(2)
+                            res = await self.change_perm(message, api_nation, "1")
+                            if res == {}:
+                                return
+                            break
+                        elif msg.content.lower() in ['no', 'n']:
+                            await msg.delete()
+                            await message.edit(content='I will not change their status.')
+                            await asyncio.sleep(2)
+                            break
 
                 except asyncio.TimeoutError:
                     await ctx.send('Command timed out, you were too slow to respond.')
@@ -264,17 +320,20 @@ class General(commands.Cog):
 
         await message.edit(embed=None, content=f"Do you want to send {nation['leader']} of {nation['nation']} (<https://politicsandwar.com/nation/id={nation['nationid']}>) this message? (y/n)\n\n```{text}```")
         try:
-            msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
-            if msg.content.lower() in ['yes', 'y']:
-                await msg.delete()
-                res = requests.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': 218856, 'subject': subject, 'message': text})
-                if res.status_code == 200:
-                    await message.edit(content="Ingame message was sent!")
-                else:
-                    await message.edit(content=f"Error {res.status_code} Ingame message was not sent!")
-            elif msg.content.lower() in ['no', 'n']:
-                await msg.delete()
-                await message.edit(content='Sending of message was canceled.')
+            while True:
+                msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
+                if msg.content.lower() in ['yes', 'y']:
+                    await msg.delete()
+                    res = requests.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': 218856, 'subject': subject, 'message': text})
+                    if res.status_code == 200:
+                        await message.edit(content="Ingame message was sent!")
+                    else:
+                        await message.edit(content=f"Error {res.status_code} Ingame message was not sent!")
+                    break
+                elif msg.content.lower() in ['no', 'n']:
+                    await msg.delete()
+                    await message.edit(content='Sending of message was canceled.')
+                    break
         except asyncio.TimeoutError:
             await message.edit(content='Command timed out, you were too slow to respond.')
             return
@@ -288,6 +347,8 @@ class General(commands.Cog):
                 await ctx.send(f"{dm_chan} doesn't accept my DMs <:sadcat:787450782747590668>")
             except Exception as error:
                 await ctx.send(f"Some error occured, so I couldn't DM them <:sadcat:787450782747590668>\n\n```{error}```")
+        
+        mongo.message_history.find_one_and_update({"nationid": nation['nationid']}, {"$push": {"log": {"sender": ctx.author.id, "epoch": round(datetime.now().timestamp()), "dm": dm, "variant": variant}}}, upsert=True)
         
     @commands.command(brief='Displays a list the 25 first people sorted by shortest timer', help='Accepts an optional argument "convent"', aliases=['ct', 'citytimers', 'timers', 'timer'])
     async def citytimer(self, ctx, aa='church'):
@@ -347,7 +408,7 @@ class General(commands.Cog):
     async def reminders(self, ctx):
         message = await ctx.send('Fuck requiem...')
         person = mongo.users.find_one({"user": ctx.author.id})
-        print(person)
+        #print(person)
         if person == None:
             await message.edit(content="I cannot find you in the database!")
         insults = ['ha loser', 'what a nub', 'such a pleb', 'get gud', 'u suc lol']
@@ -386,7 +447,7 @@ class General(commands.Cog):
         if nation == None:
             await message.edit(content='I could not find that nation!')
             return
-        print(nation)
+        #print(nation)
         res = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation['nationid']}){{data{{beigeturns}}}}}}"}).json()['data']['nations']['data'][0]
         if res['beigeturns'] == 0:
             await message.edit(content="They are not beige!")
