@@ -20,17 +20,21 @@ class Raffle(commands.Cog):
     @commands.command(brief='Signs you up for the raffle!')
     @commands.has_any_role('Pupil')
     async def login(self, ctx):
-        current = list(mongo.users.find({}))
-        for x in current:
-            if x['user'] == ctx.author.id:
-                if x['signedup']:
-                    await ctx.send('You have already signed up!')
-                    return
-                else:
-                    mongo.users.find_one_and_update(
-                        {"user": x['user']}, {'$set': {"signedup": True, "signups": x['signups'] + 1}})
-                    await ctx.send(content=f"{ctx.author.mention} has signed up!", allowed_mentions=discord.AllowedMentions(everyone=False, users=False, roles=False))
-                    break
+        x = mongo.users.find_one({"user": ctx.author.id})
+        if x == None:
+            await ctx.send("You are not in the database! <@465463547200012298> will have to add you!")
+            return
+        api_nation = requests.get(f"http://politicsandwar.com/api/nation/id={x['nationid']}&key=e5171d527795e8").json()
+        if api_nation['allianceid'] != "7531":
+            await ctx.send("You are not in the Convent!")
+        else:
+            if x['signedup']:
+                await ctx.send('You have already signed up!')
+                return
+            else:
+                mongo.users.find_one_and_update(
+                    {"user": x['user']}, {'$set': {"signedup": True, "signups": x['signups'] + 1}})
+                await ctx.send(content=f"{ctx.author.mention} has signed up!", allowed_mentions=discord.AllowedMentions(everyone=False, users=False, roles=False))
 
     @commands.command(alias=['statistics', 'statsget'], brief='Shows stats, accepts 1 argument', help='By default it sorts by the winrate. Optional argument can be "su" for sorting by signups, "wins" for sorting by wins or if you would for some reason like to do something completely unnecessary, you can do "wr".')
     async def stats(self, ctx, sort='wr'):
