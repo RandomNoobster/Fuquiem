@@ -208,6 +208,7 @@ class General(commands.Cog):
                         if msg.content.lower() in ['yes', 'y']:
                             await msg.delete()
                             await message.edit(content="Continue I shall.")
+                            await asyncio.sleep(2)
                             break
                         elif msg.content.lower() in ['no', 'n']:
                             await msg.delete()
