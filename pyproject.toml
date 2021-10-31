@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "repl_python3_Fuquiem-3"
+version = "0.1.0"
+description = ""
+authors = ["KareMcBob <<>>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+Mako = "^1.1.5"
+discord = "^1.7.3"
+lxml = "^4.6.3"
+python-dotenv = "^0.19.1"
+cryptography = "^35.0.0"
+Flask = "^2.0.2"
+pymongo = "^3.12.1"
+pytz = "^2021.3"
+aiohttp = "^3.7.4"
+dnspython = "^2.1.0"
+dload = "^0.6"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
