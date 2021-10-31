@@ -5,7 +5,7 @@ app = Flask('')
 
 @app.route('/')
 def main():
-    return "Your bot is alive!"
+    return "It lives!!"
 
 def run():
     app.run()
