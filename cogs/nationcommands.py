@@ -333,7 +333,7 @@ class General(commands.Cog):
                 msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
                 if msg.content.lower() in ['yes', 'y']:
                     await msg.delete()
-                    res = requests.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': 218856, 'subject': subject, 'message': text})
+                    res = requests.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': api_nation['nationid'], 'subject': subject, 'message': text})
                     if res.status_code == 200:
                         await message.edit(content="Ingame message was sent!")
                     else:
