@@ -4,14 +4,23 @@ import math
 import aiohttp
 import pytz
 from flask.views import MethodView
+from cogs.econ import Economic
 from keep_alive import app
 import os.path
 from main import mongo
 from datetime import datetime, timedelta
 from discord.ext import commands
 import os
+import requests
+from lxml import html
+from cryptography.fernet import Fernet
+import re
+
 api_key = os.getenv("api_key")
+api_key_2 = os.getenv("api_key_2")
 convent_key = os.getenv("convent_api_key")
+key = os.getenv("encryption_key")
+cipher_suite = Fernet(key)
 
 
 class Update(commands.Cog):
@@ -61,12 +70,13 @@ class Update(commands.Cog):
             await channel.send(f"I encountered an error whilst performing self.color_check():\n```{e}```")
         await channel.send("I sent 'em all some DMs!")
 
+    @commands.command(brief='Gives you an overview of, and sends a DM to everyone that needs to login/buy spies/get food')
+    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def food_check(self, channel, aa='all'):
         async with aiohttp.ClientSession() as session:
-            async with session.get(f'http://politicsandwar.com/api/alliance-members/?allianceid=4729&key={api_key}') as church:
-                church = (await church.json())['nations']
-            async with session.get(f'http://politicsandwar.com/api/alliance-members/?allianceid=7531&key={convent_key}') as convent:
-                convent = (await convent.json())['nations']
+            message = await channel.send("<:thonk:787399051582504980>")
+            church = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:500 alliance_id:4729){{data{{nation_name leader_name id alliance_position continent color food vmode dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid winner}} defensive_wars{{date attid winner}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}).json()['data']['nations']['data']
+            convent = requests.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(first:500 alliance_id:7531){{data{{nation_name leader_name id alliance_position continent color food vmode dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid winner}} defensive_wars{{date attid winner}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}).json()['data']['nations']['data']
 
             if aa == 'all':
                 aa = [church, convent]
@@ -75,46 +85,98 @@ class Update(commands.Cog):
             elif aa in 'convent':
                 aa = [convent]
             else:
-                await channel.send("That's an illegal argument!")
+                await message.edit(content="That's an illegal argument!")
                 return
 
             database = self.bot.get_cog('Database')
+            Economic = self.bot.get_cog('Economic')
+
+            res_colors = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{colors{{color turn_bonus}}}}"}).json()['data']['colors']
+            colors = {}
+            for color in res_colors:
+                colors[color['color']] = color['turn_bonus'] * 12
+
+            prices = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{tradeprices(limit:1){{coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}}}"}).json()['data']['tradeprices'][0]
+            prices['money'] = 1
+
+            treasures = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{treasures{{bonus nation{{id alliance_id}}}}}}"}).json()['data']['treasures']
+
+            with requests.Session() as s:
+                banker = mongo.users.find_one({"user": 465463547200012298})
+                login_url = "https://politicsandwar.com/login/"
+                login_data = {
+                    "email": str(cipher_suite.decrypt(banker['email'].encode()))[2:-1],
+                    "password": str(cipher_suite.decrypt(banker['pwd'].encode()))[2:-1],
+                    "loginform": "Login"
+                }
+                s.post(login_url, data=login_data)
+
+                radiation_page = s.get(f"https://politicsandwar.com/world/radiation/")
+                tree = html.fromstring(radiation_page.content)
+                info = tree.xpath("//div[@class='col-md-10']/div[@class='row']/div/p")
+                for x in info.copy():
+                    #print(x.text_content())
+                    if "Food" not in x.text_content():
+                        info.remove(x)
+                    else:
+                        info.remove(x)
+                        x = re.sub(r"[^0-9.]+", "", x.text_content().strip())
+                        info.append(x)
+                radiation = {"na": 1 - float(info[0])/100, "sa": 1 - float(info[1])/100, "eu": 1 - float(info[2])/100, "as": 1 - float(info[3])/100, "af": 1 - float(info[4])/100, "au": 1 - float(info[5])/100, "an": 1 - float(info[6])/100}
+
+                info2 = tree.xpath("//div[@class='sidebar'][contains(@style,'padding-left: 20px;')]/text()")
+                date = info2[2].strip()
+                seasonal_mod = {"na": 1, "sa": 1, "eu": 1, "as": 1, "af": 1, "au": 1, "an": 0.5}
+                if "June" in date or "July" in date or "August" in date:
+                    seasonal_mod['na'] = 1.2
+                    seasonal_mod['as'] = 1.2
+                    seasonal_mod['eu'] = 1.2
+                    seasonal_mod['sa'] = 0.8
+                    seasonal_mod['af'] = 0.8
+                    seasonal_mod['au'] = 0.8
+                elif "December" in date or "January" in date or "February" in date:
+                    seasonal_mod['na'] = 0.8
+                    seasonal_mod['as'] = 0.8
+                    seasonal_mod['eu'] = 0.8
+                    seasonal_mod['sa'] = 1.2
+                    seasonal_mod['af'] = 1.2
+                    seasonal_mod['au'] = 1.2
 
             for alliance in aa:
-                embed = discord.Embed(title=f"{alliance[0]['alliance']} Food", description="",
-                                    color=0x00ff00, timestamp=pytz.utc.localize(datetime.utcnow()))
+                embed = discord.Embed(title=f"{alliance[0]['alliance']['name']} Food", description="", color=0x00ff00, timestamp=pytz.utc.localize(datetime.utcnow()))
                 for nation in alliance:
-                    soldier_factor = 750
-                    if nation['offensivewars'] == 0 and nation['defensivewars'] == 0:
-                        soldier_factor = 500
-                    i = int(nation['infrastructure'][:-3])
-                    days = int(nation['food'][:-3]) / ((0.00019625625656 * (i ^ 2) + 130.8486449303475 *
-                                                        i - 62644.44521470915) / 1000 + int(nation['soldiers']) / soldier_factor)
-                    if -1 < days < 1 and int(nation['vacmode']) == 0:
-                        embed.add_field(
-                            name=nation['leader'], value=f"[{nation['nation']}](https://politicsandwar.com/nation/id={nation['nationid']}) runs out of food in {math.ceil(days)} days ({nation['food']} food).", inline=False)
-                        person = await database.find_user(str(nation['nationid']))
+                    if nation['alliance_position'] == "APPLICANT":
+                        continue
+                    rev_obj = await Economic.revenue_calc(message, nation, radiation, treasures, prices, colors, seasonal_mod, None)
+                    if nation['food'] == None:
+                        embed.add_field(name=nation['leader_name'], value=f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) runs out of food in ??? days (??? food).", inline=False)
+                        continue
+                    days = float(nation['food']) / rev_obj['food']
+                    if -1 < days < 1 and int(nation['vmode']) == 0:
+                        embed.add_field(name=nation['leader_name'], value=f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) runs out of food in {math.ceil(days)} days ({nation['food']} food).", inline=False)
+                        person = await database.find_user(str(nation['id']))
                         if person == {}:
                             continue
                         user = await self.bot.fetch_user(person['user'])
-                        if alliance[0]['allianceid'] == 4729:
+                        if nation['alliance_id'] == "4729":
                             try:
                                 await user.send('Hey, you should get some food. Type "$food" in <#850302301838114826>')
                                 print('i just sent a msg to', user)
                             except discord.errors.Forbidden:
-                                session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Food', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because it seems that you are running out of food. You don't really want to miss out on 1/3 of your income due to a a lack of food... So please go to the discord and type $food in #pnw-bots, by doing this, Fuquiem will send 100k food your way."})
-                        elif alliance[0]['allianceid'] == 7531:
+                                await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['id']), 'subject': 'Food', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because it seems that you are running out of food. You don't really want to miss out on 1/3 of your income due to a a lack of food... So please go to the discord and type $food in #pnw-bots, by doing this, Fuquiem will send 100k food your way."})
+                        elif nation['alliance_id'] == "7531":
                             try:
                                 await user.send("Hey, you should get some food, you don't want to miss out on 1/3 of your income: https://politicsandwar.com/index.php?id=26&display=world")
                                 print('i just sent a msg to', user)
                             except discord.errors.Forbidden:
                                 await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
-                                await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Food', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because it seems that you are running out of food. You don't really want to miss out on 1/3 of your income due to a a lack of food... You can go here to buy some food for your nation: https://politicsandwar.com/index.php?id=26&display=world"})
+                                await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['id']), 'subject': 'Food', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because it seems that you are running out of food. You don't really want to miss out on 1/3 of your income due to a a lack of food... You can go here to buy some food for your nation: <a href=\"https://politicsandwar.com/index.php?id=26&display=world\">https://politicsandwar.com/index.php?id=26&display=world</a>"})
 
                 if len(embed.fields) == 0:
                     await channel.send(f"Nobody is starving in the {alliance[0]['alliance']}!")
                 else:
                     await channel.send(embed=embed)
+            await message.delete()
 
     async def spies_check(self, channel, aa='church'):
         async with aiohttp.ClientSession() as session:
@@ -155,7 +217,7 @@ class Update(commands.Cog):
                                 print('i just sent a msg to', user)
                             except discord.errors.Forbidden:
                                 await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
-                                await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Spies', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you don't have max spies. To buy spies, please go here: https://politicsandwar.com/nation/military/spies/"})
+                                await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Spies', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you don't have max spies. To buy spies, please go here: <a href=\"https://politicsandwar.com/nation/military/spies/\">https://politicsandwar.com/nation/military/spies/</a>"})
 
                 if len(embed.fields) == 0:
                     await channel.send(f"Everyone has max spies in the {alliance[0]['alliance']}!")
@@ -246,7 +308,7 @@ class Update(commands.Cog):
                             print('i just sent a msg to', user)
                         except discord.errors.Forbidden:
                             await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
-                            await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Color', 'message': f"Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you are currently not getting any money from the color bonus. If you change your nation's color to {color}, your daily revenue will increase. You can change your color here: https://politicsandwar.com/nation/edit/"})
+                            await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Color', 'message': f"Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you are currently not getting any money from the color bonus. If you change your nation's color to {color}, your daily revenue will increase. You can change your color here: <a href=\"https://politicsandwar.com/nation/edit/\">https://politicsandwar.com/nation/edit/</a>"})
                 if len(embed.fields) == 0:
                     await channel.send(f"Everyone has the correct colors in the {alliance[0]['alliance']}!")
                 else:
