@@ -1293,6 +1293,7 @@ class Economic(commands.Cog):
 
         rev_obj = {}
         rev_obj['footer'] = footer
+        rev_obj['food'] = food
         rev_obj['nation'] = nation
         rev_obj['max_infra'] = max_infra
         rev_obj['avg_infra'] = round(total_infra / nation['num_cities'])
