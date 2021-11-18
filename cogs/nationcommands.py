@@ -323,7 +323,7 @@ class General(commands.Cog):
                 res = await discord_dm()
                 if res == {}:
                     return
-                subject = "Moved to applicant status, please check in on discord!"
+                subject = "Moved to applicant status, check in on discord!"
                 text = f"Hi {nation['leader']},\n\nIf a member loses a war, the alliance bank is looted. Due to your inactivity, we are worried that you might lose if you were to be attacked. To avoid the bank being looted, we have therefore decided to change your ingame status from member to applicant. Please note that you are still a member on discord. All you need to do to get repromoted ingame is to reach out to us and let us know that you are once again active.\n\nLet me know if you have any questions.\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
                 break
 
