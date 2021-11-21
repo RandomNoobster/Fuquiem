@@ -111,7 +111,7 @@ class Database(commands.Cog):
                     result = None
         return result
     
-    async def find_nation_plus(self, arg):
+    async def find_nation_plus(self, arg): # only returns a nation if it is at least 1 day old
         nation = await self.find_nation(arg)
         if nation == None:
             nation = await self.find_user(arg)
