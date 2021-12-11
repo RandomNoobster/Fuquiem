@@ -644,6 +644,22 @@ class General(commands.Cog):
         .closebtn:hover {
         color: black;
         }
+
+        .left {
+            border:2px groove whitesmoke;
+            border-radius: 5px;
+            padding: 3px 5px 3px 5px;
+            float: left;
+            width: 45%
+        }
+
+        .right {
+            border:2px groove whitesmoke;
+            border-radius: 5px;
+            padding: 3px 5px 3px 5px;
+            float: right;
+            width: 45%
+        }
         
     </style>
     <script>
@@ -681,23 +697,23 @@ class General(commands.Cog):
             </form>
         </div>
         <div class="stat">
-            <div style="border:2px groove whitesmoke; border-radius: 5px; padding: 3px 5px 3px 5px; float: left; width: 45%;">
+            <div class="left">
                 🤢 = ${round(builds[rs]['disease_rate'], 1)}% (${round(builds[rs]['real_disease_rate'], 1)}%)
             </div>
-            <div style="border:2px groove whitesmoke; border-radius: 5px; padding: 3px 5px 3px 5px; float: right; width:45%">
+            <div class="right">
                 🏭 = ${round(builds[rs]['pollution'])}pts (${round(builds[rs]['real_pollution'])}pts)
             </div>
             <br>
-            <div style="border:2px groove whitesmoke; border-radius: 5px; padding: 3px 5px 3px 5px; float: left; width: 45%">
+            <div class="left">
                 👮 = ${round(builds[rs]['crime_rate'], 1)}% (${round(builds[rs]['real_crime_rate'], 1)}%)
             </div>
-            <div style="border:2px groove whitesmoke; border-radius: 5px; padding: 3px 5px 3px 5px; float: right; width: 45%">
+            <div class="right">
                 🛒 = ${round(builds[rs]['commerce'])}% (${round(builds[rs]['real_commerce'])}%)
             </div>
-            <div style="border:2px groove whitesmoke; border-radius: 5px; padding: 3px 5px 3px 5px; float: left; width: 45%">
+            <div class="left">
                 MMR = ${f"{builds[rs]['barracks']}/{builds[rs]['factories']}/{builds[rs]['hangars']}/{builds[rs]['drydocks']}"}
             </div>
-            <div style="border:2px groove whitesmoke; border-radius: 5px; padding: 3px 5px 3px 5px; float: right; width: 45%">
+            <div class="right">
                 Land = ${land}
             </div>
             <div style="border:2px groove whitesmoke; border-radius: 5px; padding: 3px 5px 3px 5px; display: inline-block; width: 306px">
@@ -736,7 +752,6 @@ class General(commands.Cog):
 </div>
 </body>
 <script>
-        
     var builds = ${unique_builds}
     var land = ${land}
 
@@ -746,6 +761,7 @@ class General(commands.Cog):
 
     function rightFunc(rs) {
         console.log(rs)
+        builds.sort((firstItem, secondItem) => secondItem['net income'] - firstItem['net income']);
         builds.sort((firstItem, secondItem) => secondItem[rs] - firstItem[rs]);
         var index = parseInt(document.getElementById("count " + rs).textContent.replace(/\D/g,'')) + 1
         var build = builds[index-1]
@@ -754,6 +770,7 @@ class General(commands.Cog):
 
     function leftFunc(rs) {
         console.log(rs)
+        builds.sort((firstItem, secondItem) => secondItem['net income'] - firstItem['net income']);
         builds.sort((firstItem, secondItem) => secondItem[rs] - firstItem[rs]);
         var index = parseInt(document.getElementById("count " + rs).textContent.replace(/\D/g,'')) - 1
         var build = builds[index-1]
@@ -797,7 +814,7 @@ class General(commands.Cog):
     "imp_drydock": <%text>$</%text>{build['drydocks']}
 }</pre>
         <div style="display: flex;justify-content: space-between;">
-            <button onclick="copyFunc('${rs}')">
+            <button onclick="copyFunc('<%text>$</%text>{rs}')">
                 Copy build
             </button>
             <form action="https://politicsandwar.com/cities/" target="_blank" style="display: inline-block;">
@@ -808,23 +825,23 @@ class General(commands.Cog):
             </form>
         </div>
         <div class="stat">
-            <div style="border:2px groove whitesmoke; border-radius: 5px; padding: 3px 5px 3px 5px; float: left; width: 45%;">
+            <div class="left">
                 🤢 = <%text>$</%text>{Math.round(build['disease_rate'] * 10) / 10}% (<%text>$</%text>{Math.round(build['real_disease_rate'] * 10) / 10}%)
             </div>
-            <div style="border:2px groove whitesmoke; border-radius: 5px; padding: 3px 5px 3px 5px; float: right; width:45%">
+            <div class="right">
                 🏭 = <%text>$</%text>{build['pollution']}pts (<%text>$</%text>{build['real_pollution']}pts)
             </div>
             <br>
-            <div style="border:2px groove whitesmoke; border-radius: 5px; padding: 3px 5px 3px 5px; float: left; width: 45%">
+            <div class="left">
                 👮 = <%text>$</%text>{Math.round(build['crime_rate'] * 10) / 10}% (<%text>$</%text>{Math.round(build['real_crime_rate'] * 10) / 10}%)
             </div>
-            <div style="border:2px groove whitesmoke; border-radius: 5px; padding: 3px 5px 3px 5px; float: right; width: 45%">
+            <div class="right">
                 🛒 = <%text>$</%text>{build['commerce']}% (<%text>$</%text>{build['real_commerce']}%)
             </div>
-            <div style="border:2px groove whitesmoke; border-radius: 5px; padding: 3px 5px 3px 5px; float: left; width: 45%">
+            <div class="left">
                 MMR = <%text>$</%text>{build['barracks']}/<%text>$</%text>{build['factories']}/<%text>$</%text>{build['hangars']}/<%text>$</%text>{build['drydocks']}
             </div>
-            <div style="border:2px groove whitesmoke; border-radius: 5px; padding: 3px 5px 3px 5px; float: right; width: 45%">
+            <div class="right">
                 Land = <%text>$</%text>{land}
             </div>
             <div style="border:2px groove whitesmoke; border-radius: 5px; padding: 3px 5px 3px 5px; display: inline-block; width: 306px">
@@ -1404,8 +1421,11 @@ class General(commands.Cog):
             app.add_url_rule(f"/builds/{datetime.utcnow().strftime('%d%H%M%S')}", view_func=webbuild.as_view(str(datetime.utcnow())), methods=["GET", "POST"]) # this solution of adding a new page instead of updating an existing for the same nation is kinda dependent on the bot resetting every once in a while, bringing down all the endpoints
             if str(infra).lower() in "any":
                 infra = "any amount of"
-            mmr = '/'.join(mmr[i:i+1] for i in range(0, len(mmr), 1))
-            await message.edit(content=f"{len(cities):,} valid cities and {len(unique_builds):,} unique builds fulfilled your criteria of {infra} infra and a minimum military requirement of {mmr}.\n\nSee the best builds here (assuming you have {land} land): https://fuquiem.karemcbob.repl.co/builds/{endpoint}")
+            if str(mmr).lower() in "any":
+                mmr = "no military requirement"
+            else:
+                mmr = "a military requirement of " + '/'.join(mmr[i:i+1] for i in range(0, len(mmr), 1))
+            await message.edit(content=f"{len(cities):,} valid cities and {len(unique_builds):,} unique builds fulfilled your criteria of {infra} infra and {mmr}.\n\nSee the best builds here (assuming you have {land} land): https://fuquiem.karemcbob.repl.co/builds/{endpoint}")
             return
 
     
