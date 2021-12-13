@@ -118,6 +118,10 @@ class Raffle(commands.Cog):
             if len(current) == 0:
                 await channel.send('Nobody has signed up yet!')
                 return
+            
+            amount = "5000000"
+            if len(current) < 5:
+                amount = "2500000"
 
             winners = []
 
@@ -126,13 +130,10 @@ class Raffle(commands.Cog):
             winners.append(winner1)
             current.remove(winner1)
 
-            try: 
+            if len(current) > 19:
                 weights = [round((2 - (x['wins'] / x['signups'])) ** 10,3) for x in current]
                 winner2 = random.choices(current, weights=weights, k=1)[0]
                 winners.append(winner2)
-            except:
-                print('only 1 winner')
-                pass
             
             with open (pathlib.Path.cwd() / 'data' / 'attachments' / 'money.gif', 'rb') as gif:
                 gif = discord.File(gif)
@@ -165,7 +166,7 @@ class Raffle(commands.Cog):
 
                     withdraw_url = f'https://politicsandwar.com/alliance/id=4729&display=bank'
                     withdraw_data = {
-                        "withmoney": '5000000',
+                        "withmoney": amount,
                         "withfood": '0',
                         "withcoal": '0',
                         "withoil": '0',
