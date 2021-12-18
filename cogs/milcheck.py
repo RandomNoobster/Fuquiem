@@ -418,7 +418,7 @@ class Military(commands.Cog):
                             await user.send(f"Hey, you have an excess of {excess}please deposit it here for safekeeping: https://politicsandwar.com/alliance/id={nation['allianceid']}&display=bank")
                             print('i just sent a msg to', user, excess)
                     except discord.errors.Forbidden:
-                        await ctx.send(user, 'does not allow my DMs')
+                        await ctx.send(f"{user} does not allow my DMs")
                     except:
                         print('no dm for', nation['nation'])
 
