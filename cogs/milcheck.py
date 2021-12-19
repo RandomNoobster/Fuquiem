@@ -323,12 +323,12 @@ class Military(commands.Cog):
 
     @commands.command(aliases=['target'], brief='Sends you a pre-filled link to slotter')
     async def targets(self, ctx):
-        await ctx.send('This command has been disabled.')
-        return
+        #await ctx.send('This command has been disabled.')
+        #return
         Database = self.bot.get_cog('Database')
         person = await Database.find_user(ctx.author.id)
         embed = discord.Embed(title="Targets",
-                              description=f"[Explore targets on slotter](https://slotter.bsnk.dev/search?nation={person['nationid']}&alliances=3339,619,1584,7000,615,8236,8243,8289,4271,877,8043,8905,8902,8901,7635,7346,4468,8879&countersMode=false&threatsMode=false&vm=false&grey=true&beige=false)", color=0x00ff00)
+                              description=f"[Explore targets on slotter](https://slotter.bsnk.dev/search?nation={person['nationid']}&alliances=7452,8841,8624,9106,9000,7450,6088,7306,4648,9187,8335,8254,5476,8594,7803&countersMode=false&threatsMode=false&vm=false&grey=true&beige=false)", color=0x00ff00)
         await ctx.send(embed=embed)
 
     @commands.command(brief="Sends a warchest top up to the people in need", help="Requires admin perms, sends people the resources they need in addition to telling people what to deposit.")
@@ -607,7 +607,7 @@ class Military(commands.Cog):
                     await ctx.send(f"<@465463547200012298> the transaction to {nation['nation']} ({nation['leader']}) might have failed. Check this page to be sure:\nhttps://politicsandwar.com/nation/id={nation['nationid']}&display=bank")
 
     async def spies_msg(self): #enable in times of war
-        return
+        #return
         async with aiohttp.ClientSession() as session:
             Database = self.bot.get_cog('Database')
             async with session.get(f'http://politicsandwar.com/api/alliance/id=4729&key={api_key}') as resp:
@@ -621,7 +621,7 @@ class Military(commands.Cog):
                         nation = mongo.world_nations.find_one({"nationid": int(member['nationid'])})
                         if nation == None:
                             continue
-                        spycount = 1
+                        """spycount = 1
                         for x in range(60):
                             probability = requests.get(f"https://politicsandwar.com/war/espionage_get_odds.php?id1=341326&id2={member['nationid']}&id3=0&id4=1&id5={spycount}").text
                             if "Greater than 50%" in probability:
@@ -632,7 +632,9 @@ class Military(commands.Cog):
                             #if "Lower than 50%" in probability and spycount >= 60:
                             spycount += 1
                         embed = discord.Embed(title="Remember to use your spy ops!",
-                                  description=f"You can spy on someone you're fighting, or you can say `{round(float(nation['score']))} / {enemyspy} /<@131589896950251520> <@220333267121864706>` in <#668581622693625907>", color=0x00ff00)
+                                  description=f"You can spy on someone you're fighting, or you can say `{round(float(nation['score']))} / {enemyspy} /<@131589896950251520> <@220333267121864706>` in <#668581622693625907>", color=0x00ff00)"""
+                        embed = discord.Embed(title="Remember to use your spy ops!",
+                                  description=f"You can spy on someone you're fighting, or you can spy on your assigned targets https://docs.google.com/spreadsheets/d/1cBGw4nCwyXgWSQZF4jjO5vk0drE64ZbJYZgFYwog8Eo/edit#gid=720184806", color=0x00ff00)
                         print(nation['nation'])
                         try:
                             await user.send(embed=embed)
