@@ -130,7 +130,7 @@ class Military(commands.Cog):
         await add_fields(fields5, 0, embed5)
         await message.delete()
 
-    @commands.command(brief='Debugging cmd, requires admin perms')
+    @commands.command(brief='Delete all threads in this channel.')
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def clear_threads(self, ctx):
         channel = self.bot.get_channel(796752432263725066)
@@ -139,43 +139,106 @@ class Military(commands.Cog):
         print("done")
         return
 
-    @commands.command(brief='Debugging cmd, requires admin perms')
+    @commands.command(brief='May be used in military coordination threads.')
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def status(self, ctx):
         nation_id = ctx.channel.name[ctx.channel.name.rfind("(")+1:-1]
         async with aiohttp.ClientSession() as session:
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation_id}){{data{{nation_name leader_name id alliance{{name}} score color dompolicy alliance_id num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{defender{{nation_name id score num_cities color defensive_wars{{turnsleft}} offensive_wars{{turnsleft}} soldiers tanks aircraft ships nukes missiles}} date attid winner attpoints defpoints attpeace defpeace war_type groundcontrol airsuperiority navalblockade turnsleft att_fortify def_fortify}} defensive_wars{{attacker{{nation_name id score num_cities color defensive_wars{{turnsleft}} offensive_wars{{turnsleft}} soldiers tanks aircraft ships nukes missiles}} date attid winner attpoints defpoints attpeace defpeace war_type groundcontrol airsuperiority navalblockade turnsleft att_fortify def_fortify}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation_id}){{data{{nation_name leader_name id alliance{{name}} population score color dompolicy alliance_id num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{defender{{nation_name id score num_cities color defensive_wars{{turnsleft}} offensive_wars{{turnsleft}} soldiers tanks aircraft ships nukes missiles}} date id attid winner att_resistance def_resistance attpoints defpoints attpeace defpeace war_type groundcontrol airsuperiority navalblockade turnsleft att_fortify def_fortify}} defensive_wars{{attacker{{nation_name id score num_cities color defensive_wars{{turnsleft}} offensive_wars{{turnsleft}} soldiers tanks aircraft ships nukes missiles}} date id attid winner att_resistance def_resistance attpoints defpoints attpeace defpeace war_type groundcontrol airsuperiority navalblockade turnsleft att_fortify def_fortify}}}}}}}}"}) as temp:
                 try:
                     nation = (await temp.json())['data']['nations']['data'][0]
                 except:
                     print((await temp.json())['errors'])
                     return
-        print(nation)
-        embed = discord.Embed(title=f"{nation['nation_name']}'s enemies", description=f"", color=0x00ff00)
+        nation['offensive_wars'] = [y for y in nation['offensive_wars'] if y['turnsleft'] > 0]
+        nation['defensive_wars'] = [y for y in nation['defensive_wars'] if y['turnsleft'] > 0]
+        desc = f"[Nation link](https://politicsandwar.com/nation/id={nation['id']})```autohotkey\nOffensive wars: {len(nation['offensive_wars'])}\nDefensive wars: {len(nation['defensive_wars'])}\nSoldiers: {nation['soldiers']:,}\nTanks: {nation['tanks']:,}\nPlanes: {nation['aircraft']:,}\nShips: {nation['ships']:,}```"
+        embed = discord.Embed(title=f"{nation['nation_name']} ({nation['id']}) & their wars", description=desc, color=0x00ff00)
+        n = 1
         for war in nation['offensive_wars'] + nation['defensive_wars']:
+            if war['turnsleft'] < 0:
+                continue
+
+            n += 1
+            if n % 2 == 0:
+                embed.add_field(name="\u200b", value="\u200b", inline=False)
+
             if war in nation['offensive_wars']:
                 war_emoji = "⚔️"
                 x = war['defender']
-
+                main_enemy_res = war['att_resistance']
+                main_enemy_points = war['attpoints']
+                their_enemy_points = war['defpoints']
+                their_enemy_res = war['def_resistance']
             else:
                 war_emoji = "🛡️"
                 x = war['attacker']
+                main_enemy_res = war['def_resistance']
+                main_enemy_points = war['defpoints']
+                their_enemy_points = war['attpoints']
+                their_enemy_res = war['att_resistance']
+
             x['offensive_wars'] = [y for y in x['offensive_wars'] if y['turnsleft'] > 0]
             x['defensive_wars'] = [y for y in x['defensive_wars'] if y['turnsleft'] > 0]
+
             if war['groundcontrol'] in [nation['id'], x['id']]:
                 war['groundcontrol'] = [nation['nation_name'], x['nation_name']][[nation['id'], x['id']].index(war['groundcontrol'])]
             else:
                 war['groundcontrol'] = None
-            if war['airsuperiority'] in [nation['id'], x['id']]:
-                war['airsuperiority'] = [nation['nation_name'], x['nation_name']][[nation['id'], x['id']].index(war['airsuperiority'])]
+
+            x_air_mod = 1
+            nation_air_mod = 1
+            if war['airsuperiority'] == nation['id']:
+                war['airsuperiority'] = nation['nation_name']
+                x_air_mod = 0.5
+            elif war['airsuperiority'] == x['id']:
+                war['airsuperiority'] = x['nation_name']
+                nation_air_mod = 0.5
             else:
                 war['airsuperiority'] = None
+
             if war['navalblockade'] in [nation['id'], x['id']]:
                 war['navalblockade'] = [x['nation_name'], nation['nation_name']][[nation['id'], x['id']].index(war['navalblockade'])]
             else:
                 war['navalblockade'] = None
 
-            embed.add_field(name=f"\{war_emoji} {x['nation_name']}", value=f"[Link](https://politicsandwar.com/nation/id={x['id']})```autohotkey\nOffensive wars: {len(x['offensive_wars'])}\nDefensive wars: {len(x['defensive_wars'])}\nGround control: {war['groundcontrol']}\nAir superiority: {war['airsuperiority']}\nBlockaded: {war['navalblockade']}\n\nSoldiers: {x['soldiers']:,}\nTanks: {x['tanks']:,}\nPlanes: {x['aircraft']:,}\nShips: {x['ships']:,}```")
+            try:
+                y = (x['soldiers'] * 1.75 + x['tanks'] * 40 * x_air_mod) / (nation['soldiers'] * 1.75 + nation['tanks'] * 40 * nation_air_mod + nation['population'] * 0.0025)
+                if y > 2:
+                    ground_win_rate = 1
+                elif y < 0.4:
+                    ground_win_rate = 0
+                else:
+                    ground_win_rate = (12.832883444301027*y**(11)-171.668262561212487*y**(10)+1018.533858483560834*y**(9)-3529.694284997589875*y**(8)+7918.373606722701879*y**(7)-12042.696852729619422*y**(6)+12637.399722721022044*y**(5)-9128.535790660698694*y**(4)+4437.651655224382012*y**(3)-1378.156072477675025*y**(2)+245.439740545813436*y-18.980551645186498)
+            except ZeroDivisionError:
+                ground_win_rate = 1
+            ground_win_rate = round(ground_win_rate * 100)
+
+            try:
+                y = (x['aircraft'] * 3) / (nation['aircraft'] * 3)
+                if y > 2:
+                    air_win_rate = 1
+                elif y < 0.4:
+                    air_win_rate = 0
+                else:
+                    air_win_rate = (12.832883444301027*y**(11)-171.668262561212487*y**(10)+1018.533858483560834*y**(9)-3529.694284997589875*y**(8)+7918.373606722701879*y**(7)-12042.696852729619422*y**(6)+12637.399722721022044*y**(5)-9128.535790660698694*y**(4)+4437.651655224382012*y**(3)-1378.156072477675025*y**(2)+245.439740545813436*y-18.980551645186498)
+            except ZeroDivisionError:
+                air_win_rate = 1
+            air_win_rate = round(air_win_rate * 100)
+
+            try:
+                y = (x['ships'] * 4) / (nation['ships'] * 4)
+                if y > 2:
+                    naval_win_rate = 1
+                elif y < 0.4:
+                    naval_win_rate = 0
+                else:
+                    naval_win_rate = (12.832883444301027*y**(11)-171.668262561212487*y**(10)+1018.533858483560834*y**(9)-3529.694284997589875*y**(8)+7918.373606722701879*y**(7)-12042.696852729619422*y**(6)+12637.399722721022044*y**(5)-9128.535790660698694*y**(4)+4437.651655224382012*y**(3)-1378.156072477675025*y**(2)+245.439740545813436*y-18.980551645186498)
+            except ZeroDivisionError:
+                naval_win_rate = 1
+            naval_win_rate = round(naval_win_rate * 100)
+
+            embed.add_field(name=f"\{war_emoji} {x['nation_name']} ({x['id']})", value=f"[Nation link](https://politicsandwar.com/nation/id={x['id']}) | [War timeline](https://politicsandwar.com/nation/war/timeline/war={war['id']})```autohotkey\nOffensive wars: {len(x['offensive_wars'])}\nDefensive wars: {len(x['defensive_wars'])}\n\nGround control: \"{war['groundcontrol']}\"\nAir superiority: \"{war['airsuperiority']}\"\nBlockaded: \"{war['navalblockade']}\"\n{nation['nation_name'][:5]}. resistance: {main_enemy_res}\n{x['nation_name'][:5]}. resistance: {their_enemy_res}\n{nation['nation_name'][:5]}. MAPs: {main_enemy_points}\n{x['nation_name'][:5]}. MAPs: {their_enemy_points}\nExpiration (hours): {war['turnsleft']*2}\n\nSoldiers: {x['soldiers']:,}\nTanks: {x['tanks']:,}\nPlanes: {x['aircraft']:,}\nShips: {x['ships']:,}\n\nGround win%: {ground_win_rate}\nAir win%: {air_win_rate}\nNaval win%: {naval_win_rate}```", inline=True)
         await ctx.send(embed=embed)
 
     @commands.command(brief='Debugging cmd, requires admin perms')
@@ -224,7 +287,7 @@ class Military(commands.Cog):
                     attacker = new_war['attacker']['id']
             elif attack['type'] == "FORTIFY":
                 attacker = None
-            elif attack['success'] > 1:
+            elif attack['success'] > 0:
                 attacker = attack['victor']
                 #print(attack)
                 #print(new_war)
@@ -385,7 +448,7 @@ class Military(commands.Cog):
         while True:
             #print("check", datetime.utcnow())
             async with aiohttp.ClientSession() as session:
-                async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:831 days_ago:5){{id att_fortify war_type def_fortify turnsleft attacker{{nation_name alliance{{name}} id alliance_id cities{{id}}}} defender{{nation_name alliance{{name}} id alliance_id cities{{id}}}} attacks{{type victor moneystolen success cityid resistance_eliminated infradestroyed infra_destroyed_value improvementslost attcas1 attcas2 defcas1 defcas2}}}}}}"}) as temp:
+                async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] days_ago:5){{id att_fortify war_type def_fortify turnsleft attacker{{nation_name alliance{{name}} id alliance_id cities{{id}}}} defender{{nation_name alliance{{name}} id alliance_id cities{{id}}}} attacks{{type victor moneystolen success cityid resistance_eliminated infradestroyed infra_destroyed_value improvementslost attcas1 attcas2 defcas1 defcas2}}}}}}"}) as temp:
                     try:
                         wars = (await temp.json())['data']['wars']
                     except:
@@ -403,12 +466,20 @@ class Military(commands.Cog):
                     #if n < 150:
                     #    continue
                     #print(n)
-                    if new_war['attacker']['alliance_id'] in ['831', '831']: ## CHANGE T0 ATOM ---------------------------------------------------------
+                    if new_war['attacker']['alliance_id'] in ['4729', '7531']: ## CHANGE T0 ATOM ---------------------------------------------------------
                         atom = new_war['attacker']
                         non_atom = new_war['defender']
                     else:
                         atom = new_war['defender']
                         non_atom = new_war['attacker']
+                    if non_atom['num_cities'] < 10:
+                        channel = self.bot.get_channel(837985478648660018)
+                    elif 20 > non_atom['num_cities'] >= 10:
+                        channel = self.bot.get_channel(837985611763810324)
+                    elif 30 > non_atom['num_cities'] >= 20:
+                        channel = self.bot.get_channel(837985741454966832)
+                    elif non_atom['num_cities'] >= 30:
+                        channel = self.bot.get_channel(837985858568060938)
                     found_war = False
                     for old_war in prev_wars:
                         if new_war['id'] == old_war['id']:
@@ -430,25 +501,18 @@ class Military(commands.Cog):
             prev_wars = wars
             await asyncio.sleep(60)
    
-    @commands.command(brief='Debugging cmd, requires admin perms')
+    @commands.command(brief='Add someone to the military coordination thread.')
     @commands.has_any_role('Deacon', 'Advisor', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def add(self, ctx, *, user):
         await self.add_to_thread(ctx.channel, user)
 
-    @commands.command(brief='Debugging cmd, requires admin perms')
+    @commands.command(brief='Reomve someone from the military coordination thread.')
     @commands.has_any_role('Deacon', 'Advisor', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def remove(self, ctx, *, user):
         Database = self.bot.get_cog('Database')
         person = await Database.find_user(user)
         user = await self.bot.fetch_user(person['user'])
-        guild = self.bot.get_guild(434071714893398016)
-        category = discord.utils.get(
-            guild.categories, id=830521271443914773)
-        if ctx.channel.category == category:
-            overwrite = ctx.channel.overwrites_for(user)
-            if overwrite.read_messages == True:
-                await ctx.channel.set_permissions(user, overwrite=None)
-                await ctx.send(f'I removed {user} from this channel.')
+        await ctx.channel.remove_user(user)
 
     @commands.command(aliases=['counter'], brief='Accepts one argument, gives you a pre-filled link to slotter.', help='Accepted arguments include nation name, leader name, nation id and nation link. When browsing the databse, Fuquiem will use the first match, so it can be wise to double check that it returns a slotter link for the correct person.')
     async def counters(self, ctx, *, arg):
@@ -1739,7 +1803,7 @@ class Military(commands.Cog):
     @commands.command(aliases=['bsim', 'bs'], brief='Simulate battles between two nations', help="Accepts up to two arguments. The first argument is the attacking nation, whilst the latter is the defending nation. If only one argument is provided, Fuquiem will assume that you are the defender")
     @commands.has_any_role('Pupil', 'Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def battlesim(self, ctx, defender, attacker=None):
-        message = await ctx.send('Alright, give me a sec to calculate 5000 battles...')
+        message = await ctx.send('Alright, give me a sec to calculate the winrates...')
         Database = self.bot.get_cog('Database')
         if defender == None:
             defender = ctx.author.id
@@ -1945,7 +2009,7 @@ class Military(commands.Cog):
         embed1.add_field(name="Casualties", value=f"Att. Sol.: {casualties['ground_opposite_attacker_avg_soldiers']:,} ± {casualties['ground_opposite_attacker_diff_soldiers']:,}\nAtt. Tnk.: {casualties['ground_opposite_attacker_avg_tanks']:,} ± {casualties['ground_opposite_attacker_diff_tanks']:,}\nDef. Sol.: {casualties['ground_opposite_defender_avg_soldiers']:,} ± {casualties['ground_opposite_defender_diff_soldiers']:,}\nDef. Tnk.: {casualties['ground_opposite_defender_avg_tanks']:,} ± {casualties['ground_opposite_defender_diff_tanks']:,}")        
         
         embed.add_field(name="Casualties", value=f"*Targeting air:*\nAtt. Plane: {airtoair_attacker_avg:,} ± {airtoair_attacker_diff:,}\nDef. Plane: {airtoair_defender_avg:,} ± {airtoair_defender_diff:,}\n*Targeting other:*\nAtt Plane: {airtoground_attacker_avg:,} ± {airtoground_attacker_diff:,}\nDef. Plane: {airtoground_defender_avg:,} ± {airtoground_defender_diff:,}")        
-        embed1.add_field(name="Casualties", value=f"*Targeting air:*\nAtt. Plane: {airtoair_defender_avg:,} ± {airtoair_defender_diff:,}\nDef. Plane: {airtoair_attacker_avg:,} ± {airtoair_attacker_diff:,}\n*Targeting other:*\nAtt. Plane: {airtoground_defender_avg:,} ± {airtoground_defender_diff:,}\nDef. Plane: {airtoground_attacker_avg:,} ± {airtoground_attacker_diff:,}")        
+        embed1.add_field(name="Casualties", value=f"*Targeting air:*\nAtt. Plane: {round(airtoair_defender_avg / 0.018337 * 0.01):,} ± {round(airtoair_defender_diff / 0.018337 * 0.01):,}\nDef. Plane: {round(airtoair_attacker_avg * 0.018337 / 0.01):,} ± {round(airtoair_attacker_diff * 0.018337 / 0.01):,}\n*Targeting other:*\nAtt. Plane: {round(airtoground_defender_avg / 0.009091 * 0.015385):,} ± {round(airtoground_defender_diff / 0.009091 * 0.015385):,}\nDef. Plane: {airtoground_attacker_avg * 0.009091 / 0.015385:,} ± {round(airtoground_attacker_diff * 0.009091 / 0.015385):,}")        
 
         embed.add_field(name="Casualties", value=f"Att. Ships: {naval_attacker_avg:,} ± {naval_attacker_diff:,}\nDef. Ships: {naval_defender_avg:,} ± {naval_defender_diff:,}")        
         embed1.add_field(name="Casualties", value=f"Att. Ships: {naval_defender_avg:,} ± {naval_defender_diff:,}\nDef. Ships: {naval_attacker_avg:,} ± {naval_attacker_diff:,}")        
