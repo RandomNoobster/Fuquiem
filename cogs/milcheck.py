@@ -328,7 +328,7 @@ class Military(commands.Cog):
         Database = self.bot.get_cog('Database')
         person = await Database.find_user(ctx.author.id)
         embed = discord.Embed(title="Targets",
-                              description=f"[Explore targets on slotter](https://slotter.bsnk.dev/search?nation={person['nationid']}&alliances=7452,8841,8624,9106,9000,7450,6088,7306,4648,9187,8335,8254,5476,8594,7803&countersMode=false&threatsMode=false&vm=false&grey=true&beige=false)", color=0x00ff00)
+                              description=f"[Explore targets on slotter](https://slotter.bsnk.dev/search?nation={person['nationid']}&alliances=7452,8841,8624,9000,7450,6088,7306,4648,9187,8335,5476,8594&countersMode=false&threatsMode=false&vm=false&grey=true&beige=false)", color=0x00ff00)
         await ctx.send(embed=embed)
 
     @commands.command(brief="Sends a warchest top up to the people in need", help="Requires admin perms, sends people the resources they need in addition to telling people what to deposit.")
