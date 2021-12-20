@@ -621,7 +621,7 @@ class Military(commands.Cog):
                         nation = mongo.world_nations.find_one({"nationid": int(member['nationid'])})
                         if nation == None:
                             continue
-                        """spycount = 1
+                        spycount = 1
                         for x in range(60):
                             probability = requests.get(f"https://politicsandwar.com/war/espionage_get_odds.php?id1=341326&id2={member['nationid']}&id3=0&id4=1&id5={spycount}").text
                             if "Greater than 50%" in probability:
@@ -632,9 +632,7 @@ class Military(commands.Cog):
                             #if "Lower than 50%" in probability and spycount >= 60:
                             spycount += 1
                         embed = discord.Embed(title="Remember to use your spy ops!",
-                                  description=f"You can spy on someone you're fighting, or you can say `{round(float(nation['score']))} / {enemyspy} /<@131589896950251520> <@220333267121864706>` in <#668581622693625907>", color=0x00ff00)"""
-                        embed = discord.Embed(title="Remember to use your spy ops!",
-                                  description=f"You can spy on someone you're fighting, or you can spy on your assigned targets https://docs.google.com/spreadsheets/d/1cBGw4nCwyXgWSQZF4jjO5vk0drE64ZbJYZgFYwog8Eo/edit#gid=720184806", color=0x00ff00)
+                                  description=f"You can spy on someone you're fighting, or you can say `{round(float(nation['score']))} / {enemyspy} /<@131589896950251520> <@220333267121864706>` in <#668581622693625907>", color=0x00ff00)
                         print(nation['nation'])
                         try:
                             await user.send(embed=embed)
