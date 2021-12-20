@@ -566,6 +566,9 @@ class General(commands.Cog):
         message = await ctx.send("<:thonk:787399051582504980>")
         Database = self.bot.get_cog('Database')
         nation = await Database.find_nation_plus(arg)
+        if nation == None:
+            await message.edit(content="Run $update or wait until daychange")
+            return
         response = requests.get(
             f"http://politicsandwar.com/api/nation/id={nation['nationid']}&key=e5171d527795e8").json()
         if response['allianceposition'] > '1':
