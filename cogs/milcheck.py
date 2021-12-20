@@ -448,7 +448,7 @@ class Military(commands.Cog):
         while True:
             #print("check", datetime.utcnow())
             async with aiohttp.ClientSession() as session:
-                async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] days_ago:5){{id att_fortify war_type def_fortify turnsleft attacker{{nation_name alliance{{name}} id alliance_id cities{{id}}}} defender{{nation_name alliance{{name}} id alliance_id cities{{id}}}} attacks{{type victor moneystolen success cityid resistance_eliminated infradestroyed infra_destroyed_value improvementslost attcas1 attcas2 defcas1 defcas2}}}}}}"}) as temp:
+                async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] days_ago:5){{id att_fortify war_type def_fortify turnsleft attacker{{nation_name alliance{{name}} id num_cities alliance_id cities{{id}}}} defender{{nation_name alliance{{name}} id num_cities alliance_id cities{{id}}}} attacks{{type victor moneystolen success cityid resistance_eliminated infradestroyed infra_destroyed_value improvementslost attcas1 attcas2 defcas1 defcas2}}}}}}"}) as temp:
                     try:
                         wars = (await temp.json())['data']['wars']
                     except:
