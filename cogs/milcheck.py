@@ -268,6 +268,7 @@ class Military(commands.Cog):
                     found = True
                     matching_thread = thread
                     break
+            print(new_war, found)
             if not found:
                 message = await channel.send(embed=embed)
                 try:
@@ -275,7 +276,7 @@ class Military(commands.Cog):
                 except:
                     thread = await channel.create_thread(name=name, message=message, auto_archive_duration=1440, type=discord.ChannelType.private_thread, reason="War declaration")
                 await self.add_to_thread(thread, atom['id'])
-            if new_war and found:
+            elif new_war and found:
                 await matching_thread.send(embed=embed)
                 await self.add_to_thread(matching_thread, atom['id'])
 
@@ -493,6 +494,7 @@ class Military(commands.Cog):
                                     await smsg(attacker, attack, new_war, atom, non_atom)
                             break
                     if not found_war:
+                        print("war not found")
                         embed = discord.Embed(title=f"New {new_war['war_type'].lower().capitalize()} War", description=f"[{new_war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={new_war['attacker']['id']}) declared a{'n'[:(len(new_war['war_type'])-5)^1]} {new_war['war_type'].lower()} war on [{new_war['defender']['nation_name']}](https://politicsandwar.com/nation/id={new_war['defender']['id']})", color=0x00ff00)
                         await cthread(f"{non_atom['nation_name']} ({non_atom['id']})", embed, non_atom, atom, True)
                         for attack in new_war['attacks']:
@@ -1807,6 +1809,7 @@ class Military(commands.Cog):
     @commands.command(aliases=['bsim', 'bs'], brief='Simulate battles between two nations', help="Accepts up to two arguments. The first argument is the attacking nation, whilst the latter is the defending nation. If only one argument is provided, Fuquiem will assume that you are the defender")
     @commands.has_any_role('Pupil', 'Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def battlesim(self, ctx, defender, attacker=None):
+        #check is any wars are active, and if they have air superiority, ground control, fortified etc
         message = await ctx.send('Alright, give me a sec to calculate the winrates...')
         Database = self.bot.get_cog('Database')
         if defender == None:
