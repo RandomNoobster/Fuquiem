@@ -302,13 +302,17 @@ class Military(commands.Cog):
                 #print(attacker)
             return attacker
 
-        async def smsg(attacker_id, attack, war, atom, non_atom):
+        async def smsg(attacker_id, attack, war, atom, non_atom, peace):
             embed = discord.Embed(title=f"New {war['war_type'].lower().capitalize()} War", description=f"[{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) declared a{'n'[:(len(war['war_type'])-5)^1]} {war['war_type'].lower()} war on [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']})", color=0x00ff00)
             await cthread(f"{non_atom['nation_name']} ({non_atom['id']})", embed, non_atom, atom, False)
             
             for thread in guild.threads:
                 if f"({non_atom['id']})" in thread.name:
                     #print("match")
+                    if peace != None:
+                        embed = discord.Embed(title="Peace offering", description=f"[{peace['offerer']['nation_name']}](https://politicsandwar.com/nation/id={peace['offerer']['id']}) is offering peace to [{peace['reciver']['nation_name']}](https://politicsandwar.com/nation/id={peace['reciever']['id']}). The peace offering will be canceled if either side performs an act of aggression.", color=0xfff)
+                        await thread.send(embed=embed)
+                        break
                     if attack['type'] != "FORTIFY":
                         if attack['type'] in ["GROUND", "NAVAL", "AIRVINFRA", "AIRVSOLDIERS", "AIRVTANKS", "AIRVMONEY", "AIRVSHIPS", "AIRVAIR"]:
                             for nation in [war['attacker'], war['defender']]:
@@ -484,6 +488,12 @@ class Military(commands.Cog):
                     found_war = False
                     for old_war in prev_wars:
                         if new_war['id'] == old_war['id']:
+                            if new_war['attpeace'] and not old_war['attpeace']:
+                                peace_obj = {"offerer": new_war['attacker'], "reciever": new_war['defender']}
+                                await smsg(None, None, new_war, atom, non_atom, peace_obj)
+                            elif new_war['defpeace'] and not old_war['defpeace']:
+                                peace_obj = {"offerer": new_war['defender'], "reciever": new_war['attacker']}
+                                await smsg(None, None, new_war, atom, non_atom, peace_obj)
                             found_war = True
                             if len(new_war['attacks']) == 0:
                                 break
@@ -491,7 +501,7 @@ class Military(commands.Cog):
                             for attack in new_war['attacks']:
                                 if attack not in old_war['attacks']:
                                     attacker = await attack_check(attack, new_war)
-                                    await smsg(attacker, attack, new_war, atom, non_atom)
+                                    await smsg(attacker, attack, new_war, atom, non_atom, None)
                             break
                     if not found_war:
                         print("war not found")
@@ -499,7 +509,7 @@ class Military(commands.Cog):
                         await cthread(f"{non_atom['nation_name']} ({non_atom['id']})", embed, non_atom, atom, True)
                         for attack in new_war['attacks']:
                             attacker = await attack_check(attack, new_war)
-                            await smsg(attacker, attack, new_war, atom, non_atom)
+                            await smsg(attacker, attack, new_war, atom, non_atom, None)
             prev_wars = wars
             await asyncio.sleep(60)
    
