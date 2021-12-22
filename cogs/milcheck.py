@@ -451,68 +451,71 @@ class Military(commands.Cog):
                         break
 
         while True:
-            print("check", datetime.utcnow())
-            async with aiohttp.ClientSession() as session:
-                async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] days_ago:5){{id att_fortify war_type def_fortify attpeace defpeace turnsleft attacker{{nation_name alliance{{name}} id num_cities alliance_id cities{{id}}}} defender{{nation_name alliance{{name}} id num_cities alliance_id cities{{id}}}} attacks{{type victor moneystolen success cityid resistance_eliminated infradestroyed infra_destroyed_value improvementslost attcas1 attcas2 defcas1 defcas2}}}}}}"}) as temp:
-                    try:
-                        wars = (await temp.json())['data']['wars']
-                    except:
-                        print((await temp.json())['errors'])
-                        await asyncio.sleep(60)
-                        continue
-                    if prev_wars == None:
-                        prev_wars = wars
-                        print("previous is none")
-                        #await asyncio.sleep(60)
-                        continue
-                #n = 0
-                for new_war in wars:
-                    #n += 1
-                    #if n < 150:
-                    #    continue
-                    #print(n)
-                    if new_war['attacker']['alliance_id'] in ['4729', '7531']: ## CHANGE T0 ATOM ---------------------------------------------------------
-                        atom = new_war['attacker']
-                        non_atom = new_war['defender']
-                    else:
-                        atom = new_war['defender']
-                        non_atom = new_war['attacker']
-                    if non_atom['num_cities'] < 10:
-                        channel = self.bot.get_channel(837985478648660018)
-                    elif 20 > non_atom['num_cities'] >= 10:
-                        channel = self.bot.get_channel(837985611763810324)
-                    elif 30 > non_atom['num_cities'] >= 20:
-                        channel = self.bot.get_channel(837985741454966832)
-                    elif non_atom['num_cities'] >= 30:
-                        channel = self.bot.get_channel(837985858568060938)
-                    found_war = False
-                    for old_war in prev_wars:
-                        if new_war['id'] == old_war['id']:
-                            if new_war['attpeace'] and not old_war['attpeace']:
-                                peace_obj = {"offerer": new_war['attacker'], "reciever": new_war['defender']}
-                                await smsg(None, None, new_war, atom, non_atom, peace_obj)
-                            elif new_war['defpeace'] and not old_war['defpeace']:
-                                peace_obj = {"offerer": new_war['defender'], "reciever": new_war['attacker']}
-                                await smsg(None, None, new_war, atom, non_atom, peace_obj)
-                            found_war = True
-                            if len(new_war['attacks']) == 0:
+            try:
+                print("check", datetime.utcnow())
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] days_ago:5){{id att_fortify war_type def_fortify attpeace defpeace turnsleft attacker{{nation_name alliance{{name}} id num_cities alliance_id cities{{id}}}} defender{{nation_name alliance{{name}} id num_cities alliance_id cities{{id}}}} attacks{{type victor moneystolen success cityid resistance_eliminated infradestroyed infra_destroyed_value improvementslost attcas1 attcas2 defcas1 defcas2}}}}}}"}) as temp:
+                        try:
+                            wars = (await temp.json())['data']['wars']
+                        except:
+                            print((await temp.json())['errors'])
+                            await asyncio.sleep(60)
+                            continue
+                        if prev_wars == None:
+                            prev_wars = wars
+                            print("previous is none")
+                            #await asyncio.sleep(60)
+                            continue
+                    #n = 0
+                    for new_war in wars:
+                        #n += 1
+                        #if n < 150:
+                        #    continue
+                        #print(n)
+                        if new_war['attacker']['alliance_id'] in ['4729', '7531']: ## CHANGE T0 ATOM ---------------------------------------------------------
+                            atom = new_war['attacker']
+                            non_atom = new_war['defender']
+                        else:
+                            atom = new_war['defender']
+                            non_atom = new_war['attacker']
+                        if non_atom['num_cities'] < 10:
+                            channel = self.bot.get_channel(837985478648660018)
+                        elif 20 > non_atom['num_cities'] >= 10:
+                            channel = self.bot.get_channel(837985611763810324)
+                        elif 30 > non_atom['num_cities'] >= 20:
+                            channel = self.bot.get_channel(837985741454966832)
+                        elif non_atom['num_cities'] >= 30:
+                            channel = self.bot.get_channel(837985858568060938)
+                        found_war = False
+                        for old_war in prev_wars:
+                            if new_war['id'] == old_war['id']:
+                                if new_war['attpeace'] and not old_war['attpeace']:
+                                    peace_obj = {"offerer": new_war['attacker'], "reciever": new_war['defender']}
+                                    await smsg(None, None, new_war, atom, non_atom, peace_obj)
+                                elif new_war['defpeace'] and not old_war['defpeace']:
+                                    peace_obj = {"offerer": new_war['defender'], "reciever": new_war['attacker']}
+                                    await smsg(None, None, new_war, atom, non_atom, peace_obj)
+                                found_war = True
+                                if len(new_war['attacks']) == 0:
+                                    break
+                                attack = None
+                                for attack in new_war['attacks']:
+                                    if attack not in old_war['attacks']:
+                                        attacker = await attack_check(attack, new_war)
+                                        await smsg(attacker, attack, new_war, atom, non_atom, None)
                                 break
-                            attack = None
+                        if not found_war:
+                            print("war not found")
+                            embed = discord.Embed(title=f"New {new_war['war_type'].lower().capitalize()} War", description=f"[{new_war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={new_war['attacker']['id']}) declared a{'n'[:(len(new_war['war_type'])-5)^1]} {new_war['war_type'].lower()} war on [{new_war['defender']['nation_name']}](https://politicsandwar.com/nation/id={new_war['defender']['id']})", color=0x00ff00)
+                            await cthread(f"{non_atom['nation_name']} ({non_atom['id']})", embed, non_atom, atom, True)
                             for attack in new_war['attacks']:
-                                if attack not in old_war['attacks']:
-                                    attacker = await attack_check(attack, new_war)
-                                    await smsg(attacker, attack, new_war, atom, non_atom, None)
-                            break
-                    if not found_war:
-                        print("war not found")
-                        embed = discord.Embed(title=f"New {new_war['war_type'].lower().capitalize()} War", description=f"[{new_war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={new_war['attacker']['id']}) declared a{'n'[:(len(new_war['war_type'])-5)^1]} {new_war['war_type'].lower()} war on [{new_war['defender']['nation_name']}](https://politicsandwar.com/nation/id={new_war['defender']['id']})", color=0x00ff00)
-                        await cthread(f"{non_atom['nation_name']} ({non_atom['id']})", embed, non_atom, atom, True)
-                        for attack in new_war['attacks']:
-                            attacker = await attack_check(attack, new_war)
-                            await smsg(attacker, attack, new_war, atom, non_atom, None)
-            prev_wars = wars
-            await asyncio.sleep(60)
-   
+                                attacker = await attack_check(attack, new_war)
+                                await smsg(attacker, attack, new_war, atom, non_atom, None)
+                prev_wars = wars
+                await asyncio.sleep(60)
+            except Exception as e:
+                await channel.send(f"I encountered an error```{e}```")
+    
     @commands.command(brief='Add someone to the military coordination thread.')
     @commands.has_any_role('Deacon', 'Advisor', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def add(self, ctx, *, user):
