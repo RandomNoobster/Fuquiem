@@ -133,8 +133,7 @@ class Military(commands.Cog):
     @commands.command(brief='Delete all threads in this channel.')
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def clear_threads(self, ctx):
-        channel = self.bot.get_channel(796752432263725066)
-        for thread in channel.threads:
+        for thread in ctx.channel.threads:
             await thread.delete()
         print("done")
         return
@@ -257,13 +256,12 @@ class Military(commands.Cog):
 
     async def wars(self):
         await self.bot.wait_until_ready()
-        channel = self.bot.get_channel(796752432263725066)
-        guild = self.bot.get_guild(434071714893398016)
+        channel = self.bot.get_channel(923249186500116560)
         prev_wars = None
 
         async def cthread(name, embed, non_atom, atom, new_war):
             found = False
-            for thread in guild.threads:
+            for thread in channel.threads:
                 if f"({non_atom['id']})" in thread.name:
                     found = True
                     matching_thread = thread
@@ -303,14 +301,14 @@ class Military(commands.Cog):
             return attacker
 
         async def smsg(attacker_id, attack, war, atom, non_atom, peace):
-            embed = discord.Embed(title=f"New {war['war_type'].lower().capitalize()} War", description=f"[{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) declared a{'n'[:(len(war['war_type'])-5)^1]} {war['war_type'].lower()} war on [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']})", color=0x00ff00)
+            embed = discord.Embed(title=f"New {war['war_type'].lower().capitalize()} War", description=f"[{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) declared a{'n'[:(len(war['war_type'])-5)^1]} {war['war_type'].lower()} war on [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']})", color=0x23272A)
             await cthread(f"{non_atom['nation_name']} ({non_atom['id']})", embed, non_atom, atom, False)
             
-            for thread in guild.threads:
+            for thread in channel.threads:
                 if f"({non_atom['id']})" in thread.name:
                     #print("match")
                     if peace != None:
-                        embed = discord.Embed(title="Peace offering", description=f"[{peace['offerer']['nation_name']}](https://politicsandwar.com/nation/id={peace['offerer']['id']}) is offering peace to [{peace['reciver']['nation_name']}](https://politicsandwar.com/nation/id={peace['reciever']['id']}). The peace offering will be canceled if either side performs an act of aggression.", color=0xfff)
+                        embed = discord.Embed(title="Peace offering", description=f"[{peace['offerer']['nation_name']}](https://politicsandwar.com/nation/id={peace['offerer']['id']}) is offering peace to [{peace['reciever']['nation_name']}](https://politicsandwar.com/nation/id={peace['reciever']['id']}). The peace offering will be canceled if either side performs an act of aggression.", color=0xfff)
                         await thread.send(embed=embed)
                         break
                     if attack['type'] != "FORTIFY":
@@ -478,14 +476,6 @@ class Military(commands.Cog):
                         else:
                             atom = new_war['defender']
                             non_atom = new_war['attacker']
-                        if non_atom['num_cities'] < 10:
-                            channel = self.bot.get_channel(837985478648660018)
-                        elif 20 > non_atom['num_cities'] >= 10:
-                            channel = self.bot.get_channel(837985611763810324)
-                        elif 30 > non_atom['num_cities'] >= 20:
-                            channel = self.bot.get_channel(837985741454966832)
-                        elif non_atom['num_cities'] >= 30:
-                            channel = self.bot.get_channel(837985858568060938)
                         found_war = False
                         for old_war in prev_wars:
                             if new_war['id'] == old_war['id']:
@@ -506,7 +496,7 @@ class Military(commands.Cog):
                                 break
                         if not found_war:
                             print("war not found")
-                            embed = discord.Embed(title=f"New {new_war['war_type'].lower().capitalize()} War", description=f"[{new_war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={new_war['attacker']['id']}) declared a{'n'[:(len(new_war['war_type'])-5)^1]} {new_war['war_type'].lower()} war on [{new_war['defender']['nation_name']}](https://politicsandwar.com/nation/id={new_war['defender']['id']})", color=0x00ff00)
+                            embed = discord.Embed(title=f"New {new_war['war_type'].lower().capitalize()} War", description=f"[{new_war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={new_war['attacker']['id']}) declared a{'n'[:(len(new_war['war_type'])-5)^1]} {new_war['war_type'].lower()} war on [{new_war['defender']['nation_name']}](https://politicsandwar.com/nation/id={new_war['defender']['id']})", color=0x23272A)
                             await cthread(f"{non_atom['nation_name']} ({non_atom['id']})", embed, non_atom, atom, True)
                             for attack in new_war['attacks']:
                                 attacker = await attack_check(attack, new_war)
