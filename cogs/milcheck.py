@@ -646,7 +646,7 @@ class Military(commands.Cog):
                         else:
                             await user.send(f"Hey, you have an excess of {excess}please deposit it here for safekeeping: https://politicsandwar.com/alliance/id={nation['allianceid']}&display=bank")
                             print('i just sent a msg to', user, excess)
-                    except discord.errors.Forbidden:
+                    except discord.Forbidden:
                         await ctx.send(f"{user} does not allow my DMs")
                     except:
                         print('no dm for', nation['nation'])
@@ -781,12 +781,12 @@ class Military(commands.Cog):
                 minaluminum = 0
 
             if minmoney == 0 and mingasoline == 0 and minmunitions == 0 and minsteel == 0 and minaluminum == 0:
-                await ctx.send("This guy already has enough resources to fulfill minimum requirements!")
+                await ctx.send("This person already has enough resources to fulfill minimum requirements!")
 
             try:
                 await user.send(f"Hey, you have an excess of {excess}please deposit it here for safekeeping: https://politicsandwar.com/alliance/id={nation['allianceid']}&display=bank")
                 print('i just sent a msg to', user, excess)
-            except discord.errors.Forbidden:
+            except discord.Forbidden:
                 await ctx.send(user, 'does not allow my DMs')
             except:
                 print('no dm for', nation['nation'])

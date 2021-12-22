@@ -162,13 +162,13 @@ class Update(commands.Cog):
                             try:
                                 await user.send('Hey, you should get some food. Type "$food" in <#850302301838114826>')
                                 print('i just sent a msg to', user)
-                            except discord.errors.Forbidden:
+                            except discord.Forbidden:
                                 await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Food', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because it seems that you are running out of food. You don't really want to miss out on 1/3 of your income due to a a lack of food... So please go to the discord and type $food in #pnw-bots, by doing this, Fuquiem will send 100k food your way."})
                         elif nation['alliance_id'] == "7531":
                             try:
                                 await user.send("Hey, you should get some food, you don't want to miss out on 1/3 of your income: https://politicsandwar.com/index.php?id=26&display=world")
                                 print('i just sent a msg to', user)
-                            except discord.errors.Forbidden:
+                            except discord.Forbidden:
                                 await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
                                 await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Food', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because it seems that you are running out of food. You don't really want to miss out on 1/3 of your income due to a a lack of food... You can go here to buy some food for your nation: <a href=\"https://politicsandwar.com/index.php?id=26&display=world\">https://politicsandwar.com/index.php?id=26&display=world</a>"})
 
@@ -215,7 +215,7 @@ class Update(commands.Cog):
                             try:
                                 await user.send('Hey, you should get some spies: https://politicsandwar.com/nation/military/spies/')
                                 print('i just sent a msg to', user)
-                            except discord.errors.Forbidden:
+                            except discord.Forbidden:
                                 await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
                                 await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Spies', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you don't have max spies. To buy spies, please go here: <a href=\"https://politicsandwar.com/nation/military/spies/\">https://politicsandwar.com/nation/military/spies/</a>"})
 
@@ -257,7 +257,7 @@ class Update(commands.Cog):
                         try:
                             await user.send('Hey, you should log in: https://politicsandwar.com')
                             print('i just sent a msg to', user)
-                        except discord.errors.Forbidden:
+                        except discord.Forbidden:
                             await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
                             await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Inactivity', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you have been somewhat inactive lately. He sent this message in the hopes that you might get a notification by email, increasing the probability of you logging in to the game."})
                 if len(embed.fields) == 0:
@@ -306,7 +306,7 @@ class Update(commands.Cog):
                         try:
                             await user.send(f'Hey, you should change your color to {color} in order to get money from the color bonus: https://politicsandwar.com/nation/edit/')
                             print('i just sent a msg to', user)
-                        except discord.errors.Forbidden:
+                        except discord.Forbidden:
                             await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
                             await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Color', 'message': f"Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you are currently not getting any money from the color bonus. If you change your nation's color to {color}, your daily revenue will increase. You can change your color here: <a href=\"https://politicsandwar.com/nation/edit/\">https://politicsandwar.com/nation/edit/</a>"})
                 if len(embed.fields) == 0:
