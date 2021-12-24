@@ -252,7 +252,10 @@ class Military(commands.Cog):
             print("could not find", atom)
             return
         user = await self.bot.fetch_user(person['user'])
-        await thread.add_user(user)
+        try:
+            await thread.add_user(user)
+        except:
+            await thread.send(f"I was unable to add {user} to the thread.")
 
     async def wars(self):
         await self.bot.wait_until_ready()
