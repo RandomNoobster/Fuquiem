@@ -139,7 +139,7 @@ class Military(commands.Cog):
         return
 
     @commands.command(brief='May be used in military coordination threads.')
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role('Pupil', 'Zealot', 'Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def status(self, ctx):
         nation_id = ctx.channel.name[ctx.channel.name.rfind("(")+1:-1]
         async with aiohttp.ClientSession() as session:
@@ -301,14 +301,14 @@ class Military(commands.Cog):
             return attacker
 
         async def smsg(attacker_id, attack, war, atom, non_atom, peace):
-            embed = discord.Embed(title=f"New {war['war_type'].lower().capitalize()} War", description=f"[{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) declared a{'n'[:(len(war['war_type'])-5)^1]} {war['war_type'].lower()} war on [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']})", color=0x23272A)
+            embed = discord.Embed(title=f"New {war['war_type'].lower().capitalize()} War", description=f"[{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) declared a{'n'[:(len(war['war_type'])-5)^1]} {war['war_type'].lower()} war on [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']})", color=0x2F3136)
             await cthread(f"{non_atom['nation_name']} ({non_atom['id']})", embed, non_atom, atom, False)
             
             for thread in channel.threads:
                 if f"({non_atom['id']})" in thread.name:
                     #print("match")
                     if peace != None:
-                        embed = discord.Embed(title="Peace offering", description=f"[{peace['offerer']['nation_name']}](https://politicsandwar.com/nation/id={peace['offerer']['id']}) is offering peace to [{peace['reciever']['nation_name']}](https://politicsandwar.com/nation/id={peace['reciever']['id']}). The peace offering will be canceled if either side performs an act of aggression.", color=0xfff)
+                        embed = discord.Embed(title="Peace offering", description=f"[{peace['offerer']['nation_name']}](https://politicsandwar.com/nation/id={peace['offerer']['id']}) is offering peace to [{peace['reciever']['nation_name']}](https://politicsandwar.com/nation/id={peace['reciever']['id']}). The peace offering will be canceled if either side performs an act of aggression.", color=0xffffff)
                         await thread.send(embed=embed)
                         break
                     if attack['type'] != "FORTIFY":
@@ -496,7 +496,7 @@ class Military(commands.Cog):
                                 break
                         if not found_war:
                             print("war not found")
-                            embed = discord.Embed(title=f"New {new_war['war_type'].lower().capitalize()} War", description=f"[{new_war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={new_war['attacker']['id']}) declared a{'n'[:(len(new_war['war_type'])-5)^1]} {new_war['war_type'].lower()} war on [{new_war['defender']['nation_name']}](https://politicsandwar.com/nation/id={new_war['defender']['id']})", color=0x23272A)
+                            embed = discord.Embed(title=f"New {new_war['war_type'].lower().capitalize()} War", description=f"[{new_war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={new_war['attacker']['id']}) declared a{'n'[:(len(new_war['war_type'])-5)^1]} {new_war['war_type'].lower()} war on [{new_war['defender']['nation_name']}](https://politicsandwar.com/nation/id={new_war['defender']['id']})", color=0x2F3136)
                             await cthread(f"{non_atom['nation_name']} ({non_atom['id']})", embed, non_atom, atom, True)
                             for attack in new_war['attacks']:
                                 attacker = await attack_check(attack, new_war)
@@ -507,7 +507,7 @@ class Military(commands.Cog):
                 await channel.send(f"I encountered an error```{e}```")
     
     @commands.command(brief='Add someone to the military coordination thread.')
-    @commands.has_any_role('Deacon', 'Advisor', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role('Pupil', 'Zealot', 'Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def add(self, ctx, *, user):
         await self.add_to_thread(ctx.channel, user)
 
