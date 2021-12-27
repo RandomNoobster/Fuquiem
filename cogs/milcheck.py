@@ -256,6 +256,18 @@ class Military(commands.Cog):
             await thread.add_user(user)
         except:
             await thread.send(f"I was unable to add {user} to the thread.")
+    
+    async def remove_from_thread(self, thread, atom):
+        Database = self.bot.get_cog('Database')
+        person = await Database.find_user(atom)
+        if person == {}:
+            print("could not find", atom)
+            return
+        user = await self.bot.fetch_user(person['user'])
+        try:
+            await thread.remove_user(user)
+        except:
+            await thread.send(f"I was unable to add {user} to the thread.")
 
     async def wars(self):
         await self.bot.wait_until_ready()
@@ -504,11 +516,30 @@ class Military(commands.Cog):
                             for attack in new_war['attacks']:
                                 attacker = await attack_check(attack, new_war)
                                 await smsg(attacker, attack, new_war, atom, non_atom, None)
+                    for old_war in prev_wars:
+                        for new_war in wars:
+                            if new_war['id'] == old_war['id']:
+                                if new_war['turnsleft'] <= 0 and old_war['turnsleft'] > 0:
+                                    if new_war['attacker']['alliance_id'] in ['4729', '7531']: ## CHANGE T0 ATOM ---------------------------------------------------------
+                                        atom = new_war['attacker']
+                                        non_atom = new_war['defender']
+                                    else:
+                                        atom = new_war['defender']
+                                        non_atom = new_war['attacker']
+                                    for thread in channel.threads:
+                                        if f"({non_atom['id']})" in thread.name:
+                                            embed = discord.Embed(title=f"War finished", description=f"[{new_war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={new_war['attacker']['id']}) is no longer at war with [{new_war['defender']['nation_name']}](https://politicsandwar.com/nation/id={new_war['defender']['id']})", color=0xffFFff)
+                                            await thread.send(embed=embed)
+                                            await self.remove_from_thread(thread, atom)
+                                            if thread.member_count == 1:
+                                                await thread.edit(archive=True)
+                                            break
+                                break
                 prev_wars = wars
                 await asyncio.sleep(60)
             except Exception as e:
                 await channel.send(f"I encountered an error```{e}```")
-    
+
     @commands.command(brief='Add someone to the military coordination thread.')
     @commands.has_any_role('Pupil', 'Zealot', 'Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def add(self, ctx, *, user):
@@ -517,10 +548,7 @@ class Military(commands.Cog):
     @commands.command(brief='Reomve someone from the military coordination thread.')
     @commands.has_any_role('Deacon', 'Advisor', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def remove(self, ctx, *, user):
-        Database = self.bot.get_cog('Database')
-        person = await Database.find_user(user)
-        user = await self.bot.fetch_user(person['user'])
-        await ctx.channel.remove_user(user)
+        await self.remove_from_thread(ctx.channel, user)
 
     @commands.command(aliases=['counter'], brief='Accepts one argument, gives you a pre-filled link to slotter.', help='Accepted arguments include nation name, leader name, nation id and nation link. When browsing the databse, Fuquiem will use the first match, so it can be wise to double check that it returns a slotter link for the correct person.')
     async def counters(self, ctx, *, arg):
