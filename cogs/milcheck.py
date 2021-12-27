@@ -1926,19 +1926,17 @@ class Military(commands.Cog):
                     att_append += "<:small_blockade:924988666814808114>"
                 elif war['navalblockade'] == def_id:
                     def_append += "<:small_blockade:924988666814808114>"
-        print(def_append, att_append)
         embed = discord.Embed(title="Battle Simulator",
                               description=f"These are the results for when [{attacker_nation['nation_name']}](https://politicsandwar.com/nation/id={attacker_nation['id']}){att_append} attacks [{defender_nation['nation_name']}](https://politicsandwar.com/nation/id={defender_nation['id']}){def_append}\nIf you want to use custom troop counts, you can use the [in-game battle simulators](https://politicsandwar.com/tools/)", color=0x00ff00)
         embed1 = discord.Embed(title="Battle Simulator",
                               description=f"These are the results for when [{defender_nation['nation_name']}](https://politicsandwar.com/nation/id={defender_nation['id']}){def_append} attacks [{attacker_nation['nation_name']}](https://politicsandwar.com/nation/id={attacker_nation['id']}){att_append}\nIf you want to use custom troop counts, you can use the [in-game battle simulators](https://politicsandwar.com/tools/)", color=0x00ff00)
 
         casualties = {}
-        attacker_army_value = attacker_nation['soldiers'] * 1.75 + attacker_nation['tanks'] * 40
-        defender_army_value = defender_nation['soldiers'] * 1.75 + defender_nation['tanks'] * 40 + defender_nation['population'] * 0.0025
+        attacker_army_value = attacker_nation['soldiers'] * 1.75 + attacker_nation['tanks'] * 40 * att_tanks
+        defender_army_value = defender_nation['soldiers'] * 1.75 + defender_nation['tanks'] * 40 * def_tanks + defender_nation['population'] * 0.0025
 
         try:
             x = attacker_army_value / defender_army_value
-            print(x)
             if x > 2:
                 ground_win_rate = 1
             elif x < 0.4:
@@ -1966,12 +1964,11 @@ class Military(commands.Cog):
                     elif party == "defender":
                         casualties[f"ground_{party}_{variant['type']}_{fighter['fighter']}"] = round(attacker_army_value * variant['rate'] / fighter[f"{losing}_cas_rate"] * 3)
 
-        attacker_army_value = attacker_nation['soldiers'] * 1.75 + attacker_nation['tanks'] * 40 + attacker_nation['population'] * 0.0025
-        defender_army_value = defender_nation['soldiers'] * 1.75 + defender_nation['tanks'] * 40
+        attacker_army_value = attacker_nation['soldiers'] * 1.75 + attacker_nation['tanks'] * 40 * att_tanks + attacker_nation['population'] * 0.0025
+        defender_army_value = defender_nation['soldiers'] * 1.75 + defender_nation['tanks'] * 40 * def_tanks
 
         try:
             x = defender_army_value / attacker_army_value
-            print(x)
             if x > 2:
                 ground_loss_rate = 1
             elif x < 0.4:
