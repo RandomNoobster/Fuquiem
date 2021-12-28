@@ -1842,277 +1842,304 @@ class Military(commands.Cog):
 
     @commands.command(aliases=['bsim', 'bs'], brief='Simulate battles between two nations', help="Accepts up to two arguments. The first argument is the attacking nation, whilst the latter is the defending nation. If only one argument is provided, Fuquiem will assume that you are the defender")
     @commands.has_any_role('Pupil', 'Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
-    async def battlesim(self, ctx, defender=None, attacker=None):
+    async def battlesim(self, ctx, nation1=None, nation2=None):
         #check is any wars are active, and if they have air superiority, ground control, fortified etc
         message = await ctx.send('Alright, give me a sec to calculate the winrates...')
         Database = self.bot.get_cog('Database')
-        if defender == None:
-            defender = ctx.author.id
-        defender_nation = await Database.find_user(defender)
-        if defender_nation == {}:
+        if nation1 == None:
+            nation1 = ctx.author.id
+        nation1_nation = await Database.find_user(nation1)
+        if nation1_nation == {}:
             try:
-                defender_nums = int(re.sub("[^0-9]", "", defender))
-                defender_nation = list(mongo.world_nations.find({"nationid": defender_nums}).collation(
+                nation1_nums = int(re.sub("[^0-9]", "", nation1))
+                nation1_nation = list(mongo.world_nations.find({"nationid": nation1_nums}).collation(
                     {"locale": "en", "strength": 1}))[0]
             except:
                 try:
-                    defender_nation = list(mongo.world_nations.find({"leader": defender}).collation(
+                    nation1_nation = list(mongo.world_nations.find({"leader": nation1}).collation(
                         {"locale": "en", "strength": 1}))[0]
                 except:
                     try:
-                        defender_nation = list(mongo.world_nations.find({"nation": defender}).collation(
+                        nation1_nation = list(mongo.world_nations.find({"nation": nation1}).collation(
                         {"locale": "en", "strength": 1}))[0]
                     except:
-                        defender_nation = None
-            if not defender_nation:
-                if attacker == None:
+                        nation1_nation = None
+            if not nation1_nation:
+                if nation2 == None:
                     await message.edit(content='I could not find that nation!')
                     return
                 else:
                     await message.edit(content='I could not find nation 1!')
                     return 
-        def_id = str(defender_nation['nationid'])
+        nation1_id = str(nation1_nation['nationid'])
 
         done = False
         if isinstance(ctx.channel, discord.Thread):
             try:
-                if attacker == None:
+                if nation2 == None:
                     chan = ctx.channel.name
-                    att_id = str(chan[chan.index("(")+1:-1])
+                    nation2_id = str(chan[chan.index("(")+1:-1])
                     done = True
             except:
                 pass
 
         if not done:
-            if attacker == None:
-                attacker = ctx.author.id
-            attacker_nation = await Database.find_user(attacker)
-            if attacker_nation == {}:
+            if nation2 == None:
+                nation2 = ctx.author.id
+            nation2_nation = await Database.find_user(nation2)
+            if nation2_nation == {}:
                 try:
-                    attacker_nation = list(mongo.world_nations.find({"nation": attacker}).collation(
+                    nation2_nation = list(mongo.world_nations.find({"nation": nation2}).collation(
                         {"locale": "en", "strength": 1}))[0]
                 except:
                     try:
-                        attacker_nation = list(mongo.world_nations.find({"leader": attacker}).collation(
+                        nation2_nation = list(mongo.world_nations.find({"leader": nation2}).collation(
                             {"locale": "en", "strength": 1}))[0]
                     except:
                         try:
-                            attacker = int(re.sub("[^0-9]", "", attacker))
-                            attacker_nation = list(mongo.world_nations.find({"nationid": attacker}).collation(
+                            nation2 = int(re.sub("[^0-9]", "", nation2))
+                            nation2_nation = list(mongo.world_nations.find({"nationid": nation2}).collation(
                                 {"locale": "en", "strength": 1}))[0]
                         except:
-                            attacker_nation = None
-                if not attacker_nation:
-                    if attacker == None:
+                            nation2_nation = None
+                if not nation2_nation:
+                    if nation2 == None:
                         await message.edit(content='I was able to find the nation you linked, but I could not find *your* nation!')
                         return
                     else:
                         await message.edit(content='I could not find nation 2!')
                         return 
-            att_id = str(attacker_nation['nationid'])
+            nation2_id = str(nation2_nation['nationid'])
 
-        defender_nation = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{def_id}){{data{{nation_name population id soldiers tanks aircraft ships defensive_wars{{groundcontrol airsuperiority navalblockade attid defid turnsleft}} offensive_wars{{groundcontrol airsuperiority navalblockade attid defid turnsleft}}}}}}}}"}).json()['data']['nations']['data'][0]
-        attacker_nation = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{att_id}){{data{{nation_name population id soldiers tanks aircraft ships}}}}}}"}).json()['data']['nations']['data'][0]
+        nation1_nation = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation1_id}){{data{{nation_name population id soldiers tanks aircraft ships defensive_wars{{groundcontrol airsuperiority navalblockade attid defid att_fortify def_fortify turnsleft}} offensive_wars{{groundcontrol airsuperiority navalblockade attid defid att_fortify def_fortify turnsleft}}}}}}}}"}).json()['data']['nations']['data'][0]
+        nation2_nation = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation2_id}){{data{{nation_name population id soldiers tanks aircraft ships}}}}}}"}).json()['data']['nations']['data'][0]
 
-        att_append = ""
-        def_append = ""
-        att_tanks = 1
-        def_tanks = 1
+        nation1_append = ""
+        nation2_append = ""
+        nation1_tanks = 1
+        nation2_tanks = 1
+        nation1_extra_cas = 1
+        nation2_extra_cas = 1
         gc = None
-        for war in defender_nation['defensive_wars']:
-            if war['attid'] == att_id and war['turnsleft'] > 0 and war in defender_nation['defensive_wars']:
-                if war['groundcontrol'] == def_id:
-                    gc = defender_nation
-                    def_append += "<:small_gc:924988666613489685>"
-                elif war['groundcontrol'] == att_id:
-                    gc = attacker_nation
-                    att_append += "<:small_gc:924988666613489685>"
-                if war['airsuperiority'] == def_id:
-                    att_tanks = 0.5
-                    def_append += "<:small_air:924988666810601552>"
-                elif war['airsuperiority'] == att_id:
-                    def_tanks = 0.5
-                    att_append += "<:small_air:924988666810601552>"
-                if war['navalblockade'] == def_id: #blockade is opposite than the others
-                    att_append += "<:small_blockade:924988666814808114>"
-                elif war['navalblockade'] == att_id:
-                    def_append += "<:small_blockade:924988666814808114>"
-            elif war['attid'] == def_id and war['turnsleft'] > 0 and war in defender_nation['offensive_wars']:
-                if war['groundcontrol'] == att_id:
-                    gc = defender_nation
-                    def_append += "<:small_gc:924988666613489685>"
-                elif war['groundcontrol'] == def_id:
-                    gc = attacker_nation
-                    att_append += "<:small_gc:924988666613489685>"
-                if war['airsuperiority'] == att_id:
-                    def_tanks = 0.5
-                    def_append += "<:small_air:924988666810601552>"
-                elif war['airsuperiority'] == def_id:
-                    att_tanks = 0.5
-                    att_append += "<:small_air:924988666810601552>"
-                if war['navalblockade'] == att_id:
-                    att_append += "<:small_blockade:924988666814808114>"
-                elif war['navalblockade'] == def_id:
-                    def_append += "<:small_blockade:924988666814808114>"
+        for war in nation1_nation['defensive_wars'] + nation1_nation['offensive_wars']:
+            if war['attid'] == nation2_id and war['turnsleft'] > 0 and war in nation1_nation['defensive_wars']:
+                if war['groundcontrol'] == nation1_id:
+                    gc = nation1_nation
+                    nation1_append += "<:small_gc:924988666613489685>"
+                elif war['groundcontrol'] == nation2_id:
+                    gc = nation2_nation
+                    nation2_append += "<:small_gc:924988666613489685>"
+                if war['airsuperiority'] == nation1_id:
+                    nation2_tanks = 0.5
+                    nation1_append += "<:small_air:924988666810601552>"
+                elif war['airsuperiority'] == nation2_id:
+                    nation1_tanks = 0.5
+                    nation2_append += "<:small_air:924988666810601552>"
+                if war['navalblockade'] == nation1_id: #blockade is opposite than the others
+                    nation2_append += "<:small_blockade:924988666814808114>"
+                elif war['navalblockade'] == nation2_id:
+                    nation1_append += "<:small_blockade:924988666814808114>"
+                if war['att_fortify']:
+                    nation2_append += "<:fortified:925465012955385918>"
+                    nation1_extra_cas = 1.25
+                if war['def_fortify']:
+                    nation1_append += "<:fortified:925465012955385918>"
+                    nation2_extra_cas = 1.25
+            elif war['defid'] == nation2_id and war['turnsleft'] > 0 and war in nation1_nation['offensive_wars']:
+                if war['groundcontrol'] == nation1_id:
+                    gc = nation1_nation
+                    nation1_append += "<:small_gc:924988666613489685>"
+                elif war['groundcontrol'] == nation2_id:
+                    gc = nation2_nation
+                    nation2_append += "<:small_gc:924988666613489685>"
+                if war['airsuperiority'] == nation1_id:
+                    nation2_tanks = 0.5
+                    nation1_append += "<:small_air:924988666810601552>"
+                elif war['airsuperiority'] == nation2_id:
+                    nation1_tanks = 0.5
+                    nation2_append += "<:small_air:924988666810601552>"
+                if war['navalblockade'] == nation1_id: #blockade is opposite than the others
+                    nation2_append += "<:small_blockade:924988666814808114>"
+                elif war['navalblockade'] == nation2_id:
+                    nation1_append += "<:small_blockade:924988666814808114>"
+                if war['att_fortify']:
+                    nation1_append += "<:fortified:925465012955385918>"
+                    nation2_extra_cas = 1.25
+                if war['def_fortify']:
+                    nation2_append += "<:fortified:925465012955385918>"
+                    nation1_extra_cas = 1.25
         embed = discord.Embed(title="Battle Simulator",
-                              description=f"These are the results for when [{attacker_nation['nation_name']}](https://politicsandwar.com/nation/id={attacker_nation['id']}){att_append} attacks [{defender_nation['nation_name']}](https://politicsandwar.com/nation/id={defender_nation['id']}){def_append}\nIf you want to use custom troop counts, you can use the [in-game battle simulators](https://politicsandwar.com/tools/)", color=0x00ff00)
+                              description=f"These are the results for when [{nation1_nation['nation_name']}](https://politicsandwar.com/nation/id={nation1_nation['id']}){nation1_append} attacks [{nation2_nation['nation_name']}](https://politicsandwar.com/nation/id={nation2_nation['id']}){nation2_append}\nIf you want to use custom troop counts, you can use the [in-game battle simulators](https://politicsandwar.com/tools/)", color=0x00ff00)
         embed1 = discord.Embed(title="Battle Simulator",
-                              description=f"These are the results for when [{defender_nation['nation_name']}](https://politicsandwar.com/nation/id={defender_nation['id']}){def_append} attacks [{attacker_nation['nation_name']}](https://politicsandwar.com/nation/id={attacker_nation['id']}){att_append}\nIf you want to use custom troop counts, you can use the [in-game battle simulators](https://politicsandwar.com/tools/)", color=0x00ff00)
+                              description=f"These are the results for when [{nation2_nation['nation_name']}](https://politicsandwar.com/nation/id={nation2_nation['id']}){nation2_append} attacks [{nation1_nation['nation_name']}](https://politicsandwar.com/nation/id={nation1_nation['id']}){nation1_append}\nIf you want to use custom troop counts, you can use the [in-game battle simulators](https://politicsandwar.com/tools/)", color=0x00ff00)
 
         casualties = {}
-        attacker_army_value = attacker_nation['soldiers'] * 1.75 + attacker_nation['tanks'] * 40 * att_tanks
-        defender_army_value = defender_nation['soldiers'] * 1.75 + defender_nation['tanks'] * 40 * def_tanks + defender_nation['population'] * 0.0025
+        nation2_army_value = nation2_nation['soldiers'] * 1.75 + nation2_nation['tanks'] * 40 * nation2_tanks + nation2_nation['population'] * 0.0025
+        nation1_army_value = nation1_nation['soldiers'] * 1.75 + nation1_nation['tanks'] * 40 * nation1_tanks
 
         try:
-            x = attacker_army_value / defender_army_value
+            x = nation1_army_value / nation2_army_value
             if x > 2:
-                ground_win_rate = 1
+                nation1_ground_win_rate = 1
             elif x < 0.4:
-                ground_win_rate = 0
+                nation1_ground_win_rate = 0
             else:
-                ground_win_rate = (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
+                nation1_ground_win_rate = (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
         except ZeroDivisionError:
-            ground_win_rate = 1
-        
-        aircas = ""
-        if gc == attacker_nation:
-            aircas = f"Def. Plane: {round(attacker_nation['tanks'] * 0.0075 * ground_win_rate ** 3)} ± {round(attacker_nation['tanks'] * 0.0075 * (1 - ground_win_rate ** 3))}"
-        
-        winning = "loss"
-        losing = "win"
-        if attacker_army_value > defender_army_value:
-            winning = "win"
-            losing = "loss"
-        
-        for party in ["attacker", "defender"]:
-            for variant in [{"type": "avg", "rate": 0.7}, {"type": "diff", "rate": 0.3}]:
-                for fighter in [{"fighter": "soldiers", "win_cas_rate": 125, "loss_cas_rate": 125}, {"fighter": "tanks", "win_cas_rate": 1650, "loss_cas_rate": 1550}]:
-                    if party == "attacker":
-                        casualties[f"ground_{party}_{variant['type']}_{fighter['fighter']}"] = round(defender_army_value * variant['rate'] / fighter[f"{winning}_cas_rate"] * 3)
-                    elif party == "defender":
-                        casualties[f"ground_{party}_{variant['type']}_{fighter['fighter']}"] = round(attacker_army_value * variant['rate'] / fighter[f"{losing}_cas_rate"] * 3)
-
-        attacker_army_value = attacker_nation['soldiers'] * 1.75 + attacker_nation['tanks'] * 40 * att_tanks + attacker_nation['population'] * 0.0025
-        defender_army_value = defender_nation['soldiers'] * 1.75 + defender_nation['tanks'] * 40 * def_tanks
-
-        try:
-            x = defender_army_value / attacker_army_value
-            if x > 2:
-                ground_loss_rate = 1
-            elif x < 0.4:
-                ground_loss_rate = 0
-            else:
-                ground_loss_rate = (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
-        except ZeroDivisionError:
-            ground_loss_rate = 1
+            nation1_ground_win_rate = 1
         
         aircas1 = ""
-        if gc == defender_nation:
-            aircas1 = f"Def. Plane: {round(defender_nation['tanks'] * 0.0075 * ground_loss_rate ** 3)} ± {round(defender_nation['tanks'] * 0.0075 * (1 - ground_loss_rate ** 3))}"
+        if gc == nation1_nation:
+            aircas1 = f"Def. Plane: {round(nation1_nation['tanks'] * 0.0075 * nation1_ground_win_rate ** 3)} ± {round(nation1_nation['tanks'] * 0.0075 * (1 - nation1_ground_win_rate ** 3))}"
         
         winning = "loss"
         losing = "win"
-        if attacker_army_value > defender_army_value:
+        if nation1_army_value > nation2_army_value:
+            winning = "win"
+            losing = "loss"
+        
+        for party in ["nation2", "nation1"]:
+            for variant in [{"type": "avg", "rate": 0.7}, {"type": "diff", "rate": 0.3}]:
+                for fighter in [{"fighter": "soldiers", "win_cas_rate": 125, "loss_cas_rate": 125}, {"fighter": "tanks", "win_cas_rate": 1650, "loss_cas_rate": 1550}]:
+                    if party == "nation1":
+                        casualties[f"nation1_ground_{party}_{variant['type']}_{fighter['fighter']}"] = round(nation2_army_value * variant['rate'] / fighter[f"{winning}_cas_rate"] * 3 * nation1_extra_cas)
+                    elif party == "nation2":
+                        casualties[f"nation1_ground_{party}_{variant['type']}_{fighter['fighter']}"] = round(nation1_army_value * variant['rate'] / fighter[f"{losing}_cas_rate"] * 3)
+
+        nation2_army_value = nation2_nation['soldiers'] * 1.75 + nation2_nation['tanks'] * 40 * nation2_tanks
+        nation1_army_value = nation1_nation['soldiers'] * 1.75 + nation1_nation['tanks'] * 40 * nation1_tanks + nation1_nation['population'] * 0.0025
+
+        try:
+            x = nation2_army_value / nation1_army_value
+            if x > 2:
+                nation2_ground_win_rate = 1
+            elif x < 0.4:
+                nation2_ground_win_rate = 0
+            else:
+                nation2_ground_win_rate = (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
+        except ZeroDivisionError:
+            nation2_ground_win_rate = 1
+        
+        aircas2 = ""
+        if gc == nation2_nation:
+            aircas2 = f"Def. Plane: {round(nation2_nation['tanks'] * 0.0075 * nation2_ground_win_rate ** 3)} ± {round(nation2_nation['tanks'] * 0.0075 * (1 - nation2_ground_win_rate ** 3))}"
+        
+        winning = "loss"
+        losing = "win"
+        if nation2_army_value > nation1_army_value:
             winning = "win"
             losing = "loss"
 
-        for party in ["attacker", "defender"]:
+        for party in ["nation2", "nation1"]:
             for variant in [{"type": "avg", "rate": 0.7}, {"type": "diff", "rate": 0.3}]:
                 for fighter in [{"fighter": "soldiers", "win_cas_rate": 125, "loss_cas_rate": 125}, {"fighter": "tanks", "win_cas_rate": 1650, "loss_cas_rate": 1550}]:
-                    if party == "attacker":
-                        casualties[f"ground_opposite_{party}_{variant['type']}_{fighter['fighter']}"] = round(attacker_army_value * variant['rate'] / fighter[f"{winning}_cas_rate"] * 3)
-                    elif party == "defender":
-                        casualties[f"ground_opposite_{party}_{variant['type']}_{fighter['fighter']}"] = round(defender_army_value * variant['rate'] / fighter[f"{losing}_cas_rate"] * 3)
+                    if party == "nation2":
+                        casualties[f"nation2_ground_{party}_{variant['type']}_{fighter['fighter']}"] = round(nation1_army_value * variant['rate'] / fighter[f"{winning}_cas_rate"] * 3 * nation2_extra_cas)
+                    elif party == "nation1":
+                        casualties[f"nation2_ground_{party}_{variant['type']}_{fighter['fighter']}"] = round(nation2_army_value * variant['rate'] / fighter[f"{losing}_cas_rate"] * 3)
 
         try:
-            x = (attacker_nation['aircraft'] * 3) / (defender_nation['aircraft'] * 3)
-            print(x)
+            x = (nation1_nation['aircraft'] * 3) / (nation2_nation['aircraft'] * 3)
             if x > 2:
-                air_win_rate = 1
+                nation1_air_win_rate = 1
             elif x < 0.4:
-                air_win_rate = 0
+                nation1_air_win_rate = 0
             else:
-                air_win_rate = (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
+                nation1_air_win_rate = (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
         except ZeroDivisionError:
-            air_win_rate = 1
+            nation1_air_win_rate = 1
 
-        airtoair_attacker_avg = round(defender_nation['aircraft'] * 3 * 0.7 * 0.01 * 3)
-        airtoair_attacker_diff = round(defender_nation['aircraft'] * 3 * 0.3 * 0.01 * 3)
-        airtoair_defender_avg = round(attacker_nation['aircraft'] * 3 * 0.7 * 0.018337 * 3)
-        airtoair_defender_diff = round(attacker_nation['aircraft'] * 3 * 0.3 * 0.018337 * 3)
+        nation1_airtoair_nation1_avg = round(nation2_nation['aircraft'] * 3 * 0.7 * 0.01 * 3 * nation1_extra_cas)
+        nation1_airtoair_nation1_diff = round(nation2_nation['aircraft'] * 3 * 0.3 * 0.01 * 3 * nation1_extra_cas)
+        nation1_airtoother_nation1_avg = round(nation2_nation['aircraft'] * 3 * 0.7 * 0.015385 * 3 * nation1_extra_cas)
+        nation1_airtoother_nation1_diff = round(nation2_nation['aircraft'] * 3 * 0.3 * 0.015385 * 3 * nation1_extra_cas)
 
-        airtoground_attacker_avg = round(defender_nation['aircraft'] * 3 * 0.7 * 0.015385 * 3)
-        airtoground_attacker_diff = round(defender_nation['aircraft'] * 3 * 0.3 * 0.015385 * 3)
-        airtoground_defender_avg = round(attacker_nation['aircraft'] * 3 * 0.7 * 0.009091 * 3)
-        airtoground_defender_diff = round(attacker_nation['aircraft'] * 3 * 0.3 * 0.009091 * 3)
-        
+        nation1_airtoair_nation2_avg = round(nation1_nation['aircraft'] * 3 * 0.7 * 0.018337 * 3)
+        nation1_airtoair_nation2_diff = round(nation1_nation['aircraft'] * 3 * 0.3 * 0.018337 * 3)
+        nation1_airtoother_nation2_avg = round(nation1_nation['aircraft'] * 3 * 0.7 * 0.009091 * 3)
+        nation1_airtoother_nation2_diff = round(nation1_nation['aircraft'] * 3 * 0.3 * 0.009091 * 3)
+
+        nation2_airtoair_nation2_avg = round(nation1_nation['aircraft'] * 3 * 0.7 * 0.01 * 3 * nation2_extra_cas)
+        nation2_airtoair_nation2_diff = round(nation1_nation['aircraft'] * 3 * 0.3 * 0.01 * 3 * nation2_extra_cas)
+        nation2_airtoother_nation2_avg = round(nation1_nation['aircraft'] * 3 * 0.7 * 0.015385 * 3 * nation2_extra_cas)
+        nation2_airtoother_nation2_diff = round(nation1_nation['aircraft'] * 3 * 0.3 * 0.015385 * 3 * nation2_extra_cas)
+
+        nation2_airtoair_nation1_avg = round(nation2_nation['aircraft'] * 3 * 0.7 * 0.018337 * 3)
+        nation2_airtoair_nation1_diff = round(nation2_nation['aircraft'] * 3 * 0.3 * 0.018337 * 3)
+        nation2_airtoother_nation1_avg = round(nation2_nation['aircraft'] * 3 * 0.7 * 0.009091 * 3)
+        nation2_airtoother_nation1_diff = round(nation2_nation['aircraft'] * 3 * 0.3 * 0.009091 * 3)
+
         try:
-            x = (attacker_nation['ships'] * 4) / (defender_nation['ships'] * 4)
+            x = (nation1_nation['ships'] * 4) / (nation2_nation['ships'] * 4)
             if x > 2:
-                naval_win_rate = 1
+                nation1_naval_win_rate = 1
             elif x < 0.4:
-                naval_win_rate = 0
+                nation1_naval_win_rate = 0
             else:
-                naval_win_rate = (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
+                nation1_naval_win_rate = (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
         except ZeroDivisionError:
-            naval_win_rate = 1
+            nation1_naval_win_rate = 1
 
-        naval_attacker_avg = round(defender_nation['ships'] * 4 * 0.7 * 0.01375 * 3)
-        naval_attacker_diff = round(defender_nation['ships'] * 4 * 0.3 * 0.01375 * 3)
-        naval_defender_avg = round(attacker_nation['ships'] * 4 * 0.7 * 0.01375 * 3)
-        naval_defender_diff = round(attacker_nation['ships'] * 4 * 0.3 * 0.01375 * 3)
+        nation1_naval_nation2_avg = round(nation1_nation['ships'] * 4 * 0.7 * 0.01375 * 3 * nation1_extra_cas)
+        nation1_naval_nation2_diff = round(nation1_nation['ships'] * 4 * 0.3 * 0.01375 * 3 * nation1_extra_cas)
+        nation1_naval_nation1_avg = round(nation2_nation['ships'] * 4 * 0.7 * 0.01375 * 3)
+        nation1_naval_nation1_diff = round(nation2_nation['ships'] * 4 * 0.3 * 0.01375 * 3)
 
+        nation2_naval_nation2_avg = round(nation1_nation['ships'] * 4 * 0.7 * 0.01375 * 3 * nation2_extra_cas)
+        nation2_naval_nation2_diff = round(nation1_nation['ships'] * 4 * 0.3 * 0.01375 * 3 * nation2_extra_cas)
+        nation2_naval_nation1_avg = round(nation2_nation['ships'] * 4 * 0.7 * 0.01375 * 3)
+        nation2_naval_nation1_diff = round(nation2_nation['ships'] * 4 * 0.3 * 0.01375 * 3)
 
-        ground_it = ground_win_rate**3
-        ground_mod = ground_win_rate**2 * (1 - ground_win_rate) * 3
-        ground_pyr = ground_win_rate * (1 - ground_win_rate)**2 * 3
-        ground_fail = (1 - ground_win_rate)**3
+        nation1_ground_it = nation1_ground_win_rate**3
+        nation1_ground_mod = nation1_ground_win_rate**2 * (1 - nation1_ground_win_rate) * 3
+        nation1_ground_pyr = nation1_ground_win_rate * (1 - nation1_ground_win_rate)**2 * 3
+        nation1_ground_fail = (1 - nation1_ground_win_rate)**3
 
-        ground_opposite_it = ground_loss_rate**3
-        ground_opposite_mod = ground_loss_rate**2 * (1 - ground_loss_rate) * 3
-        ground_opposite_pyr = ground_loss_rate * (1 - ground_loss_rate)**2 * 3
-        ground_opposite_fail = (1 - ground_loss_rate)**3
+        nation2_ground_it = nation2_ground_win_rate**3
+        nation2_ground_mod = nation2_ground_win_rate**2 * (1 - nation2_ground_win_rate) * 3
+        nation2_ground_pyr = nation2_ground_win_rate * (1 - nation2_ground_win_rate)**2 * 3
+        nation2_ground_fail = (1 - nation2_ground_win_rate)**3
 
-        air_it = air_win_rate**3
-        air_mod = air_win_rate**2 * (1 - air_win_rate) * 3
-        air_pyr = air_win_rate * (1 - air_win_rate)**2 * 3
-        air_fail = (1 - air_win_rate)**3
+        nation1_air_it = nation1_air_win_rate**3
+        nation1_air_mod = nation1_air_win_rate**2 * (1 - nation1_air_win_rate) * 3
+        nation1_air_pyr = nation1_air_win_rate * (1 - nation1_air_win_rate)**2 * 3
+        nation1_air_fail = (1 - nation1_air_win_rate)**3
 
-        naval_it = naval_win_rate**3
-        naval_mod = naval_win_rate**2 * (1 - naval_win_rate) * 3
-        naval_pyr = naval_win_rate * (1 - naval_win_rate)**2 * 3
-        naval_fail = (1 - naval_win_rate)**3
+        nation1_naval_it = nation1_naval_win_rate**3
+        nation1_naval_mod = nation1_naval_win_rate**2 * (1 - nation1_naval_win_rate) * 3
+        nation1_naval_pyr = nation1_naval_win_rate * (1 - nation1_naval_win_rate)**2 * 3
+        nation1_naval_fail = (1 - nation1_naval_win_rate)**3
 
-        if attacker_nation['soldiers'] + attacker_nation['tanks'] + defender_nation['soldiers'] + defender_nation['tanks'] == 0:
+        if nation2_nation['soldiers'] + nation2_nation['tanks'] + nation1_nation['soldiers'] + nation1_nation['tanks'] == 0:
             embed.add_field(name="Ground Attack", value="Nobody has any forces!")
             embed1.add_field(name="Ground Attack", value="Nobody has any forces!")
         else:
-            embed.add_field(name="Ground Attack", value=f"Immense Triumph: {round(ground_opposite_fail*100)}%\nModerate Success: {round(ground_opposite_pyr*100)}%\nPyrrhic Victory: {round(ground_opposite_mod*100)}%\nUtter Failure: {round(ground_opposite_it*100)}%")
-            embed1.add_field(name="Ground Attack", value=f"Immense Triumph: {round(ground_fail*100)}%\nModerate Success: {round(ground_pyr*100)}%\nPyrrhic Victory: {round(ground_mod*100)}%\nUtter Failure: {round(ground_it*100)}%")
+            embed.add_field(name="Ground Attack", value=f"Immense Triumph: {round(nation1_ground_it*100)}%\nModerate Success: {round(nation1_ground_mod*100)}%\nPyrrhic Victory: {round(nation1_ground_pyr*100)}%\nUtter Failure: {round(nation1_ground_fail*100)}%")
+            embed1.add_field(name="Ground Attack", value=f"Immense Triumph: {round(nation2_ground_it*100)}%\nModerate Success: {round(nation2_ground_mod*100)}%\nPyrrhic Victory: {round(nation2_ground_pyr*100)}%\nUtter Failure: {round(nation2_ground_fail*100)}%")
         
-        if attacker_nation['aircraft'] + defender_nation['aircraft'] != 0:
-            embed.add_field(name="Airstrike", value=f"Immense Triumph: {round(air_it*100)}%\nModerate Success: {round(air_mod*100)}%\nPyrrhic Victory: {round(air_pyr*100)}%\nUtter Failure: {round(air_fail*100)}%")
-            embed1.add_field(name="Airstrike", value=f"Immense Triumph: {round(air_fail*100)}%\nModerate Success: {round(air_pyr*100)}%\nPyrrhic Victory: {round(air_mod*100)}%\nUtter Failure: {round(air_it*100)}%")
+        if nation2_nation['aircraft'] + nation1_nation['aircraft'] != 0:
+            embed.add_field(name="Airstrike", value=f"Immense Triumph: {round(nation1_air_it*100)}%\nModerate Success: {round(nation1_air_mod*100)}%\nPyrrhic Victory: {round(nation1_air_pyr*100)}%\nUtter Failure: {round(nation1_air_fail*100)}%")
+            embed1.add_field(name="Airstrike", value=f"Immense Triumph: {round(nation1_air_fail*100)}%\nModerate Success: {round(nation1_air_pyr*100)}%\nPyrrhic Victory: {round(nation1_air_mod*100)}%\nUtter Failure: {round(nation1_air_it*100)}%")
         else:
             embed.add_field(name="Airstrike", value="Nobody has any forces!")
             embed1.add_field(name="Airstrike", value="Nobody has any forces!")
 
-        if attacker_nation['ships'] + defender_nation['ships'] != 0:
-            embed.add_field(name="Naval Battle", value=f"Immense Triumph: {round(naval_it*100)}%\nModerate Success: {round(naval_mod*100)}%\nPyrrhic Victory: {round(naval_pyr*100)}%\nUtter Failure: {round(naval_fail*100)}%")
-            embed1.add_field(name="Naval Battle", value=f"Immense Triumph: {round(naval_fail*100)}%\nModerate Success: {round(naval_pyr*100)}%\nPyrrhic Victory: {round(naval_mod*100)}%\nUtter Failure: {round(naval_it*100)}%")
+        if nation2_nation['ships'] + nation1_nation['ships'] != 0:
+            embed.add_field(name="Naval Battle", value=f"Immense Triumph: {round(nation1_naval_it*100)}%\nModerate Success: {round(nation1_naval_mod*100)}%\nPyrrhic Victory: {round(nation1_naval_pyr*100)}%\nUtter Failure: {round(nation1_naval_fail*100)}%")
+            embed1.add_field(name="Naval Battle", value=f"Immense Triumph: {round(nation1_naval_fail*100)}%\nModerate Success: {round(nation1_naval_pyr*100)}%\nPyrrhic Victory: {round(nation1_naval_mod*100)}%\nUtter Failure: {round(nation1_naval_it*100)}%")
 
         else:
             embed.add_field(name="Naval Battle", value="Nobody has any forces!")
             embed1.add_field(name="Naval Battle", value="Nobody has any forces!")
 
-        embed.add_field(name="Casualties", value=f"Att. Sol.: {casualties['ground_attacker_avg_soldiers']:,} ± {casualties['ground_attacker_diff_soldiers']:,}\nAtt. Tnk.: {casualties['ground_attacker_avg_tanks']:,} ± {casualties['ground_attacker_diff_tanks']:,}\n\nDef. Sol.: {casualties['ground_defender_avg_soldiers']:,} ± {casualties['ground_defender_diff_soldiers']:,}\nDef. Tnk.: {casualties['ground_defender_avg_tanks']:,} ± {casualties['ground_defender_diff_tanks']:,}\n\n{aircas}")        
-        embed1.add_field(name="Casualties", value=f"Att. Sol.: {casualties['ground_opposite_attacker_avg_soldiers']:,} ± {casualties['ground_opposite_attacker_diff_soldiers']:,}\nAtt. Tnk.: {casualties['ground_opposite_attacker_avg_tanks']:,} ± {casualties['ground_opposite_attacker_diff_tanks']:,}\n\nDef. Sol.: {casualties['ground_opposite_defender_avg_soldiers']:,} ± {casualties['ground_opposite_defender_diff_soldiers']:,}\nDef. Tnk.: {casualties['ground_opposite_defender_avg_tanks']:,} ± {casualties['ground_opposite_defender_diff_tanks']:,}\n\n{aircas1}")        
+        embed.add_field(name="Casualties", value=f"Att. Sol.: {casualties['nation1_ground_nation1_avg_soldiers']:,} ± {casualties['nation1_ground_nation1_diff_soldiers']:,}\nAtt. Tnk.: {casualties['nation1_ground_nation1_avg_tanks']:,} ± {casualties['nation1_ground_nation1_diff_tanks']:,}\n\nDef. Sol.: {casualties['nation1_ground_nation2_avg_soldiers']:,} ± {casualties['nation1_ground_nation2_diff_soldiers']:,}\nDef. Tnk.: {casualties['nation1_ground_nation2_avg_tanks']:,} ± {casualties['nation1_ground_nation2_diff_tanks']:,}\n\n{aircas1}")        
+        embed1.add_field(name="Casualties", value=f"Att. Sol.: {casualties['nation2_ground_nation2_avg_soldiers']:,} ± {casualties['nation2_ground_nation2_diff_soldiers']:,}\nAtt. Tnk.: {casualties['nation2_ground_nation2_avg_tanks']:,} ± {casualties['nation2_ground_nation2_diff_tanks']:,}\n\nDef. Sol.: {casualties['nation2_ground_nation1_avg_soldiers']:,} ± {casualties['nation2_ground_nation1_diff_soldiers']:,}\nDef. Tnk.: {casualties['nation2_ground_nation1_avg_tanks']:,} ± {casualties['nation2_ground_nation1_diff_tanks']:,}\n\n{aircas2}")        
         
-        embed.add_field(name="Casualties", value=f"*Targeting air:*\nAtt. Plane: {airtoair_attacker_avg:,} ± {airtoair_attacker_diff:,}\nDef. Plane: {airtoair_defender_avg:,} ± {airtoair_defender_diff:,}\n\n*Targeting other:*\nAtt Plane: {airtoground_attacker_avg:,} ± {airtoground_attacker_diff:,}\nDef. Plane: {airtoground_defender_avg:,} ± {airtoground_defender_diff:,}")        
-        embed1.add_field(name="Casualties", value=f"*Targeting air:*\nAtt. Plane: {round(airtoair_defender_avg / 0.018337 * 0.01):,} ± {round(airtoair_defender_diff / 0.018337 * 0.01):,}\nDef. Plane: {round(airtoair_attacker_avg * 0.018337 / 0.01):,} ± {round(airtoair_attacker_diff * 0.018337 / 0.01):,}\n\n*Targeting other:*\nAtt. Plane: {round(airtoground_defender_avg / 0.009091 * 0.015385):,} ± {round(airtoground_defender_diff / 0.009091 * 0.015385):,}\nDef. Plane: {round(airtoground_attacker_avg * 0.009091 / 0.015385):,} ± {round(airtoground_attacker_diff * 0.009091 / 0.015385):,}")        
+        embed.add_field(name="Casualties", value=f"*Targeting air:*\nAtt. Plane: {nation1_airtoair_nation1_avg:,} ± {nation1_airtoair_nation1_diff:,}\nDef. Plane: {nation1_airtoair_nation2_avg:,} ± {nation1_airtoair_nation2_diff:,}\n\n*Targeting other:*\nAtt. Plane: {nation1_airtoother_nation1_avg:,} ± {nation1_airtoother_nation1_diff:,}\nDef. Plane: {nation1_airtoother_nation2_avg:,} ± {nation1_airtoother_nation2_diff:,}")        
+        embed1.add_field(name="Casualties", value=f"*Targeting air:*\nAtt. Plane: {nation2_airtoair_nation2_avg:,} ± {nation2_airtoair_nation2_diff:,}\nDef. Plane: {nation2_airtoair_nation1_avg:,} ± {nation2_airtoair_nation1_diff:,}\n\n*Targeting other:*\nAtt. Plane: {nation2_airtoother_nation2_avg:,} ± {nation2_airtoother_nation2_diff:,}\nDef. Plane: {nation2_airtoother_nation1_avg:,} ± {nation2_airtoother_nation1_diff:,}")        
 
-        embed.add_field(name="Casualties", value=f"Att. Ships: {naval_attacker_avg:,} ± {naval_attacker_diff:,}\nDef. Ships: {naval_defender_avg:,} ± {naval_defender_diff:,}")        
-        embed1.add_field(name="Casualties", value=f"Att. Ships: {naval_defender_avg:,} ± {naval_defender_diff:,}\nDef. Ships: {naval_attacker_avg:,} ± {naval_attacker_diff:,}")        
+        embed.add_field(name="Casualties", value=f"Att. Ships: {nation1_naval_nation1_avg:,} ± {nation1_naval_nation1_diff:,}\nDef. Ships: {nation1_naval_nation2_avg:,} ± {nation1_naval_nation2_diff:,}")        
+        embed1.add_field(name="Casualties", value=f"Att. Ships: {nation2_naval_nation2_avg:,} ± {nation2_naval_nation2_diff:,}\nDef. Ships: {nation2_naval_nation1_avg:,} ± {nation2_naval_nation1_diff:,}")        
 
         await message.edit(embed=embed, content="")
         await message.add_reaction("↔️")
