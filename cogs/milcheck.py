@@ -1,8 +1,8 @@
 import discord
-from pymongo import database
 import requests
 import dateutil.parser
 import pytz
+import math
 from main import mongo
 from datetime import datetime, timedelta
 from lxml import html
@@ -571,6 +571,27 @@ class Military(commands.Cog):
                               description=f"[Explore counters against {result['nation']} on slotter](https://slotter.bsnk.dev/search?nation={result['nationid']}&alliances=4729,7531&countersMode=true&threatsMode=false&vm=false&grey=true&beige=false)", color=0x00ff00)
         await ctx.send(embed=embed)
 
+    @commands.command(aliases=['spherecounters'], brief='Accepts one argument, gives you a pre-filled link to slotter.', help='Accepted arguments include nation name, leader name, nation id and nation link. When browsing the databse, Fuquiem will use the first match, so it can be wise to double check that it returns a slotter link for the correct person.')
+    async def allcounters(self, ctx, *, arg):
+        result = None
+        try:
+            result = list(mongo.world_nations.find({"nation": arg}).collation(
+                {"locale": "en", "strength": 1}))[0]
+        except:
+            try:
+                result = list(mongo.world_nations.find({"leader": arg}).collation(
+                    {"locale": "en", "strength": 1}))[0]
+            except:
+                try:
+                    arg = int(re.sub("[^0-9]", "", arg))
+                    result = list(mongo.world_nations.find({"nationid": arg}).collation(
+                        {"locale": "en", "strength": 1}))[0]
+                except:
+                    pass
+        embed = discord.Embed(title="Sphere Counters",
+                              description=f"[Explore counters against {result['nation']} on slotter](https://slotter.bsnk.dev/search?nation={result['nationid']}&alliances=4729,7531,790,5012,2358,6877,8804&countersMode=true&threatsMode=false&vm=false&grey=true&beige=false)", color=0x00ff00)
+        await ctx.send(embed=embed)
+
     @commands.command(aliases=['target'], brief='Sends you a pre-filled link to slotter')
     async def targets(self, ctx):
         #await ctx.send('This command has been disabled.')
@@ -670,7 +691,7 @@ class Military(commands.Cog):
                     except discord.Forbidden:
                         await ctx.send(f"{user} does not allow my DMs")
                     except:
-                        print('no dm for', nation['nation'])
+                        print('cannot message', nation['nation'], ' yet they did not block me')
 
                     with requests.Session() as s:
                         login_url = "https://politicsandwar.com/login/"
@@ -860,34 +881,55 @@ class Military(commands.Cog):
         #return
         async with aiohttp.ClientSession() as session:
             Database = self.bot.get_cog('Database')
-            async with session.get(f'http://politicsandwar.com/api/alliance/id=4729&key={api_key}') as resp:
-                resp = await resp.json()
-            for memberid in resp['member_id_list']:
-                async with session.get(f"http://politicsandwar.com/api/nation/id={memberid}&key={api_key}") as member:
-                    member = await member.json()
-                    if member['espionage_available']:
-                        person = await Database.find_user(member['nationid'])
-                        user = await self.bot.fetch_user(person['user'])
-                        nation = mongo.world_nations.find_one({"nationid": int(member['nationid'])})
-                        if nation == None:
-                            continue
-                        spycount = 1
-                        for x in range(60):
-                            probability = requests.get(f"https://politicsandwar.com/war/espionage_get_odds.php?id1=341326&id2={member['nationid']}&id3=0&id4=1&id5={spycount}").text
-                            if "Greater than 50%" in probability:
-                                spycount -= 1
-                                enemyspy = ((((100*int(spycount))/(50-25))-1)/3)
-                                enemyspy = round(enemyspy)
-                                break
-                            #if "Lower than 50%" in probability and spycount >= 60:
-                            spycount += 1
-                        embed = discord.Embed(title="Remember to use your spy ops!",
-                                  description=f"You can spy on someone you're fighting, or you can say `{round(float(nation['score']))} / {enemyspy} /<@131589896950251520> <@220333267121864706>` in <#668581622693625907>", color=0x00ff00)
-                        print(nation['nation'])
-                        try:
-                            await user.send(embed=embed)
-                        except:
-                            pass
+            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_id:4729){data{id leader_name nation_name score warpolicy spies cia spy_satellite espionage_available}}}"}) as temp:
+                church = (await temp.json())['data']['nations']['data']
+            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{nations(page:1 first:500 alliance_id:7531){data{id leader_name nation_name score warpolicy spies cia spy_satellite espionage_available}}}"}) as temp:
+                convent = (await temp.json())['data']['nations']['data']
+            sum = church + convent
+            for member in sum:
+                if member['espionage_available']:
+                    person = await Database.find_user(member['id'])
+                    user = await self.bot.fetch_user(person['user']) # person['user']
+                    if member['spy_satellite']:
+                        spy_sat = "SS"
+                    else:
+                        spy_sat = "No SS"
+                    embed = discord.Embed(title="Remember to use your spy ops!",
+                                description=f"You can spy on someone you're fighting, or you can say ```{round(float(member['score']))} / {member['spies']} / {spy_sat} / <@131589896950251520> <@220333267121864706>``` in <#668581622693625907>", color=0x00ff00)
+                    try:
+                        await user.send(embed=embed)
+                    except:
+                        pass
+    
+    async def spy_calc(nation):
+        async with aiohttp.ClientSession() as session:
+            if nation['warpolicy'] == "Arcane":
+                percent = 57.5
+            elif nation['warpolicy'] == "Tactician":
+                percent = 42.5
+            else:
+                percent = 50
+            upper_lim = 60
+            lower_lim = 0
+            while True:
+                spycount = math.floor((upper_lim + lower_lim)/2)
+                async with session.get(f"https://politicsandwar.com/war/espionage_get_odds.php?id1=341326&id2={nation['id']}&id3=0&id4=1&id5={spycount}") as probability:
+                    probability = await probability.text()
+                #print(probability, spycount, upper_lim, lower_lim)
+                if "Greater than 50%" in probability:
+                    upper_lim = spycount
+                else:
+                    lower_lim = spycount
+                if upper_lim - 1 == lower_lim:
+                    break
+            enemyspy = round((((100*int(spycount))/(percent-25))-2)/3)
+            if enemyspy > 60:
+                enemyspy = 60
+            elif enemyspy > 50 and not nation['cia']:
+                enemyspy = 50
+            elif enemyspy < 2:
+                enemyspy = 0
+        return enemyspy
 
     @commands.command(brief='Manually update the #threats channel')
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
@@ -981,204 +1023,8 @@ class Military(commands.Cog):
                 await channel.send(content=f"{str_start}Priority target! {sword}{shield}{exclamation}{circle} Defensive range: {minscore} - {maxscore} <https://politicsandwar.com/nation/id={enemy['nationid']}>, {enemy_nation['alliance']}{applicant}{str_end}", embed=None)
 
     def raidspage(self, attacker, targets, endpoint, invoker, beige_alerts):
-        template = """
-        <!DOCTYPE html>
-        <head>
-            <link rel="icon" href="https://i.ibb.co/2dX2WYW/atomism-ICONSSS.png">
-            <title>Raid targets</title>
-            <style>
-                table {
-                    font-family: Verdana, Arial, Monaco;
-                    font-size: 80%;
-                    border-collapse: collapse;
-                    width: 100%;
-                }
-
-                th {
-                    text-align: left;
-                    padding: 6px;
-                }
-
-                tr:nth-child(even) {
-                    background-color: #f2f2f2
-                }
-
-                th {
-                    background-color: #383838;
-                    color: white;
-                    cursor: pointer;
-                }
-
-                th:hover {
-                    background-color: #008000;
-                }
-
-                td {
-                    position: relative;
-                    text-align: left;
-                    padding: 1px 6px;
-                    white-space: nowrap;
-                }
-
-                tr.strikeout td:before {
-                    content: " ";
-                    position: absolute;
-                    top: 50%;
-                    left: 0;
-                    border-bottom: 1px solid #111;
-                    width: 100%;
-                }
-
-                p {
-                    font-family: sans-serif;
-                    font-size: small;
-                }
-
-            </style>
-            <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-            <script>
-                function postreq(id, turns, name, btn_id) {
-                    console.log('button click registered')
-                    var to_parse = {turns: turns, invoker: "${invoker}", id: id, endpoint: "${endpoint}"}
-
-                    $.ajax({
-                        url: 'https://fuquiem.karemcbob.repl.co/raids/${endpoint}',
-                        type: 'POST',
-                        data: JSON.stringify(to_parse),
-                        contentType: "application/json; charset=utf-8",
-                        dataType: "text",
-                        success: function(data) {
-                            console.log(data);
-                            var abc = document.getElementById(btn_id);
-                            abc.innerHTML = "Reminder active";
-                        },
-                        error: function(er) {
-                            console.log(er);
-                            var abc = document.getElementById(btn_id);
-                            abc.innerHTML = "<b>Error! Try reloading the page.</b>";
-                        }
-                    });
-                };
-            </script>
-        </head>
-        <body>
-            <div style="overflow-x:auto;">
-                <table id="grid">
-                    <tbody>
-                        <tr>
-                            <th data-type="number">Nation id</th>
-                            <th data-type="string">Nation name</th>
-                            <th data-type="string">Leader name</th>
-                            <th data-type="string">Alliance</th>
-                            <th data-type="string">Alliance pos.</th>
-                            <th data-type="number">Cities</th>
-                            <th data-type="number">Infra/city</th>
-                            <th data-type="number">Score</th>
-                            <th data-type="string">Color</th>
-                            <th data-type="number">Beigeturns</th>
-                            <th data-type="string">Reminder</th>
-                            <th data-type="number">Days inactive</th>
-                            <th data-type="number">Soldiers</th>
-                            <th data-type="number">Tanks</th>
-                            <th data-type="number">Aircraft</th>
-                            <th data-type="number">Ships</th>
-                            <th data-type="number">Missiles</th>
-                            <th data-type="number">Nukes</th>
-                            <th data-type="string">Chance to win battles</th>
-                            <th data-type="string">Ongoing defensive wars</th>
-                            <th data-type="number">Monetary Net Income</th>
-                            <th data-type="number">Net Cash Income</th>
-                            <th data-type="number">Days since war</th>
-                            <th data-type="number">Previous beige loot (nation)</th>
-                            <th data-type="number">Previous beige loot (aa)</th>
-                            <th data-type="string">Same alliance</th>
-                        </tr>
-                        % for nation in targets:
-                            <td>${nation['id']}</td>
-                            <td><a href="https://politicsandwar.com/nation/id=${nation['id']}" target="_blank">${nation['nation_name']}</a></td>
-                            <td>${nation['leader_name']}</td>
-
-                            % if nation['alliance']['id'] != 0:
-                            <td><a href="https://politicsandwar.com/alliance/id=${nation['alliance']['id']}" target="_blank">${nation['alliance']['name']}</a></td>
-                            % else:
-                            <td>None</td>
-                            % endif
-
-                            % if nation['alliance_position'] == "NOALLIANCE":
-                            <td>None</td>
-                            % else:
-                            <td>${nation['alliance_position'].lower().capitalize()}</td>
-                            % endif
-                            
-                            <td>${nation['num_cities']}</td>
-                            <td>${round(float(nation['infrastructure'])/nation['num_cities'])}</td>
-                            <td>${nation['score']}</td>
-                            <td>${nation['color']}</td>
-                            <td>${nation['beigeturns']}</td>
-
-                            % if nation['beigeturns'] > 0:
-                                % if nation['id'] not in [alert['id'] for alert in beige_alerts]:
-                                    <td id="btn${nation['id']}">
-                                        <button onclick="postreq(${nation['id']}, ${nation['beigeturns']}, '${nation['nation_name']}', 'btn${nation['id']}')">Remind me</button>
-                                    </td>
-                                % else:
-                                    <td>Reminder active</td>
-                                % endif
-                            % else:
-                            <td>Not beige</td>
-                            % endif
-
-                            % if nation['last_active'] == '-0001-11-30 00:00:00':
-                            <td>0</td>
-                            % else:
-                            <td>${(datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%d %H:%M:%S")).days}</td>
-                            % endif
-
-                            <td>${f"{nation['soldiers']:,}"}</td>
-                            <td>${f"{nation['tanks']:,}"}</td>
-                            <td>${nation['aircraft']}</td>
-                            <td>${nation['ships']}</td>
-                            <td>${nation['missiles']}</td>
-                            <td>${nation['nukes']}</td>
-                            <td>${nation['winchance']}</td>
-                            <td>${nation['def_slots']}/3</td>
-                            <td style="text-align:right">${f"{nation['monetary_net_num']:,}"}</td>
-                            <td style="text-align:right">${f"{nation['net_cash_num']:,}"}</td>
-                            <td style="text-align:right">${nation['time_since_war']}</td>
-                            <td style="text-align:right">${nation['nation_loot']}</td>
-                            <td style="text-align:right">${nation['aa_loot']}</td>
-                            % if nation['same_aa'] == True:
-                            <td>Yes</td>
-                            % elif nation['same_aa'] == False:
-                            <td>No</td>
-                            % else:
-                            <td>${nation['same_aa']}</td>
-                            % endif
-                        </tr>
-                        % endfor
-                    </tbody>
-                </table>
-                <p>Last updated: ${datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC<br><a href="http://www.timezoneconverter.com/cgi-bin/tzc.tzc" target="_blank">Timezone converter</a></p>
-                <p style="color:gray">Please report bugs to RandomNoobster#0093<br>Courtesy of Church of Atom</p>
-                <script>
-                    const getCellValue = (tr, idx) => tr.children[idx].innerText.replace(/,/g, '') || tr.children[idx].textContent.replace(/,/g, '');
-
-                    const comparer = (idx, asc) => (a, b) => ((v1, v2) => 
-                        v1 !== '' && v2 !== '' && !isNaN(v1) && !isNaN(v2) ? v1 - v2 : v1.toString().localeCompare(v2)
-                        )(getCellValue(asc ? a : b, idx), getCellValue(asc ? b : a, idx));
-
-                    // do the work...
-                    document.querySelectorAll('th').forEach(th => th.addEventListener('click', (() => {
-                        const table = th.closest('table');
-                        Array.from(table.querySelectorAll('tr:nth-child(n+2)'))
-                            .sort(comparer(Array.from(th.parentNode.children).indexOf(th), this.asc = !this.asc))
-                            .forEach(tr => table.appendChild(tr) );
-                    })));
-                </script>
-            </div>
-        </body>
-        </html>"""
-        print(invoker)
+        with open('./data/templates/raidspage.txt', 'r') as file:
+            template = file.read()
         result = Template(template).render(attacker=attacker, targets=targets, endpoint=endpoint, invoker=str(invoker), beige_alerts=beige_alerts, datetime=datetime)
         return str(result)
 
@@ -1195,7 +1041,7 @@ class Military(commands.Cog):
         mmr = '/'.join(mmr[i:i+1] for i in range(0, len(mmr), 1))
         await ctx.send(f"I set the mmr to {mmr}")
 
-    @commands.command(brief='something something')
+    @commands.command(brief='Find raid targets', aliases=['raid'], help="When going through the setup wizard, you can choose to get the results on discord or on a webpage. If you decide to get the targets on discord, you will be able to react with the arrows in order to view different targets. You can also type 'page 62' to go nation number 62. This will of course work for any number. By reacting with the clock, you will add a beige reminder for the nation if they are in beige. Fuquiem will then DM you when the nation exits beige. You can use $reminders to view active reminders. If you choose to get the targets on a webpage, you will get a link to a page with a table. The table will include every valid nation, and relevant information about this nation. If you want beige reminders, there is a 'remind me'-button for every nation currently in beige. You can press the table headers to sort by different attributes. By default it's sorted by monetary net income.")
     @commands.has_any_role('Pupil', 'Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def raids(self, ctx, *, arg=None):
         invoker = str(ctx.author.id)
@@ -1628,83 +1474,23 @@ class Military(commands.Cog):
                 target['avg_infra'] = rev_obj['avg_infra']
                 embed.add_field(name="Infra", value=f"Max: {rev_obj['max_infra']}\nAvg: {rev_obj['avg_infra']}")
 
-                try:
-                    x = (target['soldiers'] * 1.75 + target['tanks'] * 40) / (atck_ntn['soldiers'] * 1.75 + atck_ntn['tanks'] * 40 + atck_ntn['population'] * 0.0025)
-                    if x > 2:
-                        ground_win_rate = 0
-                    elif x < 0.4:
-                        ground_win_rate = 1
-                    else:
-                        ground_win_rate = 1 - (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
-                except ZeroDivisionError:
-                    ground_win_rate = 0
+                ground_win_rate = self.winrate_calc((atck_ntn['soldiers'] * 1.75 + atck_ntn['tanks'] * 40), (target['soldiers'] * 1.75 + target['tanks'] * 40 + target['population'] * 0.0025))
+
                 target['groundwin'] = ground_win_rate
                 embed.add_field(name="Chance to win ground rolls", value=str(round(100*ground_win_rate)) + "%")
 
-                try:
-                    x = (atck_ntn['aircraft'] * 3) / (target['aircraft'] * 3)
-                    if x > 2:
-                        air_win_rate = 1
-                    elif x < 0.4:
-                        air_win_rate = 0
-                    else:
-                        air_win_rate = 1 - (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
-                except ZeroDivisionError:
-                    air_win_rate = 1
+                air_win_rate = self.winrate_calc((atck_ntn['aircraft'] * 3), (target['aircraft'] * 3))
+                
                 target['airwin'] = air_win_rate
                 embed.add_field(name="Chance to win air rolls", value=str(round(100*air_win_rate)) + "%")
 
-                try:
-                    x = (atck_ntn['ships'] * 4) / (target['ships'] * 4)
-                    if x > 2:
-                        naval_win_rate = 1
-                    elif x < 0.4:
-                        naval_win_rate = 0
-                    else:
-                        naval_win_rate = 1 - (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
-                except ZeroDivisionError:
-                    naval_win_rate = 1
+                naval_win_rate = self.winrate_calc((atck_ntn['ships'] * 4), (target['ships'] * 4))
+                
                 target['navalwin'] = naval_win_rate
                 embed.add_field(name="Chance to win naval rolls", value=str(round(100*naval_win_rate)) + "%")
 
                 target['winchance'] = round((ground_win_rate+air_win_rate+naval_win_rate)*100/3)
 
-                win_rate = 0
-
-                try:
-                    x = (target['soldiers'] * 1.75 + target['tanks'] * 40) / (atck_ntn['soldiers'] * 1.75 + atck_ntn['tanks'] * 40 + atck_ntn['population'] * 0.0025)
-                    if x > 2:
-                        win_rate += 0
-                    elif x < 0.4:
-                        win_rate += 1
-                    else:
-                        win_rate += 1 - (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
-                except ZeroDivisionError:
-                    win_rate += 0
-
-                try:
-                    x = (atck_ntn['aircraft'] * 3) / (target['aircraft'] * 3)
-                    if x > 2:
-                        win_rate += 1
-                    elif x < 0.4:
-                        win_rate += 0
-                    else:
-                        win_rate += 1 - (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
-                except ZeroDivisionError:
-                    win_rate += 1
-
-                try:
-                    x = (atck_ntn['ships'] * 4) / (target['ships'] * 4)
-                    if x > 2:
-                        win_rate += 1
-                    elif x < 0.4:
-                        win_rate += 0
-                    else:
-                        win_rate += 1 - (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
-                except ZeroDivisionError:
-                    win_rate += 1
-
-                target['winchance'] = round((win_rate*100)/3)
                 if not webpage:
                     target['embed'] = embed
                 
@@ -1839,6 +1625,19 @@ class Military(commands.Cog):
         reacttask = asyncio.create_task(reaction_checker())
 
         await asyncio.gather(msgtask, reacttask)
+    
+    def winrate_calc(self, attacker_value, defender_value):
+        try:
+            x = attacker_value / defender_value
+            if x > 2:
+                winrate = 1
+            elif x < 0.4:
+                winrate = 0
+            else:
+                winrate = (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
+        except ZeroDivisionError:
+            winrate = 1
+        return winrate
 
     @commands.command(aliases=['bsim', 'bs'], brief='Simulate battles between two nations', help="Accepts up to two arguments. The first argument is the attacking nation, whilst the latter is the defending nation. If only one argument is provided, Fuquiem will assume that you are the defender")
     @commands.has_any_role('Pupil', 'Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
@@ -1977,16 +1776,7 @@ class Military(commands.Cog):
         nation2_army_value = nation2_nation['soldiers'] * 1.75 + nation2_nation['tanks'] * 40 * nation2_tanks + nation2_nation['population'] * 0.0025
         nation1_army_value = nation1_nation['soldiers'] * 1.75 + nation1_nation['tanks'] * 40 * nation1_tanks
 
-        try:
-            x = nation1_army_value / nation2_army_value
-            if x > 2:
-                nation1_ground_win_rate = 1
-            elif x < 0.4:
-                nation1_ground_win_rate = 0
-            else:
-                nation1_ground_win_rate = (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
-        except ZeroDivisionError:
-            nation1_ground_win_rate = 1
+        nation1_ground_win_rate = self.winrate_calc(nation1_army_value, nation2_army_value)
         
         aircas1 = ""
         if gc == nation1_nation:
@@ -2009,16 +1799,7 @@ class Military(commands.Cog):
         nation2_army_value = nation2_nation['soldiers'] * 1.75 + nation2_nation['tanks'] * 40 * nation2_tanks
         nation1_army_value = nation1_nation['soldiers'] * 1.75 + nation1_nation['tanks'] * 40 * nation1_tanks + nation1_nation['population'] * 0.0025
 
-        try:
-            x = nation2_army_value / nation1_army_value
-            if x > 2:
-                nation2_ground_win_rate = 1
-            elif x < 0.4:
-                nation2_ground_win_rate = 0
-            else:
-                nation2_ground_win_rate = (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
-        except ZeroDivisionError:
-            nation2_ground_win_rate = 1
+        nation2_ground_win_rate = self.winrate_calc(nation2_army_value, nation1_army_value)
         
         aircas2 = ""
         if gc == nation2_nation:
@@ -2038,16 +1819,7 @@ class Military(commands.Cog):
                     elif party == "nation1":
                         casualties[f"nation2_ground_{party}_{variant['type']}_{fighter['fighter']}"] = round(nation2_army_value * variant['rate'] / fighter[f"{losing}_cas_rate"] * 3)
 
-        try:
-            x = (nation1_nation['aircraft'] * 3) / (nation2_nation['aircraft'] * 3)
-            if x > 2:
-                nation1_air_win_rate = 1
-            elif x < 0.4:
-                nation1_air_win_rate = 0
-            else:
-                nation1_air_win_rate = (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
-        except ZeroDivisionError:
-            nation1_air_win_rate = 1
+        nation1_air_win_rate = self.winrate_calc((nation1_nation['aircraft'] * 3), (nation2_nation['aircraft'] * 3))
 
         nation1_airtoair_nation1_avg = round(nation2_nation['aircraft'] * 3 * 0.7 * 0.01 * 3 * nation1_extra_cas)
         nation1_airtoair_nation1_diff = round(nation2_nation['aircraft'] * 3 * 0.3 * 0.01 * 3 * nation1_extra_cas)
@@ -2069,16 +1841,7 @@ class Military(commands.Cog):
         nation2_airtoother_nation1_avg = round(nation2_nation['aircraft'] * 3 * 0.7 * 0.009091 * 3)
         nation2_airtoother_nation1_diff = round(nation2_nation['aircraft'] * 3 * 0.3 * 0.009091 * 3)
 
-        try:
-            x = (nation1_nation['ships'] * 4) / (nation2_nation['ships'] * 4)
-            if x > 2:
-                nation1_naval_win_rate = 1
-            elif x < 0.4:
-                nation1_naval_win_rate = 0
-            else:
-                nation1_naval_win_rate = (12.832883444301027*x**(11)-171.668262561212487*x**(10)+1018.533858483560834*x**(9)-3529.694284997589875*x**(8)+7918.373606722701879*x**(7)-12042.696852729619422*x**(6)+12637.399722721022044*x**(5)-9128.535790660698694*x**(4)+4437.651655224382012*x**(3)-1378.156072477675025*x**(2)+245.439740545813436*x-18.980551645186498)
-        except ZeroDivisionError:
-            nation1_naval_win_rate = 1
+        nation1_naval_win_rate = self.winrate_calc((nation1_nation['ships'] * 4), (nation2_nation['ships'] * 4))
 
         nation1_naval_nation2_avg = round(nation1_nation['ships'] * 4 * 0.7 * 0.01375 * 3 * nation1_extra_cas)
         nation1_naval_nation2_diff = round(nation1_nation['ships'] * 4 * 0.3 * 0.01375 * 3 * nation1_extra_cas)
