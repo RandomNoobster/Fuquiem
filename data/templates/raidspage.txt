@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+    <head>
+        <link rel="icon" href="https://i.ibb.co/2dX2WYW/atomism-ICONSSS.png">
+        <title>Raid targets</title>
+        <style>
+            table {
+                font-family: Verdana, Arial, Monaco;
+                font-size: 80%;
+                border-collapse: collapse;
+                width: 100%;
+            }
+
+            th {
+                text-align: left;
+                padding: 6px;
+            }
+
+            tr:nth-child(even) {
+                background-color: #f2f2f2
+            }
+
+            th {
+                background-color: #383838;
+                color: white;
+                cursor: pointer;
+            }
+
+            th:hover {
+                background-color: #008000;
+            }
+
+            td {
+                position: relative;
+                text-align: left;
+                padding: 1px 6px;
+                white-space: nowrap;
+            }
+
+            tr.strikeout td:before {
+                content: " ";
+                position: absolute;
+                top: 50%;
+                left: 0;
+                border-bottom: 1px solid #111;
+                width: 100%;
+            }
+
+            p {
+                font-family: sans-serif;
+                font-size: small;
+            }
+
+        </style>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+        <script>
+            function postreq(id, turns, name, btn_id) {
+                console.log('button click registered')
+                var to_parse = {turns: turns, invoker: "${invoker}", id: id, endpoint: "${endpoint}"}
+
+                $.ajax({
+                    url: 'https://fuquiem.karemcbob.repl.co/raids/${endpoint}',
+                    type: 'POST',
+                    data: JSON.stringify(to_parse),
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "text",
+                    success: function(data) {
+                        console.log(data);
+                        var abc = document.getElementById(btn_id);
+                        abc.innerHTML = "Reminder active";
+                    },
+                    error: function(er) {
+                        console.log(er);
+                        var abc = document.getElementById(btn_id);
+                        abc.innerHTML = "<b>Error! Try reloading the page.</b>";
+                    }
+                });
+            };
+        </script>
+    </head>
+    <body>
+        <div style="overflow-x:auto;">
+            <table id="grid">
+                <tbody>
+                    <tr>
+                        <th data-type="number">Nation id</th>
+                        <th data-type="string">Nation name</th>
+                        <th data-type="string">Leader name</th>
+                        <th data-type="string">Alliance</th>
+                        <th data-type="string">Alliance pos.</th>
+                        <th data-type="number">Cities</th>
+                        <th data-type="number">Infra/city</th>
+                        <th data-type="number">Score</th>
+                        <th data-type="string">Color</th>
+                        <th data-type="number">Beigeturns</th>
+                        <th data-type="string">Reminder</th>
+                        <th data-type="number">Days inactive</th>
+                        <th data-type="number">Soldiers</th>
+                        <th data-type="number">Tanks</th>
+                        <th data-type="number">Aircraft</th>
+                        <th data-type="number">Ships</th>
+                        <th data-type="number">Missiles</th>
+                        <th data-type="number">Nukes</th>
+                        <th data-type="string">Chance to win battles</th>
+                        <th data-type="string">Ongoing defensive wars</th>
+                        <th data-type="number">Monetary Net Income</th>
+                        <th data-type="number">Net Cash Income</th>
+                        <th data-type="number">Days since war</th>
+                        <th data-type="number">Previous beige loot (nation)</th>
+                        <th data-type="number">Previous beige loot (aa)</th>
+                        <th data-type="string">Same alliance</th>
+                    </tr>
+                    % for nation in targets:
+                        <td>${nation['id']}</td>
+                        <td><a href="https://politicsandwar.com/nation/id=${nation['id']}" target="_blank">${nation['nation_name']}</a></td>
+                        <td>${nation['leader_name']}</td>
+
+                        % if nation['alliance']['id'] != 0:
+                        <td><a href="https://politicsandwar.com/alliance/id=${nation['alliance']['id']}" target="_blank">${nation['alliance']['name']}</a></td>
+                        % else:
+                        <td>None</td>
+                        % endif
+
+                        % if nation['alliance_position'] == "NOALLIANCE":
+                        <td>None</td>
+                        % else:
+                        <td>${nation['alliance_position'].lower().capitalize()}</td>
+                        % endif
+                        
+                        <td>${nation['num_cities']}</td>
+                        <td>${round(float(nation['infrastructure'])/nation['num_cities'])}</td>
+                        <td>${nation['score']}</td>
+                        <td>${nation['color']}</td>
+                        <td>${nation['beigeturns']}</td>
+
+                        % if nation['beigeturns'] > 0:
+                            % if nation['id'] not in [alert['id'] for alert in beige_alerts]:
+                                <td id="btn${nation['id']}">
+                                    <button onclick="postreq(${nation['id']}, ${nation['beigeturns']}, '${nation['nation_name']}', 'btn${nation['id']}')">Remind me</button>
+                                </td>
+                            % else:
+                                <td>Reminder active</td>
+                            % endif
+                        % else:
+                        <td>Not beige</td>
+                        % endif
+
+                        % if nation['last_active'] == '-0001-11-30 00:00:00':
+                        <td>0</td>
+                        % else:
+                        <td>${(datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%d %H:%M:%S")).days}</td>
+                        % endif
+
+                        <td>${f"{nation['soldiers']:,}"}</td>
+                        <td>${f"{nation['tanks']:,}"}</td>
+                        <td>${nation['aircraft']}</td>
+                        <td>${nation['ships']}</td>
+                        <td>${nation['missiles']}</td>
+                        <td>${nation['nukes']}</td>
+                        <td>${nation['winchance']}</td>
+                        <td>${nation['def_slots']}/3</td>
+                        <td style="text-align:right">${f"{nation['monetary_net_num']:,}"}</td>
+                        <td style="text-align:right">${f"{nation['net_cash_num']:,}"}</td>
+                        <td style="text-align:right">${nation['time_since_war']}</td>
+                        <td style="text-align:right">${nation['nation_loot']}</td>
+                        <td style="text-align:right">${nation['aa_loot']}</td>
+                        % if nation['same_aa'] == True:
+                        <td>Yes</td>
+                        % elif nation['same_aa'] == False:
+                        <td>No</td>
+                        % else:
+                        <td>${nation['same_aa']}</td>
+                        % endif
+                    </tr>
+                    % endfor
+                </tbody>
+            </table>
+            <p>Last updated: ${datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC<br><a href="http://www.timezoneconverter.com/cgi-bin/tzc.tzc" target="_blank">Timezone converter</a></p>
+            <p style="color:gray">Please report bugs to RandomNoobster#0093<br>Courtesy of Church of Atom</p>
+            <script>
+                const getCellValue = (tr, idx) => tr.children[idx].innerText.replace(/,/g, '') || tr.children[idx].textContent.replace(/,/g, '');
+
+                const comparer = (idx, asc) => (a, b) => ((v1, v2) => 
+                    v1 !== '' && v2 !== '' && !isNaN(v1) && !isNaN(v2) ? v1 - v2 : v1.toString().localeCompare(v2)
+                    )(getCellValue(asc ? a : b, idx), getCellValue(asc ? b : a, idx));
+
+                // do the work...
+                document.querySelectorAll('th').forEach(th => th.addEventListener('click', (() => {
+                    const table = th.closest('table');
+                    Array.from(table.querySelectorAll('tr:nth-child(n+2)'))
+                        .sort(comparer(Array.from(th.parentNode.children).indexOf(th), this.asc = !this.asc))
+                        .forEach(tr => table.appendChild(tr) );
+                })));
+            </script>
+        </div>
+    </body>
+</html>
