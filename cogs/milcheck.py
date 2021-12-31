@@ -491,7 +491,9 @@ class Military(commands.Cog):
                     for old_war in prev_wars:
                         for new_war in wars:
                             if new_war['id'] == old_war['id']:
+                                print("wars match")
                                 if new_war['turnsleft'] <= 0 and old_war['turnsleft'] > 0:
+                                    print("turnsleft fit")
                                     if new_war['attacker']['alliance_id'] in ['4729', '7531']: ## CHANGE T0 ATOM ---------------------------------------------------------
                                         atom = new_war['attacker']
                                         non_atom = new_war['defender']
@@ -500,6 +502,7 @@ class Military(commands.Cog):
                                         non_atom = new_war['attacker']
                                     for thread in channel.threads:
                                         if f"({non_atom['id']})" in thread.name:
+                                            print("found thread")
                                             embed = discord.Embed(title=f"War finished", description=f"[{new_war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={new_war['attacker']['id']}) is no longer at war with [{new_war['defender']['nation_name']}](https://politicsandwar.com/nation/id={new_war['defender']['id']})", color=0xffFFff)
                                             await thread.send(embed=embed)
                                             await self.remove_from_thread(thread, atom)
