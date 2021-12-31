@@ -451,6 +451,13 @@ class Military(commands.Cog):
                             print("previous is none")
                             #await asyncio.sleep(60)
                             continue
+                    async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] days_ago:5 active:false){{id att_fortify war_type def_fortify attpeace defpeace turnsleft attacker{{nation_name alliance{{name}} id num_cities alliance_id cities{{id}}}} defender{{nation_name alliance{{name}} id num_cities alliance_id cities{{id}}}} attacks{{type victor moneystolen success cityid resistance_eliminated infradestroyed infra_destroyed_value improvementslost attcas1 attcas2 defcas1 defcas2}}}}}}"}) as temp:
+                        try:
+                            done_wars = (await temp.json())['data']['wars']
+                        except:
+                            print((await temp.json())['errors'])
+                            await asyncio.sleep(60)
+                            continue
                     #n = 0
                     for new_war in wars:
                         #n += 1
@@ -489,26 +496,25 @@ class Military(commands.Cog):
                                 attacker = await attack_check(attack, new_war)
                                 await smsg(attacker, attack, new_war, atom, non_atom, None)
                     for old_war in prev_wars:
-                        for new_war in wars:
-                            if new_war['id'] == old_war['id']:
-                                if new_war['turnsleft'] <= 0 and old_war['turnsleft'] > 0:
-                                    print("turnsleft fit")
-                                    if new_war['attacker']['alliance_id'] in ['4729', '7531']: ## CHANGE T0 ATOM ---------------------------------------------------------
-                                        atom = new_war['attacker']
-                                        non_atom = new_war['defender']
-                                    else:
-                                        atom = new_war['defender']
-                                        non_atom = new_war['attacker']
-                                    for thread in channel.threads:
-                                        if f"({non_atom['id']})" in thread.name:
-                                            print("found thread")
-                                            embed = discord.Embed(title=f"War finished", description=f"[{new_war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={new_war['attacker']['id']}) is no longer at war with [{new_war['defender']['nation_name']}](https://politicsandwar.com/nation/id={new_war['defender']['id']})", color=0xffFFff)
-                                            await thread.send(embed=embed)
-                                            await self.remove_from_thread(thread, atom)
-                                            if thread.member_count == 1:
-                                                await thread.edit(archive=True)
-                                            break
-                                break
+                        for done_war in done_wars:
+                            if done_war['id'] == old_war['id']:
+                                print("wars match")
+                                if new_war['attacker']['alliance_id'] in ['4729', '7531']: ## CHANGE T0 ATOM ---------------------------------------------------------
+                                    atom = new_war['attacker']
+                                    non_atom = new_war['defender']
+                                else:
+                                    atom = new_war['defender']
+                                    non_atom = new_war['attacker']
+                                for thread in channel.threads:
+                                    if f"({non_atom['id']})" in thread.name:
+                                        print("found thread")
+                                        embed = discord.Embed(title=f"War finished", description=f"[{new_war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={new_war['attacker']['id']}) is no longer at war with [{new_war['defender']['nation_name']}](https://politicsandwar.com/nation/id={new_war['defender']['id']})", color=0xffFFff)
+                                        await thread.send(embed=embed)
+                                        await self.remove_from_thread(thread, atom)
+                                        if thread.member_count == 1:
+                                            await thread.edit(archive=True)
+                                        break
+                            break
                 prev_wars = wars
                 await asyncio.sleep(60)
             except Exception as e:
