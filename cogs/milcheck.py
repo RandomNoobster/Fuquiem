@@ -491,7 +491,6 @@ class Military(commands.Cog):
                     for old_war in prev_wars:
                         for new_war in wars:
                             if new_war['id'] == old_war['id']:
-                                print("wars match")
                                 if new_war['turnsleft'] <= 0 and old_war['turnsleft'] > 0:
                                     print("turnsleft fit")
                                     if new_war['attacker']['alliance_id'] in ['4729', '7531']: ## CHANGE T0 ATOM ---------------------------------------------------------
