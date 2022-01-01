@@ -677,8 +677,8 @@ class Military(commands.Cog):
 
     @commands.command(aliases=['target'], brief='Sends you a pre-filled link to slotter')
     async def targets(self, ctx):
-        #await ctx.send('This command has been disabled.')
-        #return
+        await ctx.send('This command has been disabled.')
+        return
         Database = self.bot.get_cog('Database')
         person = await Database.find_user(ctx.author.id)
         embed = discord.Embed(title="Targets",
@@ -961,12 +961,12 @@ class Military(commands.Cog):
                     await ctx.send(f"<@465463547200012298> the transaction to {nation['nation']} ({nation['leader']}) might have failed. Check this page to be sure:\nhttps://politicsandwar.com/nation/id={nation['nationid']}&display=bank")
 
     async def spies_msg(self): #enable in times of war
-        #return
+        return
         async with aiohttp.ClientSession() as session:
             Database = self.bot.get_cog('Database')
-            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_id:4729){data{id leader_name nation_name score warpolicy spies cia spy_satellite espionage_available}}}"}) as temp:
+            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_id:4729 vmode:false){data{id leader_name nation_name score warpolicy spies cia spy_satellite espionage_available}}}"}) as temp:
                 church = (await temp.json())['data']['nations']['data']
-            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{nations(page:1 first:500 alliance_id:7531){data{id leader_name nation_name score warpolicy spies cia spy_satellite espionage_available}}}"}) as temp:
+            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{nations(page:1 first:500 alliance_id:7531 vmode:false){data{id leader_name nation_name score warpolicy spies cia spy_satellite espionage_available}}}"}) as temp:
                 convent = (await temp.json())['data']['nations']['data']
             sum = church + convent
             for member in sum:
