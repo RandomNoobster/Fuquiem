@@ -1,6 +1,5 @@
 import discord
 import requests
-import dateutil.parser
 import pytz
 import math
 from main import mongo
@@ -15,8 +14,6 @@ from flask.views import MethodView
 from flask import request
 import pathlib
 import re
-#import chat_exporter
-#import io
 import asyncio
 import os
 from cryptography.fernet import Fernet
@@ -138,23 +135,65 @@ class Military(commands.Cog):
         print("done")
         return
 
-    @commands.command(brief='May be used in military coordination threads.')
+    @commands.command(brief='May be used in military coordination threads.', aliases=['s'])
     @commands.has_any_role('Pupil', 'Zealot', 'Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
-    async def status(self, ctx):
-        nation_id = ctx.channel.name[ctx.channel.name.rfind("(")+1:-1]
+    async def status(self, ctx, arg=None):
+        with open ('./data/attachments/marching.gif', 'rb') as gif:
+            gif = discord.File(gif)
+        message = await ctx.send(content="*Thinking...*", file=gif)
+        Database = self.bot.get_cog('Database')
+        if not arg:
+            if isinstance(ctx.channel, discord.Thread) and "(" in ctx.channel.name and ")" in ctx.channel.name:
+                nation_id = ctx.channel.name[ctx.channel.name.rfind("(")+1:-1]
+                int(nation_id) # throw an error if not a number
+            else:
+                try:
+                    person = await Database.find_user(ctx.author.id)
+                    nation_id = person['nationid']
+                except:
+                    await ctx.send("I do not know who to find the status of.")
+                    return
+        else:
+            person = await Database.find_nation_plus(arg)
+            nation_id = str(person['nationid'])
+
         async with aiohttp.ClientSession() as session:
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation_id}){{data{{nation_name leader_name id alliance{{name}} population score color dompolicy alliance_id num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{defender{{nation_name id score num_cities color defensive_wars{{turnsleft}} offensive_wars{{turnsleft}} soldiers tanks aircraft ships nukes missiles}} date id attid winner att_resistance def_resistance attpoints defpoints attpeace defpeace war_type groundcontrol airsuperiority navalblockade turnsleft att_fortify def_fortify}} defensive_wars{{attacker{{nation_name id score num_cities color defensive_wars{{turnsleft}} offensive_wars{{turnsleft}} soldiers tanks aircraft ships nukes missiles}} date id attid winner att_resistance def_resistance attpoints defpoints attpeace defpeace war_type groundcontrol airsuperiority navalblockade turnsleft att_fortify def_fortify}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation_id}){{data{{nation_name leader_name id alliance{{name}} cities{{barracks factory airforcebase drydock}} population score last_active beigeturns vmode pirate_economy color dompolicy alliance_id num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{defender{{nation_name leader_name alliance_id alliance{{name}} cities{{barracks factory airforcebase drydock}} id pirate_economy score last_active beigeturns vmode num_cities color defensive_wars{{turnsleft}} offensive_wars{{turnsleft}} soldiers tanks aircraft ships nukes missiles}} date id attid winner att_resistance def_resistance attpoints defpoints attpeace defpeace war_type groundcontrol airsuperiority navalblockade turnsleft att_fortify def_fortify}} defensive_wars{{attacker{{nation_name leader_name alliance_id alliance{{name}} id cities{{barracks factory airforcebase drydock}} pirate_economy score last_active beigeturns vmode num_cities color defensive_wars{{turnsleft}} offensive_wars{{turnsleft}} soldiers tanks aircraft ships nukes missiles}} date id attid winner att_resistance def_resistance attpoints defpoints attpeace defpeace war_type groundcontrol airsuperiority navalblockade turnsleft att_fortify def_fortify}}}}}}}}"}) as temp:
                 try:
                     nation = (await temp.json())['data']['nations']['data'][0]
                 except:
                     print((await temp.json())['errors'])
                     return
+
+        if nation['pirate_economy']:
+            max_offense = 6
+        else:
+            max_offense = 5
+        
+        if nation['beigeturns'] > 0:
+            beige = f"\nBeige (turns): {nation['beigeturns']}"
+        else:
+            beige = ""
+
+        max_sol = 0
+        max_tnk = 0
+        max_pln = 0
+        max_shp = 0
+        for c in nation['cities']:
+            max_sol += c['barracks'] * 3000
+            max_tnk += c['factory'] * 250
+            max_pln += c['airforcebase'] * 15
+            max_shp += c['drydock']
+
         nation['offensive_wars'] = [y for y in nation['offensive_wars'] if y['turnsleft'] > 0]
         nation['defensive_wars'] = [y for y in nation['defensive_wars'] if y['turnsleft'] > 0]
-        desc = f"[Nation link](https://politicsandwar.com/nation/id={nation['id']})```autohotkey\nOffensive wars: {len(nation['offensive_wars'])}\nDefensive wars: {len(nation['defensive_wars'])}\nSoldiers: {nation['soldiers']:,}\nTanks: {nation['tanks']:,}\nPlanes: {nation['aircraft']:,}\nShips: {nation['ships']:,}```"
+        desc = f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) | [{nation['alliance']['name']}](https://politicsandwar.com/nation/id={nation['alliance_id']})\n\nLast login: <t:{round(datetime.strptime(nation['last_active'], '%Y-%m-%d %H:%M:%S').timestamp())}:R>\nOffensive wars: {len(nation['offensive_wars'])}/{max_offense}\nDefensive wars: {len(nation['defensive_wars'])}/3\nDefensive range: {round(nation['score'] / 1.75)} - {round(nation['score'] / 0.75)}{beige}\n\nSoldiers: **{nation['soldiers']:,}** / {max_sol:,}\nTanks: **{nation['tanks']:,}** / {max_tnk:,}\nPlanes: **{nation['aircraft']:,}** / {max_pln:,}\nShips: **{nation['ships']:,}** / {max_shp:,}"
         embed = discord.Embed(title=f"{nation['nation_name']} ({nation['id']}) & their wars", description=desc, color=0x00ff00)
         embed1 = discord.Embed(title=f"{nation['nation_name']} ({nation['id']}) & their wars", description=desc, color=0x00ff00)
+        embed.set_footer(text="_________________________________\nThe winrate is the chance for the nation in question to win a ground/air/naval roll. Battles consists of 3 rolls. A percentage abvove 50 is good. Use $battlesim for more detailed battle predictions.")
+        embed1.set_footer(text="_________________________________\nThe winrate is the chance for the nation in question to win a ground/air/naval roll. Battles consists of 3 rolls. A percentage abvove 50 is good. Use $battlesim for more detailed battle predictions.")
         n = 1
+
         for war in nation['offensive_wars'] + nation['defensive_wars']:
             if war['turnsleft'] < 0:
                 continue
@@ -162,8 +201,13 @@ class Military(commands.Cog):
             n += 1
             if n % 2 == 0:
                 embed.add_field(name="\u200b", value="\u200b", inline=False)
+                embed1.add_field(name="\u200b", value="\u200b", inline=False)
+            else:
+                embed.add_field(name="\u200b", value="\u200b", inline=True)
+                embed1.add_field(name="\u200b", value="\u200b", inline=True)
 
             if war in nation['offensive_wars']:
+                result = await self.battle_calc(nation['id'], war['defender']['id'])
                 war_emoji = "⚔️"
                 x = war['defender']
                 main_enemy_res = war['att_resistance']
@@ -171,46 +215,105 @@ class Military(commands.Cog):
                 their_enemy_points = war['defpoints']
                 their_enemy_res = war['def_resistance']
             else:
+                result = await self.battle_calc(nation['id'], war['attacker']['id'])
                 war_emoji = "🛡️"
                 x = war['attacker']
                 main_enemy_res = war['def_resistance']
                 main_enemy_points = war['defpoints']
                 their_enemy_points = war['attpoints']
                 their_enemy_res = war['att_resistance']
+            
+            main_enemy_bar = ""
+            their_enemy_bar = ""
+            for z in range(math.ceil(main_enemy_res / 10)):
+                if main_enemy_res > 66:
+                    main_enemy_bar += "🟩"
+                elif main_enemy_res > 33:
+                    main_enemy_bar += "🟨"
+                else:
+                    main_enemy_bar += "🟥"
+            while len(main_enemy_bar) < 10:
+                main_enemy_bar += "⬛"
+            
+            for z in range(math.ceil(their_enemy_res / 10)):
+                if their_enemy_res > 66:
+                    their_enemy_bar += "🟩"
+                elif their_enemy_res > 33:
+                    their_enemy_bar += "🟨"
+                else:
+                    their_enemy_bar += "🟥"
+            while len(their_enemy_bar) < 10:
+                their_enemy_bar += "⬛"
+
+            if nation['pirate_economy']:
+                max_offense = 6
+            else:
+                max_offense = 5
+            
+            if nation['beigeturns'] > 0:
+                beige = f"\nBeige (turns): {nation['beigeturns']}"
+            else:
+                beige = ""
+
+            max_sol = 0
+            max_tnk = 0
+            max_pln = 0
+            max_shp = 0            
+            for c in x['cities']:
+                max_sol += c['barracks'] * 3000
+                max_tnk += c['factory'] * 250
+                max_pln += c['airforcebase'] * 15
+                max_shp += c['drydock'] * 5
+
+            if x['vmode'] > 0:
+                vmstart = "~~"
+                vmend = "~~"
+            else:
+                vmstart = ""
+                vmend = ""
 
             x['offensive_wars'] = [y for y in x['offensive_wars'] if y['turnsleft'] > 0]
             x['defensive_wars'] = [y for y in x['defensive_wars'] if y['turnsleft'] > 0]
 
-            if war['groundcontrol'] in [nation['id'], x['id']]:
-                war['groundcontrol'] = [nation['nation_name'], x['nation_name']][[nation['id'], x['id']].index(war['groundcontrol'])]
-            else:
-                war['groundcontrol'] = None
+            embed.add_field(name=f"\{war_emoji} {x['nation_name']} ({x['id']})", value=f"{vmstart}[War timeline](https://politicsandwar.com/nation/war/timeline/war={war['id']}) | [Message](https://politicsandwar.com/inbox/message/receiver={x['leader_name'].replace(' ', '+')})\n[{x['alliance']['name']}](https://politicsandwar.com/nation/id={x['alliance_id']})\n\n**[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']})**{result['nation1_append']}\n{main_enemy_bar}\n**{main_enemy_res}/100** | MAPs: **{main_enemy_points}/12**\n\n**[{x['nation_name']}](https://politicsandwar.com/nation/id={x['id']})**{result['nation2_append']}\n{their_enemy_bar}\n**{their_enemy_res}/100** | MAPs: **{their_enemy_points}/12**\n\nExpiration (turns): {war['turnsleft']}\nLast login: <t:{round(datetime.strptime(x['last_active'], '%Y-%m-%d %H:%M:%S').timestamp())}:R>\nOngoing wars: {len(x['offensive_wars'] + x['defensive_wars'])}\n\nGround winrate: **{round(100 * result['nation2_ground_win_rate'])}%**\nAir winrate: **{round(100 * (1 - result['nation1_air_win_rate']))}%**\nNaval winrate: **{round(100 * (1 - result['nation1_naval_win_rate']))}%**{vmend}", inline=True)
+            embed1.add_field(name=f"\{war_emoji} {x['nation_name']} ({x['id']})", value=f"{vmstart}[War timeline](https://politicsandwar.com/nation/war/timeline/war={war['id']}) | [Message](https://politicsandwar.com/inbox/message/receiver={x['leader_name'].replace(' ', '+')})\n[{x['alliance']['name']}](https://politicsandwar.com/nation/id={x['alliance_id']})\n\n**[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']})**{result['nation1_append']}\n**[{x['nation_name']}](https://politicsandwar.com/nation/id={x['id']})**{result['nation2_append']}\n\nOffensive wars: {len(x['offensive_wars'])}/{max_offense}\nDefensive wars: {len(x['defensive_wars'])}/3{beige}\n\n Soldiers: **{x['soldiers']:,}** / {max_sol:,}\nTanks: **{x['tanks']:,}** / {max_tnk:,}\nPlanes: **{x['aircraft']:,}** / {max_pln:,}\nShips: **{x['ships']:,}** / {max_shp:,}\n\nGround winrate: **{round(100 * result['nation2_ground_win_rate'])}%**\nAir winrate: **{round(100 * (1 - result['nation1_air_win_rate']))}%**\nNaval winrate: **{round(100 * (1 - result['nation1_naval_win_rate']))}%**{vmend}", inline=True)
+        
+        await message.edit(content="", attachments=[], embed=embed)
+        react01 = asyncio.create_task(message.add_reaction("1\N{variation selector-16}\N{combining enclosing keycap}"))
+        react02 = asyncio.create_task(message.add_reaction("2\N{variation selector-16}\N{combining enclosing keycap}"))
+        await asyncio.gather(react01, react02)
+        cur_page = 1
+                
+        async def reaction_checker():
+            print('reaction')
+            while True:
+                try:
+                    nonlocal cur_page
+                    reaction, user = await self.bot.wait_for("reaction_add", timeout=600)
+                    if user.id != ctx.author.id or reaction.message != message:
+                        continue
+                    
+                    elif str(reaction.emoji) == "1\N{variation selector-16}\N{combining enclosing keycap}" and cur_page == 2:
+                        cur_page = 1
+                        msg_embd = [embed, embed1][cur_page-1]
+                        await message.edit(content="", embed=msg_embd)
+                        await message.remove_reaction(reaction, ctx.author)
 
-            x_air_mod = 1
-            nation_air_mod = 1
-            if war['airsuperiority'] == nation['id']:
-                war['airsuperiority'] = nation['nation_name']
-                x_air_mod = 0.5
-            elif war['airsuperiority'] == x['id']:
-                war['airsuperiority'] = x['nation_name']
-                nation_air_mod = 0.5
-            else:
-                war['airsuperiority'] = None
+                    elif str(reaction.emoji) == "2\N{variation selector-16}\N{combining enclosing keycap}" and cur_page == 1:
+                        cur_page = 2
+                        msg_embd = [embed, embed1][cur_page-1]
+                        await message.edit(content="", embed=msg_embd)
+                        await message.remove_reaction(reaction, ctx.author)
 
-            if war['navalblockade'] in [nation['id'], x['id']]:
-                war['navalblockade'] = [x['nation_name'], nation['nation_name']][[nation['id'], x['id']].index(war['navalblockade'])]
-            else:
-                war['navalblockade'] = None
+                    else:
+                        await message.remove_reaction(reaction, ctx.author)
 
-            ground_win_rate = self.winrate_calc((x['soldiers'] * 1.75 + x['tanks'] * 40 * x_air_mod), (nation['soldiers'] * 1.75 + nation['tanks'] * 40 * nation_air_mod + nation['population'] * 0.0025))
+                except asyncio.TimeoutError:
+                    await message.edit(content="**Command timed out!**")
+                    print('reaction break')
+                    break
 
-            air_win_rate = self.winrate_calc((x['aircraft'] * 3), (nation['aircraft'] * 3))
-
-            naval_win_rate = self.winrate_calc((x['ships'] * 4), (nation['ships'] * 4))
-
-            embed.add_field(name=f"\{war_emoji} {x['nation_name']} ({x['id']})", value=f"[Nation link](https://politicsandwar.com/nation/id={x['id']}) | [War timeline](https://politicsandwar.com/nation/war/timeline/war={war['id']})```autohotkey\nOffensive wars: {len(x['offensive_wars'])}\nDefensive wars: {len(x['defensive_wars'])}\n\nGround control: \"{war['groundcontrol']}\"\nAir superiority: \"{war['airsuperiority']}\"\nBlockaded: \"{war['navalblockade']}\"\n{nation['nation_name'][:5]}. resistance: {main_enemy_res}\n{x['nation_name'][:5]}. resistance: {their_enemy_res}\n{nation['nation_name'][:5]}. MAPs: {main_enemy_points}\n{x['nation_name'][:5]}. MAPs: {their_enemy_points}\nExpiration (hours): {war['turnsleft']*2}\n\nSoldiers: {x['soldiers']:,}\nTanks: {x['tanks']:,}\nPlanes: {x['aircraft']:,}\nShips: {x['ships']:,}\n\nGround win%: {ground_win_rate}\nAir win%: {air_win_rate}\nNaval win%: {naval_win_rate}```", inline=True)
-            embed1.add_field(name=f"\{war_emoji} {x['nation_name']} ({x['id']})", value=f"[War timeline](https://politicsandwar.com/nation/war/timeline/war={war['id']})\n\n[{x['nation_name']}](https://politicsandwar.com/nation/id={x['id']})\n[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']})\n\nOffensive wars: {len(x['offensive_wars'])}\nDefensive wars: {len(x['defensive_wars'])}\n\nGround control: \"{war['groundcontrol']}\"\nAir superiority: \"{war['airsuperiority']}\"\nBlockaded: \"{war['navalblockade']}\"\n{nation['nation_name'][:5]}. resistance: {main_enemy_res}\n{x['nation_name'][:5]}. resistance: {their_enemy_res}\n{nation['nation_name'][:5]}. MAPs: {main_enemy_points}\n{x['nation_name'][:5]}. MAPs: {their_enemy_points}\nExpiration (hours): {war['turnsleft']*2}\n\nSoldiers: {x['soldiers']:,}\nTanks: {x['tanks']:,}\nPlanes: {x['aircraft']:,}\nShips: {x['ships']:,}\n\nGround win%: {ground_win_rate}\nAir win%: {air_win_rate}\nNaval win%: {naval_win_rate}```", inline=True)
-        await ctx.send(embed=embed)
+        reacttask = asyncio.create_task(reaction_checker())
 
     @commands.command(brief='Debugging cmd, requires admin perms')
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
@@ -437,7 +540,7 @@ class Military(commands.Cog):
 
         while True:
             try:
-                print("check", datetime.utcnow())
+                #print("check", datetime.utcnow())
                 async with aiohttp.ClientSession() as session:
                     async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] days_ago:5){{id att_fortify war_type def_fortify attpeace defpeace turnsleft attacker{{nation_name alliance{{name}} id num_cities alliance_id cities{{id}}}} defender{{nation_name alliance{{name}} id num_cities alliance_id cities{{id}}}} attacks{{type victor moneystolen success cityid resistance_eliminated infradestroyed infra_destroyed_value improvementslost attcas1 attcas2 defcas1 defcas2}}}}}}"}) as temp:
                         try:
@@ -1768,7 +1871,7 @@ class Military(commands.Cog):
         results = {}
 
         async with aiohttp.ClientSession() as session:
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation1_id}){{data{{nation_name population id soldiers tanks aircraft ships defensive_wars{{groundcontrol airsuperiority navalblockade attid defid att_fortify def_fortify turnsleft}} offensive_wars{{groundcontrol airsuperiority navalblockade attid defid att_fortify def_fortify turnsleft}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation1_id}){{data{{nation_name population id soldiers tanks aircraft ships defensive_wars{{groundcontrol airsuperiority navalblockade attpeace defpeace attid defid att_fortify def_fortify turnsleft}} offensive_wars{{groundcontrol airsuperiority navalblockade attpeace defpeace attid defid att_fortify def_fortify turnsleft}}}}}}}}"}) as temp:
                 results['nation1_nation'] = (await temp.json())['data']['nations']['data'][0]
             async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation2_id}){{data{{nation_name population id soldiers tanks aircraft ships}}}}}}"}) as temp:
                 results['nation2_nation'] = (await temp.json())['data']['nations']['data'][0]
@@ -1805,6 +1908,10 @@ class Military(commands.Cog):
                 if war['def_fortify']:
                     results['nation1_append'] += "<:fortified:925465012955385918>"
                     results['nation2_extra_cas'] = 1.25
+                if war['attpeace']:
+                    results['nation1_append'] += "<:peace:926855240655990836>"
+                elif war['defpeace']:
+                    results['nation2_append'] += "<:peace:926855240655990836>"
             elif war['defid'] == nation2_id and war['turnsleft'] > 0 and war in results['nation1_nation']['offensive_wars']:
                 if war['groundcontrol'] == nation1_id:
                     results['gc'] = results['nation1_nation']
@@ -1828,6 +1935,10 @@ class Military(commands.Cog):
                 if war['def_fortify']:
                     results['nation2_append'] += "<:fortified:925465012955385918>"
                     results['nation1_extra_cas'] = 1.25
+                if war['attpeace']:
+                    results['nation2_append'] += "<:peace:926855240655990836>"
+                elif war['defpeace']:
+                    results['nation1_append'] += "<:peace:926855240655990836>"
         
         nation2_army_value = results['nation2_nation']['soldiers'] * 1.75 + results['nation2_nation']['tanks'] * 40 * results['nation2_tanks'] + results['nation2_nation']['population'] * 0.0025
         nation1_army_value = results['nation1_nation']['soldiers'] * 1.75 + results['nation1_nation']['tanks'] * 40 * results['nation1_tanks']
