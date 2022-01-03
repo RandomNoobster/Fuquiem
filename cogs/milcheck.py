@@ -15,6 +15,7 @@ from flask import request
 import pathlib
 import re
 import asyncio
+import json
 import os
 from cryptography.fernet import Fernet
 
@@ -161,6 +162,8 @@ class Military(commands.Cog):
             async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation_id}){{data{{nation_name leader_name id alliance{{name}} cities{{barracks factory airforcebase drydock}} population score last_active beigeturns vmode pirate_economy color dompolicy alliance_id num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{defender{{nation_name leader_name alliance_id alliance{{name}} cities{{barracks factory airforcebase drydock}} id pirate_economy score last_active beigeturns vmode num_cities color defensive_wars{{turnsleft}} offensive_wars{{turnsleft}} soldiers tanks aircraft ships nukes missiles}} date id attid winner att_resistance def_resistance attpoints defpoints attpeace defpeace war_type groundcontrol airsuperiority navalblockade turnsleft att_fortify def_fortify}} defensive_wars{{attacker{{nation_name leader_name alliance_id alliance{{name}} id cities{{barracks factory airforcebase drydock}} pirate_economy score last_active beigeturns vmode num_cities color defensive_wars{{turnsleft}} offensive_wars{{turnsleft}} soldiers tanks aircraft ships nukes missiles}} date id attid winner att_resistance def_resistance attpoints defpoints attpeace defpeace war_type groundcontrol airsuperiority navalblockade turnsleft att_fortify def_fortify}}}}}}}}"}) as temp:
                 try:
                     nation = (await temp.json())['data']['nations']['data'][0]
+                    #pretty_response = json.dumps(nation, indent=4)
+                    #print(pretty_response)
                 except:
                     print((await temp.json())['errors'])
                     return
@@ -184,9 +187,23 @@ class Military(commands.Cog):
             max_tnk += c['factory'] * 250
             max_pln += c['airforcebase'] * 15
             max_shp += c['drydock']
+        
+        for war in nation['offensive_wars'] + nation['defensive_wars']:
+            if war['turnsleft'] <= 0:
+                if war in nation['offensive_wars']:
+                    await self.remove_from_thread(ctx.channel, war['defender']['id'])
+                else:
+                    await self.remove_from_thread(ctx.channel, war['attacker']['id'])
+                continue
+            else:
+                if war in nation['offensive_wars']:
+                    await self.add_to_thread(ctx.channel, war['defender']['id'])
+                else:
+                    await self.add_to_thread(ctx.channel, war['attacker']['id'])
 
         nation['offensive_wars'] = [y for y in nation['offensive_wars'] if y['turnsleft'] > 0]
         nation['defensive_wars'] = [y for y in nation['defensive_wars'] if y['turnsleft'] > 0]
+
         desc = f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) | [{nation['alliance']['name']}](https://politicsandwar.com/nation/id={nation['alliance_id']})\n\nLast login: <t:{round(datetime.strptime(nation['last_active'], '%Y-%m-%d %H:%M:%S').timestamp())}:R>\nOffensive wars: {len(nation['offensive_wars'])}/{max_offense}\nDefensive wars: {len(nation['defensive_wars'])}/3\nDefensive range: {round(nation['score'] / 1.75)} - {round(nation['score'] / 0.75)}{beige}\n\nSoldiers: **{nation['soldiers']:,}** / {max_sol:,}\nTanks: **{nation['tanks']:,}** / {max_tnk:,}\nPlanes: **{nation['aircraft']:,}** / {max_pln:,}\nShips: **{nation['ships']:,}** / {max_shp:,}"
         embed = discord.Embed(title=f"{nation['nation_name']} ({nation['id']}) & their wars", description=desc, color=0x00ff00)
         embed1 = discord.Embed(title=f"{nation['nation_name']} ({nation['id']}) & their wars", description=desc, color=0x00ff00)
@@ -195,9 +212,6 @@ class Military(commands.Cog):
         n = 1
 
         for war in nation['offensive_wars'] + nation['defensive_wars']:
-            if war['turnsleft'] < 0:
-                continue
-
             n += 1
             if n % 2 == 0:
                 embed.add_field(name="\u200b", value="\u200b", inline=False)
@@ -321,22 +335,24 @@ class Military(commands.Cog):
         await self.wars()
 
     async def add_to_thread(self, thread, atom):
+        #print("adding", atom)
         Database = self.bot.get_cog('Database')
         person = await Database.find_user(atom)
         if person == {}:
-            print("could not find", atom)
+            print("tried to add, but could not find", atom)
             return
         user = await self.bot.fetch_user(person['user'])
         try:
             await thread.add_user(user)
-        except:
-            await thread.send(f"I was unable to add {user} to the thread.")
+        except Exception as e:
+            await thread.send(f"I was unable to add {user} to the thread.\n```{e}```")
     
     async def remove_from_thread(self, thread, atom):
+        #print("removing ", atom)
         Database = self.bot.get_cog('Database')
         person = await Database.find_user(atom)
         if person == {}:
-            print("could not find", atom)
+            print("tried to remove, but could not find", atom)
             return
         user = await self.bot.fetch_user(person['user'])
         try:
