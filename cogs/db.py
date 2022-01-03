@@ -5,6 +5,7 @@ import requests
 from cryptography.fernet import Fernet
 import re
 from main import mongo
+import aiohttp
 import os
 api_key = os.getenv("api_key")
 convent_key = os.getenv("convent_api_key")
@@ -162,36 +163,36 @@ class Database(commands.Cog):
         print(n,'n')
         print(m,'m')"""
 
-        current = list(mongo['users'].find({}))
+        """current = list(mongo['users'].find({}))
         for x in current:
-            x['vm'] = False
+            #x['nationid'] = str(x['id'])
+            x['name'] = x['nation']
+            #x['leader'] = x['leader_name']
+            #del x['id']
+            del x['nation']
+            #del x['leader_name']
             mongo.users.find_one_and_delete({"user": x['user']})
-            mongo.users.insert_one(x)
+            mongo.users.insert_one(x)"""
 
 
     @commands.command(brief='Add someone to the db', help='First argument should be a ping, and the second argument should be a nation link.', aliases=['dab'])
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def dba(self, ctx, disc: discord.User, nation):
-        print(disc)
-        current = list(mongo['users'].find({}))
-        for x in current:
-            if x['user'] == disc.id:
-                await ctx.send(f'They are already in the db!')
-                return
-
-        if "=" in nation:
-            nid = nation[(nation.index('=')+1):]
-        else:
-            try:
-                int(nation)
-                nid = nation
-            except:
-                await ctx.send("Something's wrong with your arguments")
-        response = requests.get(
-            f"http://politicsandwar.com/api/nation/id={nid}&key={api_key}").json()
-        mongo.users.insert_one({"user": disc.id, "nationid": nid, "name": response['name'], "leader": response['leadername'], "signups": 0, "wins": 0, "raids": [
-        ], "email": '', 'pwd': '', 'signedup': False, "audited": False, "beige_alerts": []})
-        await ctx.send(content=f"I added <@{disc.id}> with the nation {nid}.", allowed_mentions=discord.AllowedMentions(everyone=False, users=False, roles=False))
+        async with aiohttp.ClientSession() as session:
+            nid = str(re.sub("[^0-9]", "", nation))
+            current = list(mongo['users'].find({}))
+            for x in current:
+                if x['user'] == disc.id:
+                    await ctx.send(f'They are already in the db!')
+                    return
+            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': f"{{nations(first:1 id:{nid}){{data{{id leader_name nation_name alliance{{name id}}}}}}}}"}) as temp:
+                try:
+                    nation = (await temp.json())['data']['nations']['data'][0]
+                except:
+                    print((await temp.json())['errors'])
+                    return
+            mongo.users.insert_one({"user": disc.id, "nationid": nid, "name": nation['nation_name'], "leader": nation['leader_name'], "signups": 0, "wins": 0, "raids": [], "email": '', 'pwd': '', 'signedup': False, "audited": False, "beige_alerts": []})
+            await ctx.send(content=f"I added <@{disc.id}> with the nation {nid}.", allowed_mentions=discord.AllowedMentions(everyone=False, users=False, roles=False))
 
     @commands.command(breif='Can only be used in DMs with the bot, accepts two arguments', help='This command can only be used in direct messages (DMs) with Fuquiem. It accepts two arguments, the first being your email and the second being your password. You can update the credentials anytime, and they can be reset by not including any arguments (simply saying "$setcredentials").', aliases=['setcred', 'sc'])
     @commands.dm_only()
