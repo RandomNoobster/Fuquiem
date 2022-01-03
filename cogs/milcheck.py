@@ -602,16 +602,21 @@ class Military(commands.Cog):
                         for done_war in done_wars:
                             if done_war['id'] == old_war['id']:
                                 print("wars match")
-                                if new_war['attacker']['alliance_id'] in ['4729', '7531']: ## CHANGE T0 ATOM ---------------------------------------------------------
-                                    atom = new_war['attacker']
-                                    non_atom = new_war['defender']
+                                if old_war['attacker']['alliance_id'] in ['4729', '7531']: ## CHANGE T0 ATOM ---------------------------------------------------------
+                                    atom = old_war['attacker']
+                                    non_atom = old_war['defender']
                                 else:
-                                    atom = new_war['defender']
-                                    non_atom = new_war['attacker']
+                                    atom = old_war['defender']
+                                    non_atom = old_war['attacker']
+                                attack = None
+                                for attack in done_war['attacks']:
+                                    if attack not in old_war['attacks']:
+                                        attacker = await attack_check(attack, done_war)
+                                        await smsg(attacker, attack, done_war, atom, non_atom, None)
                                 for thread in channel.threads:
                                     if f"({non_atom['id']})" in thread.name:
                                         print("found thread")
-                                        embed = discord.Embed(title=f"War finished", description=f"[{new_war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={new_war['attacker']['id']}) is no longer at war with [{new_war['defender']['nation_name']}](https://politicsandwar.com/nation/id={new_war['defender']['id']})", color=0xffFFff)
+                                        embed = discord.Embed(title=f"War finished", description=f"[{old_war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={old_war['attacker']['id']}) is no longer at war with [{old_war['defender']['nation_name']}](https://politicsandwar.com/nation/id={old_war['defender']['id']})", color=0xffFFff)
                                         await thread.send(embed=embed)
                                         await self.remove_from_thread(thread, atom)
                                         if thread.member_count == 1:
