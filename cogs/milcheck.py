@@ -189,17 +189,18 @@ class Military(commands.Cog):
             max_shp += c['drydock']
         
         for war in nation['offensive_wars'] + nation['defensive_wars']:
-            if war['turnsleft'] <= 0:
-                if war in nation['offensive_wars']:
-                    await self.remove_from_thread(ctx.channel, war['defender']['id'])
+            if war['defender']['alliance_id'] in ['4729', '7531'] or war['defender']['alliance_id'] in ['4729', '7531']:
+                if war['turnsleft'] <= 0:
+                    if war in nation['offensive_wars']:
+                        await self.remove_from_thread(ctx.channel, war['defender']['id'])
+                    else:
+                        await self.remove_from_thread(ctx.channel, war['attacker']['id'])
+                    continue
                 else:
-                    await self.remove_from_thread(ctx.channel, war['attacker']['id'])
-                continue
-            else:
-                if war in nation['offensive_wars']:
-                    await self.add_to_thread(ctx.channel, war['defender']['id'])
-                else:
-                    await self.add_to_thread(ctx.channel, war['attacker']['id'])
+                    if war in nation['offensive_wars']:
+                        await self.add_to_thread(ctx.channel, war['defender']['id'])
+                    else:
+                        await self.add_to_thread(ctx.channel, war['attacker']['id'])
 
         nation['offensive_wars'] = [y for y in nation['offensive_wars'] if y['turnsleft'] > 0]
         nation['defensive_wars'] = [y for y in nation['defensive_wars'] if y['turnsleft'] > 0]
