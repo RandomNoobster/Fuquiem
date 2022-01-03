@@ -33,35 +33,32 @@ async def on_ready():
     print('updating')
     await sheet.sheet_generator()
 
-    #Military = bot.get_cog('Military')
-    #print('channels')
-    #channel_checks = Thread(target=asyncio.run(await Military.war_channels()))
-    #channel_checks.start() 
-
 @bot.event
 async def on_command_error(ctx, error):
     print(error)
     if isinstance(error, commands.CommandNotFound):
         return
-    if isinstance(error, commands.CommandOnCooldown):
+    elif isinstance(error, commands.CommandOnCooldown):
         em = discord.Embed(title=f"Slow it down bro!",description=f"Try again in {round(error.retry_after/60)} minutes.")
         await ctx.send(embed=em)
         return
-    await ctx.send(f'An error occurred')
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("You do not have the permission to use this command")
-    if isinstance(error, commands.BadArgument):
+    elif isinstance(error, commands.BadArgument):
         await ctx.send("Something's wrong with your arguments")
-    if isinstance(error, commands.MissingRequiredArgument):
+    elif isinstance(error, commands.MissingRequiredArgument):
         await ctx.send("You don't have the required arguments")
-    if isinstance(error, commands.PrivateMessageOnly):
+    elif isinstance(error, commands.PrivateMessageOnly):
         await ctx.send("This command can only be used in private messages.")
-    if isinstance(error, commands.MissingAnyRole):
+    elif isinstance(error, commands.MissingAnyRole):
         await ctx.send("You do not have the roles required to use this command.")
-    if isinstance(error, commands.DisabledCommand):
+    elif isinstance(error, commands.DisabledCommand):
         await ctx.send(f'{ctx.command} has been disabled.')
-    if isinstance(error, aiohttp.ClientOSError):
+    elif isinstance(error, aiohttp.ClientOSError):
         await ctx.send("A really f***ing annoying error occurred, and there's no real way to fix it, so I'm pretty upset. You can just try again and it should work.\n-Randy")
+    else:
+        await ctx.send(f'An error occurred:\n```{error}```')
+
 
 for filename in os.listdir('./cogs'):
     if filename.endswith('.py'):
