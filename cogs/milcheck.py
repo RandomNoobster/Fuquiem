@@ -310,7 +310,7 @@ class Military(commands.Cog):
         cur_page = 1
                 
         async def reaction_checker():
-            print('reaction')
+            #print('reaction')
             while True:
                 try:
                     nonlocal cur_page
@@ -335,7 +335,7 @@ class Military(commands.Cog):
 
                 except asyncio.TimeoutError:
                     await message.edit(content="**Command timed out!**")
-                    print('reaction break')
+                    #print('reaction break')
                     break
 
         reacttask = asyncio.create_task(reaction_checker())
@@ -1676,7 +1676,7 @@ class Military(commands.Cog):
                     break
                 
         async def reaction_checker():
-            print('reaction')
+            #print('reaction')
             while True:
                 try:
                     nonlocal cur_page
@@ -1733,7 +1733,7 @@ class Military(commands.Cog):
 
                 except asyncio.TimeoutError:
                     await message.edit(content="**Command timed out!**")
-                    print('reaction break')
+                    #print('reaction break')
                     break
 
         msgtask = asyncio.create_task(message_checker())
@@ -1788,12 +1788,11 @@ class Military(commands.Cog):
         nation1_id = str(nation1_nation['nationid'])
 
         done = False
-        if isinstance(ctx.channel, discord.Thread):
+        if isinstance(ctx.channel, discord.Thread) and nation2 == None:
             try:
-                if nation2 == None:
-                    chan = ctx.channel.name
-                    nation2_id = str(chan[chan.index("(")+1:-1])
-                    done = True
+                chan = ctx.channel.name
+                nation2_id = str(chan[chan.index("(")+1:-1])
+                done = True
             except:
                 pass
 
@@ -1866,7 +1865,7 @@ class Military(commands.Cog):
         cur_page = 1
                 
         async def reaction_checker():
-            print('reaction')
+            #print('reaction')
             while True:
                 try:
                     nonlocal cur_page
@@ -1891,7 +1890,7 @@ class Military(commands.Cog):
 
                 except asyncio.TimeoutError:
                     await message.edit(content="**Command timed out!**")
-                    print('reaction break')
+                    #print('reaction break')
                     break
 
         reacttask = asyncio.create_task(reaction_checker())
