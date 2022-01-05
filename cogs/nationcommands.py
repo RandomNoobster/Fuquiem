@@ -1,4 +1,5 @@
 import os
+from discord import message
 from discord.ext import commands
 import discord
 import requests
@@ -44,18 +45,21 @@ class General(commands.Cog):
     async def change_perm(self, message, api_nation, level: str):
         Database = self.bot.get_cog('Database')
         if api_nation['allianceposition'] > '2':
-            await message.edit(content="I cannot let you change the perms of a person of such high ranking!")
+            if message:
+                await message.edit(content="I cannot let you change the perms of a person of such high ranking!")
             return {}
         if api_nation['allianceid'] == '4729':
             admin_id = 465463547200012298
         elif api_nation['allianceid'] == '7531':
             admin_id = 154886766275461120
         else:
-            await message.edit(content='They are not affiliated with the Church nor the Convent!')
+            if message:
+                await message.edit(content='They are not affiliated with the Church nor the Convent!')
             return {}
         admin = await Database.find_user(admin_id)
         if admin['email'] == '' or admin['pwd'] == '':
-            await message.edit(content='The admin has not registered their PnW credentials with Fuquiem.')
+            if message:
+                await message.edit(content='The admin has not registered their PnW credentials with Fuquiem.')
             return {}
 
         cipher_suite = Fernet(key)
@@ -78,10 +82,12 @@ class General(commands.Cog):
             s.post(withdraw_url, data=withdraw_data)
 
             if requests.get(f"http://politicsandwar.com/api/nation/id={api_nation['nationid']}&key=e5171d527795e8").json()['allianceposition'] == level:
-                await message.edit(content='Their status was successfully changed.')
+                if message:
+                    await message.edit(content='Their status was successfully changed.')
                 await asyncio.sleep(2)
             else:
-                await message.edit(content=f"I might have failed at changing their status, check their nation page to be sure: https://politicsandwar.com/nation/id={api_nation['nationid']}")
+                if message:
+                    await message.edit(content=f"I might have failed at changing their status, check their nation page to be sure: https://politicsandwar.com/nation/id={api_nation['nationid']}")
                 return {}
 
     @commands.command(aliases=['message'], brief="Send a premade message to someone")
@@ -559,6 +565,47 @@ class General(commands.Cog):
             await ctx.send(embed=embed)
         else:
             await ctx.send(f"I didn't find anything!")
+    
+    @commands.command(brief='Send an informative message')
+    @commands.has_any_role('Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    async def welcome(self, ctx, arg):
+        Database = self.bot.get_cog('Database')
+        user = await Database.find_user(arg)
+        dm_chan = ctx.guild.get_member(user['user'])
+        content = ""
+        heathen_role = ctx.guild.get_role(584676265932488705)
+        pupil_role = ctx.guild.get_role(711385354929700905)
+        try:
+            await dm_chan.remove_roles(heathen_role)
+            content += "Removed `Heathen`.\n"
+        except:
+            content += "Did not remove `Heathen`, did they not have it in the first place?\n"
+        try:
+            await dm_chan.add_roles(pupil_role)
+            content += "Added `Pupil`.\n"
+        except:
+            content += "Did not add `Pupil`, did they have it already?\n"
+        try:
+            response = requests.get(f"http://politicsandwar.com/api/nation/id={user['nationid']}&key=e5171d527795e8").json()
+            if response['allianceposition'] > '1':
+                content += "Did not admit them. They are already a member.\n"
+            elif response['allianceposition'] < '1':
+                content += "Did not admit them. They are not an applicant.\n"
+            else:
+                res = await self.change_perm(None, response, "2")
+                if res == {}:
+                    content += "Did (probably) not admit them. Are Randy's credentials wrong?\n"
+                else:
+                    content += "Admitted them to the in-game alliance.\n"
+        except:
+            content += "Did (probably) not admit them. Is the API broken?\n"
+        message = f"Hey, {dm_chan.name}!\n\nFirst of all, welcome to the Convent! If you are wondering who I am, wonder no more! I am but one of Randy's slaves. He keeps me locked up in his basement, and he doesn't feed me if I don't do as he says. I'm not sure about the legality of it all, but seeing as I'm locked up, there's really not a lot I can do about it. Anyhow, it's time for some practical information!\n\nAn overview of the channels can be found here: https://discord.com/channels/434071714893398016/838342085031231508/844978316868190248\nRole explanations and chain of command can be found here: https://discord.com/channels/434071714893398016/838342085031231508/849229725025173554\n\nWhen it comes to educational material, we have a couple guides. The raiding guide is by far the best one, and the one you should prioritize reading.\nOur raiding guide: <https://docs.google.com/document/d/1a5xWQUKVH8-vJmBdXgQVUpR_U-DhLwPWMPjPvEVTFqQ/edit#heading=h.jgynban3l6c3>\nOur general guide: <https://docs.google.com/document/d/1lrPGQpaAGygRCmZP1U6y5S2ryzMApByPagFNUzdwtJU/edit?usp=sharing>\nHow to automate rewarded ads and get $2 million daily for free: <https://www.youtube.com/watch?v=N71RrRfztv4>\n\nOn the topic of free money, you can go to <#850302301838114826> and type $login to sign up for the daily raffle. The size and number of prizes depends on the number of people which have signed up. If there are less than 5 people, the prize is $2.5 million. If there are more than 5 people, the prize is $5 million. If there are more than 20 people signed up, there will be 2 winners of $5 million. If you get the raffle reminders role in <#688464249932349607>, I'll make sure to DM you a few hours before the raffle ends (if you haven't signed up yet).\n\nThat's all for now! If you have any questions, you can go to <#853361013361737809> or <#849362037003124757>. I will get in touch again if I ever notice anything wrong with your nation, but until then; have fun - and praise Atom!"
+        try:
+            await dm_chan.send(message)
+            content += "DMed them practical information.\n"
+        except:
+            content += "Did not DM them practical information. Are they not accepting DMs?\n"
+        await ctx.send(content)
 
     @commands.command(brief='Admits an applicant, accepts 1 argument')
     @commands.has_any_role('Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
