@@ -1,5 +1,5 @@
 import os
-from discord import message
+import aiohttp
 from discord.ext import commands
 import discord
 import requests
@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from main import mongo
 from cryptography.fernet import Fernet
 import pathlib
+import math
 import math
 import random
 from mako.template import Template
@@ -18,6 +19,7 @@ from lxml import html
 from cryptography.fernet import Fernet
 import dload
 from csv import DictReader
+from utils import embed_pager, reaction_checker
 
 key = os.getenv("encryption_key")
 api_key = os.getenv("api_key")
@@ -649,6 +651,66 @@ class General(commands.Cog):
             template = file.read()
         result = Template(template).render(builds=builds, rss=rss, land=land, unique_builds=unique_builds, datetime=datetime)
         return str(result)
+
+    @commands.command(brief='Shows information about applicants', aliases=['apps'])
+    @commands.has_any_role('Pupil', 'Zealot', 'Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    async def applicants(self, ctx):
+        message = await ctx.send("Finding plebs...")
+
+        heathen_role = ctx.guild.get_role(584676265932488705)
+        pupil_role = ctx.guild.get_role(711385354929700905)
+        zealot_role = ctx.guild.get_role(434258764221251584)
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{tradeprices(limit:1){{coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}}}"}) as temp:
+                prices = (await temp.json())['data']['tradeprices'][0]
+                prices['money'] = 1
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 alliance_position:1 first:500 alliance_id:4729){{data{{id leader_name nation_name alliance{{name}} color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium cities{{infrastructure barracks factory airforcebase drydock}}}}}}}}"}) as temp:
+                apps = (await temp.json())['data']['nations']['data']
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(page:1 alliance_position:1 first:500 alliance_id:7531){{data{{id leader_name nation_name alliance{{name}} color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium cities{{infrastructure barracks factory airforcebase drydock}}}}}}}}"}) as temp:
+                apps += (await temp.json())['data']['nations']['data']
+
+        for app in apps:
+            app['last_active'] = f"<t:{round(datetime.strptime(app['last_active'], '%Y-%m-%d %H:%M:%S').timestamp())}:R>"
+
+        apps = sorted(apps, key=lambda k: k['last_active'], reverse=True)
+        fields = []
+
+        for app in apps:
+            on_hand = 0
+            try:
+                for rs in ['aluminum', 'bauxite', 'coal', 'food', 'gasoline', 'iron', 'lead', 'money', 'munitions', 'oil', 'steel', 'uranium']:
+                    on_hand += app[rs] * prices[rs]
+            except:
+                pass
+            res = mongo.users.find_one({"nationid": app['id']})
+            if res == None:
+                res = mongo.leaved_users.find_one({"nationid": app['id']})
+                if res == None:
+                    db = "Not registered"
+                else:
+                    db = "**Secondary database**"
+            else:
+                db = "**Primary database**"
+
+            disc = ""
+            if "**" in db:
+                try:
+                    member = ctx.guild.get_member(res['user'])
+                    if zealot_role in member.roles:
+                        disc = zealot_role.mention
+                    elif pupil_role in member.roles:
+                        disc = pupil_role.mention
+                    elif heathen_role in member.roles:
+                        disc = heathen_role.mention
+                except:
+                    pass
+            fields.append({"name": app['leader_name'], "value": f"[{app['nation_name']}](https://politicsandwar.com/nation/id={app['id']})\n{app['alliance']['name'][:app['alliance']['name'].find(' ')]}\n{db} {disc}\nLast active: {app['last_active']}\nCities: {app['num_cities']}\nValue of rss: ${round(on_hand):,}"})
+
+        embeds = embed_pager("Applicants", fields)
+
+        await message.edit(content="", embed=embeds[0])
+        await reaction_checker(self, message, embeds)
 
     @commands.command(aliases=['builds'], brief="Shows you the best city builds", help="After calling the command, you have to tell Fuquiem 3 things. 1) How much infra you want. 2) How much land you want. 3) What MMR you want. When you're done with this, Fuquiem will link to a webpage showing the best builds for producing every resource. Note that these are the best builds for YOU and YOU only! I takes your projects and continent into consideration when calculating the revenue of each build. When calling the command, you can therefore supply a person for whom you want the builds to be calculated for. IMPORTANT! - This tool only shows builds that are currently being used somewhere in Orbis. This means that you may very well be able to improve upon these builds. It's worth mentioning that even though this shows the best builds for producing every type of resource (except for the ones you can't produce due to continent restrictions), the \"best build for net income\" is in reality best for every resource. This is because the higher monetary income lets you buy more of a resource than you could get by producing it. Another important thing to mention, is that the monetary net income is dependent on market prices. This means that in times of war, manufactured resources will increase in price, increasing the profitability of builds producing these resources. The \"best\" build for net income may therefore not always be the same.")
     @commands.has_any_role('Pupil', 'Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
