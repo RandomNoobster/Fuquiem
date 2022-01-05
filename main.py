@@ -5,10 +5,7 @@ from pymongo.mongo_client import MongoClient
 import keep_alive
 import pymongo
 import aiohttp
-#from threading import Thread
-#import asyncio
 import pytz
-#import traceback
 import os
 import ssl
 import discord
