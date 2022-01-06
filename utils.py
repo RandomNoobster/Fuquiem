@@ -129,14 +129,14 @@ async def find_nation(arg: Union[str, int]) -> Union[dict, None]:
                 result = None
     return result
 
-async def find_nation_plus(self, arg: Union[str, int]) -> Union[dict, None]: # only returns a nation if it is at least 1 day old
-    nation = await self.find_nation(arg)
+async def find_nation_plus(arg: Union[str, int]) -> Union[dict, None]: # only returns a nation if it is at least 1 day old
+    nation = await find_nation(arg)
     if nation == None:
-        nation = await self.find_user(arg)
+        nation = await find_user(arg)
         if nation == {}:
             return None
         else:
-            nation = await self.find_nation(nation['nationid'])
+            nation = await find_nation(nation['nationid'])
             if nation == None:
                 return None
     return nation
