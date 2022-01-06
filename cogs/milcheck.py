@@ -15,7 +15,7 @@ from flask import request
 import pathlib
 import re
 import asyncio
-import json
+from utils import revenue_calc, pre_revenue_calc
 import os
 from cryptography.fernet import Fernet
 
@@ -1137,12 +1137,6 @@ class Military(commands.Cog):
                 maxscore = round(enemy_nation['score'] / 0.75)
                 await channel.send(content=f"{str_start}Priority target! {sword}{shield}{exclamation}{circle} Defensive range: {minscore} - {maxscore} <https://politicsandwar.com/nation/id={enemy['nationid']}>, {enemy_nation['alliance']}{applicant}{str_end}", embed=None)
 
-    def raidspage(self, attacker, targets, endpoint, invoker, beige_alerts):
-        with open('./data/templates/raidspage.txt', 'r') as file:
-            template = file.read()
-        result = Template(template).render(attacker=attacker, targets=targets, endpoint=endpoint, invoker=str(invoker), beige_alerts=beige_alerts, datetime=datetime)
-        return str(result)
-
     @commands.command(brief='something something')
     @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def mmr(self, ctx, mmr):
@@ -1316,17 +1310,16 @@ class Military(commands.Cog):
                     return resp
             
             await message.clear_reactions()
-            await message.edit(content="Getting targets...", embed=None)
-            waiting_gif = await ctx.send(file=gif)
+            await message.edit(content="Getting targets...", embed=None, file=gif)
 
             #start_time = time.time()
 
             if applicants == True:
-                async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 first:300 min_score:{minscore} max_score:{maxscore} vmode:false alliance_position:1){{paginatorInfo{{lastPage}}}}}}"}) as temp:
+                async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 first:250 min_score:{minscore} max_score:{maxscore} vmode:false alliance_position:1){{paginatorInfo{{lastPage}}}}}}"}) as temp:
                     tot_pages += (await temp.json())['data']['nations']['paginatorInfo']['lastPage']
                     app_pages += (await temp.json())['data']['nations']['paginatorInfo']['lastPage']
 
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 first:300 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{paginatorInfo{{lastPage}}}}}}"}) as temp1:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 first:250 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{paginatorInfo{{lastPage}}}}}}"}) as temp1:
                 tot_pages += (await temp1.json())['data']['nations']['paginatorInfo']['lastPage']
                 any_pages += (await temp1.json())['data']['nations']['paginatorInfo']['lastPage']
 
@@ -1334,14 +1327,14 @@ class Military(commands.Cog):
                 for n in range(1, app_pages):
                     #print(n)
                     url = f"https://api.politicsandwar.com/graphql?api_key={api_key}"
-                    json = {'query': f"{{nations(page:{n} first:300 min_score:{minscore} max_score:{maxscore} vmode:false alliance_position:1){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name id}} offensive_wars{{winner}} defensive_wars{{date winner turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
+                    json = {'query': f"{{nations(page:{n} first:250 min_score:{minscore} max_score:{maxscore} vmode:false alliance_position:1){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name id}} offensive_wars{{winner turnsleft}} defensive_wars{{date winner turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
                     futures.append(asyncio.ensure_future(call_api(url, json)))
                     await asyncio.sleep(0.2)
             
             for n in range(1, any_pages):
                 #print(n)
                 url = f"https://api.politicsandwar.com/graphql?api_key={api_key}"
-                json = {'query': f"{{nations(page:{n} first:300 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name id}} offensive_wars{{winner}} defensive_wars{{date winner turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
+                json = {'query': f"{{nations(page:{n} first:250 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name id}} offensive_wars{{winner turnsleft}} defensive_wars{{date winner turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
                 futures.append(asyncio.ensure_future(call_api(url, json)))
                 await asyncio.sleep(0.2)
 
@@ -1373,8 +1366,7 @@ class Military(commands.Cog):
                     target_list.append(x)
                     
             if len(target_list) == 0:
-                await waiting_gif.delete()
-                await message.edit(content="No targets matched your criteria!")
+                await message.edit(content="No targets matched your criteria!", attachments=[])
                 return
             #await message.edit(content=f'That took {(end - start).seconds} seconds')
 
@@ -1395,63 +1387,7 @@ class Military(commands.Cog):
                         filters += ","
                     filters += f" {max_wars} or less active wars"
 
-            await message.edit(content="Getting color bloc values...")
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{colors{{color turn_bonus}}}}"}) as temp:
-                res_colors = (await temp.json())['data']['colors']
-            colors = {}
-            for color in res_colors:
-                colors[color['color']] = color['turn_bonus'] * 12
-
-            await message.edit(content="Getting resource prices...")
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{tradeprices(limit:1){{coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}}}"}) as temp:
-                prices = (await temp.json())['data']['tradeprices'][0]
-            prices['money'] = 1
-
-            await message.edit(content="Getting treasures...")
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{treasures{{bonus nation{{id alliance_id}}}}}}"}) as temp:
-                treasures = (await temp.json())['data']['treasures']
-
-            await message.edit(content="Getting food modifiers...")
-            with requests.Session() as s:
-                banker = mongo.users.find_one({"user": 465463547200012298})
-                login_url = "https://politicsandwar.com/login/"
-                login_data = {
-                    "email": str(cipher_suite.decrypt(banker['email'].encode()))[2:-1],
-                    "password": str(cipher_suite.decrypt(banker['pwd'].encode()))[2:-1],
-                    "loginform": "Login"
-                }
-                s.post(login_url, data=login_data)
-
-                radiation_page = s.get(f"https://politicsandwar.com/world/radiation/")
-                tree = html.fromstring(radiation_page.content)
-                info = tree.xpath("//div[@class='col-md-10']/div[@class='row']/div/p")
-                for x in info.copy():
-                    #print(x.text_content())
-                    if "Food" not in x.text_content():
-                        info.remove(x)
-                    else:
-                        info.remove(x)
-                        x = re.sub(r"[^0-9.]+", "", x.text_content().strip())
-                        info.append(x)
-                radiation = {"na": 1 - float(info[0])/100, "sa": 1 - float(info[1])/100, "eu": 1 - float(info[2])/100, "as": 1 - float(info[3])/100, "af": 1 - float(info[4])/100, "au": 1 - float(info[5])/100, "an": 1 - float(info[6])/100}
-
-                info2 = tree.xpath("//div[@class='sidebar'][contains(@style,'padding-left: 20px;')]/text()")
-                date = info2[2].strip()
-                seasonal_mod = {"na": 1, "sa": 1, "eu": 1, "as": 1, "af": 1, "au": 1, "an": 0.5}
-                if "June" in date or "July" in date or "August" in date:
-                    seasonal_mod['na'] = 1.2
-                    seasonal_mod['as'] = 1.2
-                    seasonal_mod['eu'] = 1.2
-                    seasonal_mod['sa'] = 0.8
-                    seasonal_mod['af'] = 0.8
-                    seasonal_mod['au'] = 0.8
-                elif "December" in date or "January" in date or "February" in date:
-                    seasonal_mod['na'] = 0.8
-                    seasonal_mod['as'] = 0.8
-                    seasonal_mod['eu'] = 0.8
-                    seasonal_mod['sa'] = 1.2
-                    seasonal_mod['af'] = 1.2
-                    seasonal_mod['au'] = 1.2
+            temp, colors, prices, treasures, radiation, seasonal_mod = await pre_revenue_calc(mongo, cipher_suite, api_key, message, query_for_nation=False, parsed_nation=atck_ntn)
 
             await message.edit(content='Calculating best targets...')
 
@@ -1577,7 +1513,7 @@ class Military(commands.Cog):
 
                 embed.add_field(name="Missiles", value=f"{target['missiles']:,} missiles")
 
-                rev_obj = await Economic.revenue_calc(message, target, radiation, treasures, prices, colors, seasonal_mod, None)
+                rev_obj = await revenue_calc(message, target, radiation, treasures, prices, colors, seasonal_mod)
 
                 target['monetary_net_num'] = rev_obj['monetary_net_num']
                 embed.add_field(name="Monetary Net Income", value=rev_obj['mon_net_txt'])
@@ -1617,7 +1553,10 @@ class Military(commands.Cog):
                 def get(raidclass):
                     #print(invoker)
                     beige_alerts = mongo.users.find_one({"user": int(invoker)})['beige_alerts']
-                    return self.raidspage(atck_ntn, best_targets, endpoint, invoker, beige_alerts)
+                    with open('./data/templates/raidspage.txt', 'r') as file:
+                        template = file.read()
+                    result = Template(template).render(attacker=atck_ntn, targets=best_targets, endpoint=endpoint, invoker=str(invoker), beige_alerts=beige_alerts, datetime=datetime)
+                    return str(result)
 
                 def post(raidclass):
                     data = request.json
@@ -1638,15 +1577,13 @@ class Military(commands.Cog):
 
             #@app.route(f"/raids/{atck_ntn['id']}")
             app.add_url_rule(f"/raids/{endpoint}", view_func=webraid.as_view(str(datetime.utcnow())), methods=["GET", "POST"]) # this solution of adding a new page instead of updating an existing for the same nation is kinda dependent on the bot resetting every once in a while, bringing down all the endpoints
-            await waiting_gif.delete()
-            await message.edit(content=f"Go to https://fuquiem.karemcbob.repl.co/raids/{endpoint}")
+            await message.edit(content=f"Go to https://fuquiem.karemcbob.repl.co/raids/{endpoint}", attachments=[])
             return
         
         pages = len(target_list)
         msg_embd = best_targets[0]['embed']
         msg_embd.set_footer(text=f"Page {1}/{pages}")
-        await waiting_gif.delete()
-        await message.edit(content="", embed=msg_embd)
+        await message.edit(content="", embed=msg_embd, attachments=[])
         await message.add_reaction("◀️")
         await message.add_reaction("▶️")
         await message.add_reaction("🕰️")
