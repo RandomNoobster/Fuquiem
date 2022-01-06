@@ -4,7 +4,7 @@ import math
 import aiohttp
 import pytz
 from flask.views import MethodView
-from cogs.econ import Economic
+from mako.template import Template
 from keep_alive import app
 import os.path
 from main import mongo
@@ -15,6 +15,7 @@ import requests
 from lxml import html
 from cryptography.fernet import Fernet
 import re
+import utils
 
 api_key = os.getenv("api_key")
 api_key_2 = os.getenv("api_key_2")
@@ -90,9 +91,6 @@ class Update(commands.Cog):
                 await message.edit(content="That's an illegal argument!")
                 return
 
-            database = self.bot.get_cog('Database')
-            Economic = self.bot.get_cog('Economic')
-
             async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{colors{{color turn_bonus}}}}"}) as temp:
                 res_colors = (await temp.json())['data']['colors']
                 colors = {}
@@ -152,14 +150,14 @@ class Update(commands.Cog):
                 for nation in alliance:
                     if nation['alliance_position'] == "APPLICANT":
                         continue
-                    rev_obj = await Economic.revenue_calc(message, nation, radiation, treasures, prices, colors, seasonal_mod, None)
+                    rev_obj = await utils.revenue_calc(message, nation, radiation, treasures, prices, colors, seasonal_mod, None)
                     if nation['food'] == None:
                         embed.add_field(name=nation['leader_name'], value=f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) runs out of food in ??? days (??? food).", inline=False)
                         continue
                     days = float(nation['food']) / rev_obj['food']
                     if -1 < days < 1 and int(nation['vmode']) == 0:
                         embed.add_field(name=nation['leader_name'], value=f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) runs out of food in {math.ceil(days)} days ({nation['food']} food).", inline=False)
-                        person = await database.find_user(str(nation['id']))
+                        person = await utils.find_user(self, str(nation['id']))
                         if person == {}:
                             continue
                         user = await self.bot.fetch_user(person['user'])
@@ -200,8 +198,6 @@ class Update(commands.Cog):
                 await channel.send("That's an illegal argument!")
                 return
 
-            database = self.bot.get_cog('Database')
-
             for alliance in aa:
                 embed = discord.Embed(title=f"{alliance[0]['alliance']} Spies", description="",
                                     color=0x00ff00, timestamp=pytz.utc.localize(datetime.utcnow()))
@@ -212,7 +208,7 @@ class Update(commands.Cog):
                     if int(nation['spies']) < max_spies and int(nation['vacmode']) == 0:
                         embed.add_field(
                             name=nation['leader'], value=f"[{nation['nation']}](https://politicsandwar.com/nation/id={nation['nationid']}) only has {nation['spies']} spies.", inline=False)
-                        person = await database.find_user(str(nation['nationid']))
+                        person = await utils.find_user(self, str(nation['nationid']))
                         if person == {}:
                             continue
                         if alliance[0]['allianceid'] == 4729:
@@ -246,8 +242,6 @@ class Update(commands.Cog):
                 await channel.send("That's an illegal argument!")
                 return
 
-            database = self.bot.get_cog('Database')
-
             for alliance in aa:
                 embed = discord.Embed(title=f"{alliance[0]['alliance']} Inactivity", description="",
                                     color=0x00ff00, timestamp=pytz.utc.localize(datetime.utcnow()))
@@ -255,7 +249,7 @@ class Update(commands.Cog):
                     if nation['minutessinceactive'] > 2880 and int(nation['vacmode']) == 0:
                         embed.add_field(
                             name=nation['leader'], value=f"[{nation['nation']}](https://politicsandwar.com/nation/id={nation['nationid']}) has been inactive for {math.ceil(nation['minutessinceactive']/1440)} days.", inline=False)
-                        person = await database.find_user(str(nation['nationid']))
+                        person = await utils.find_user(self, str(nation['nationid']))
                         if person == {}:
                             continue
                         user = await self.bot.fetch_user(person['user'])
@@ -287,8 +281,6 @@ class Update(commands.Cog):
                 await channel.send("That's an illegal argument!")
                 return
 
-            database = self.bot.get_cog('Database')
-
             for alliance in aa:
                 embed = discord.Embed(title=f"{alliance[0]['alliance']} Color", description="",
                                     color=0x00ff00, timestamp=pytz.utc.localize(datetime.utcnow()))
@@ -298,7 +290,7 @@ class Update(commands.Cog):
                             continue
                         embed.add_field(
                             name=nation['leader'], value=f"[{nation['nation']}](https://politicsandwar.com/nation/id={nation['nationid']}) are on {nation['color']}", inline=False)
-                        person = await database.find_user(str(nation['nationid']))
+                        person = await utils.find_user(self, str(nation['nationid']))
                         if person == {}:
                             continue
                         user = await self.bot.fetch_user(person['user'])
@@ -335,7 +327,6 @@ class Update(commands.Cog):
             nations = church_nations + convent_nations
 
             guild = self.bot.get_guild(434071714893398016)
-            database = self.bot.get_cog('Database')
             zerotoninerole = guild.get_role(837789914846330922)
             tentonineteenrole = guild.get_role(837790885512347690)
             twentytotwentyninerole = guild.get_role(837791502272561202)
@@ -345,7 +336,7 @@ class Update(commands.Cog):
             trader_role = guild.get_role(796057460502298684)
        
             for nation in nations:
-                person = await database.find_user(str(nation['nationid']))
+                person = await utils.find_user(self, str(nation['nationid']))
                 if person == {}:
                     print(f"I couldn't assign a city-role to {nation['nation']}")
                     continue
@@ -402,6 +393,91 @@ class Update(commands.Cog):
                             await member.remove_roles(love_pings)
                         if trader_role in member.roles:
                             await member.remove_roles(trader_role)
+    
+    @commands.command(brief='Debugging cmd, requires admin perms')
+    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    async def getsheet(self, ctx):
+        print('getting sheet')
+        await self.sheet_generator()
+        await ctx.send('Finito!')
+
+    async def sheet_generator(self):
+        async with aiohttp.ClientSession() as session:
+            with open('./data/templates/sheet.txt', 'r', encoding='UTF-8') as file:
+                template = file.read()
+
+            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_id:4729){data{id alliance_id alliance_position leader_name nation_name color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium espionage_available cities{infrastructure barracks factory airforcebase drydock}}}}"}) as temp:
+                church = (await temp.json())['data']['nations']['data']
+            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{nations(page:1 first:500 alliance_id:7531){data{id alliance_id alliance_position leader_name nation_name color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium espionage_available cities{infrastructure barracks factory airforcebase drydock}}}}"}) as temp:
+                convent = (await temp.json())['data']['nations']['data']
+            sum = church + convent
+
+            nations = []
+
+            for nation in sum:
+                if nation['alliance_position'] != "APPLICANT":
+                    nations.append(nation)
+
+            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{alliances(first:2 id:[4729,7531]){data{score nations{num_cities alliance_position}}}}"}) as temp:
+                alliances = (await temp.json())['data']['alliances']['data']
+
+            score = alliances[0]['score'] + alliances[1]['score']
+            cities = 0
+            for i in range(2):
+                for nation in alliances[i-1]['nations']:
+                    cities += nation['num_cities']
+
+            aa = {"members": len(nations), "cities": cities, "score": score, "mmr": mongo.mmr.find_one({})}
+
+            users = list(self.bot.get_all_members())
+            rss = ['aluminum', 'bauxite', 'coal', 'food', 'gasoline', 'iron', 'lead', 'munitions', 'money', 'oil', 'steel', 'uranium']
+            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{tradeprices(limit:1){coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}"}) as resp:
+                prices = (await resp.json())['data']['tradeprices'][0]
+                prices['money'] = 1
+           
+            for nation in nations:
+                x = mongo.users.find_one({"nationid": str(nation['id'])})
+                nation['user_object'] = {'discordid': '', 'username': '', "audited": ''}
+                if x == None:
+                    nation['user_object'].update({'discordid': '¯\_(ツ)_/¯', "username": '¯\_(ツ)_/¯'})
+                else:
+                    for user in users:
+                        nation['user_object'].update({'discordid': x['user'], "audited": x['audited']})
+                        if user.id == x['user']:
+                            nation['user_object']['username'] = str(user)
+                            break
+                        else:
+                            nation['user_object']['username'] = "¯\_(ツ)_/¯"
+                y = mongo.total_balance.find_one({"nationid": str(nation['id'])})
+                if y == None:
+                    nation['user_object'].update({"total": 0, "al": 0, "ba": 0, "co": 0, "fo": 0, "ga": 0, "ir": 0, "le": 0, "mu": 0, "mo": 0, "oi": 0, "st": 0, "ur": 0})
+                else:
+                    con_total = 0
+                    for rs in rss:
+                        amount = y[rs[:2].lower()]
+                        price = int(prices[rs])
+                        con_total += amount * price
+                    nation['user_object'].update({"total": round(con_total), "al": y['al'], "ba": y['ba'], "co": y['co'], "fo": y['fo'], "ga": y['ga'], "ir": y['ir'], "le": y['le'], "mu": y['mu'], "mo": y['mo'], "oi": y['oi'], "st": y['st'], "ur": y['ur']})
+                nation['infrastructure'] = 0
+                barracks = 0
+                factories = 0
+                hangars = 0
+                drydocks = 0
+                for city in nation['cities']:
+                    nation['infrastructure'] += city['infrastructure']
+                    barracks += city['barracks']
+                    factories += city['factory']
+                    hangars += city['airforcebase']
+                    drydocks += city['drydock']
+                nation['mmr'] = f"{round(barracks/nation['num_cities'],1)}/{round(factories/nation['num_cities'],1)}/{round(hangars/nation['num_cities'],1)}/{round(drydocks/nation['num_cities'],1)}"
+                nation['mmr_color'] = "black"
+                if barracks/nation['num_cities'] < aa['mmr']['bar'] or factories/nation['num_cities'] < aa['mmr']['fac'] or hangars/nation['num_cities'] < aa['mmr']['han'] or drydocks/nation['num_cities'] < aa['mmr']['dry']:
+                    nation['mmr_color'] = "red"
+
+            timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M')
+            result = Template(template).render(aa=aa,nations=nations,timestamp=timestamp, datetime=datetime)
+            mongo.sheet_code.replace_one({},{"code": result})
+            print('webpage updated')
 
     async def alert_scanner(self):
         alerts = list(mongo.users.find({"beige_alerts": {"$exists": True, "$not": {"$size": 0}}}))
@@ -445,7 +521,6 @@ class Update(commands.Cog):
 
     async def auto_update(self):
         await self.bot.wait_until_ready()
-        sheet = self.bot.get_cog('Sheet')
         Raffle = self.bot.get_cog('Raffle')
         Military = self.bot.get_cog('Military')
         debug_channel = self.bot.get_channel(739155202640183377)
@@ -490,7 +565,7 @@ class Update(commands.Cog):
             except Exception as e:
                 await debug_channel.send(f"I encountered an error whilst performing self.alert_scanner():\n```{e}```")
             try:
-                await sheet.sheet_generator()
+                await self.sheet_generator()
             except Exception as e:
                 await debug_channel.send(f"I encountered an error whilst performing sheet.sheet_generator():\n```{e}```")
             try:
@@ -509,12 +584,11 @@ class Update(commands.Cog):
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def update(self, ctx):
         await ctx.send('I will do my worst...')
-        sheet = self.bot.get_cog('Sheet')
         try: 
             await self.alert_scanner()
         except:
             pass
-        await sheet.sheet_generator()
+        await self.sheet_generator()
         try: 
             await self.city_roles()
         except:
