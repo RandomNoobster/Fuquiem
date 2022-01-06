@@ -26,9 +26,9 @@ async def on_ready():
     await bot.change_presence(status=discord.Status.online, activity=discord.Game('$help'))
     print('We have logged in as {0.user}'.format(bot))
 
-    sheet = bot.get_cog('Sheet')
+    update = bot.get_cog('Update')
     print('updating')
-    await sheet.sheet_generator()
+    await update.sheet_generator()
 
 @bot.event
 async def on_command_error(ctx, error):
