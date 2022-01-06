@@ -326,73 +326,73 @@ class Update(commands.Cog):
                 convent_nations = (await convent_nations.json())['nations']
             nations = church_nations + convent_nations
 
-            guild = self.bot.get_guild(434071714893398016)
-            zerotoninerole = guild.get_role(837789914846330922)
-            tentonineteenrole = guild.get_role(837790885512347690)
-            twentytotwentyninerole = guild.get_role(837791502272561202)
-            thirtyplusrole = guild.get_role(837791514788495397)
-            heathen_role = guild.get_role(434248817005690880)
-            love_pings = guild.get_role(747179040720289842)
-            trader_role = guild.get_role(796057460502298684)
-       
-            for nation in nations:
-                person = await utils.find_user(self, str(nation['nationid']))
-                if person == {}:
-                    print(f"I couldn't assign a city-role to {nation['nation']}")
-                    continue
-                user = guild.get_member(person['user'])
-                if nation['cities'] < 10:
-                    if zerotoninerole not in user.roles:
-                        await user.add_roles(zerotoninerole)
-                    if tentonineteenrole in user.roles:
-                        await user.remove_roles(tentonineteenrole)
-                    if twentytotwentyninerole in user.roles:
-                        await user.remove_roles(twentytotwentyninerole)
-                    if thirtyplusrole in user.roles:
-                        await user.remove_roles(thirtyplusrole)
-                if 9 < nation['cities'] < 20:
-                    if tentonineteenrole not in user.roles:
-                        await user.add_roles(tentonineteenrole)
-                    if zerotoninerole in user.roles:
-                        await user.remove_roles(zerotoninerole)
-                    if twentytotwentyninerole in user.roles:
-                        await user.remove_roles(twentytotwentyninerole)
-                    if thirtyplusrole in user.roles:
-                        await user.remove_roles(thirtyplusrole)
-                if 19 < nation['cities'] < 30:
-                    if twentytotwentyninerole not in user.roles:
-                        await user.add_roles(twentytotwentyninerole)
-                    if tentonineteenrole in user.roles:
-                        await user.remove_roles(tentonineteenrole)
-                    if zerotoninerole in user.roles:
-                        await user.remove_roles(zerotoninerole)
-                    if thirtyplusrole in user.roles:
-                        await user.remove_roles(thirtyplusrole)
-                if 29 < nation['cities']:
-                    if thirtyplusrole not in user.roles:
-                        await user.add_roles(thirtyplusrole)
-                    if tentonineteenrole in user.roles:
-                        await user.remove_roles(tentonineteenrole)
-                    if twentytotwentyninerole in user.roles:
-                        await user.remove_roles(twentytotwentyninerole)
-                    if zerotoninerole in user.roles:
-                        await user.remove_roles(zerotoninerole)
+        guild = self.bot.get_guild(434071714893398016)
+        zerotoninerole = guild.get_role(837789914846330922)
+        tentonineteenrole = guild.get_role(837790885512347690)
+        twentytotwentyninerole = guild.get_role(837791502272561202)
+        thirtyplusrole = guild.get_role(837791514788495397)
+        heathen_role = guild.get_role(434248817005690880)
+        love_pings = guild.get_role(747179040720289842)
+        trader_role = guild.get_role(796057460502298684)
+    
+        for nation in nations:
+            person = await utils.find_user(self, str(nation['nationid']))
+            if person == {}:
+                print(f"I couldn't assign a city-role to {nation['nation']}")
+                continue
+            user = guild.get_member(person['user'])
+            if nation['cities'] < 10:
+                if zerotoninerole not in user.roles:
+                    await user.add_roles(zerotoninerole)
+                if tentonineteenrole in user.roles:
+                    await user.remove_roles(tentonineteenrole)
+                if twentytotwentyninerole in user.roles:
+                    await user.remove_roles(twentytotwentyninerole)
+                if thirtyplusrole in user.roles:
+                    await user.remove_roles(thirtyplusrole)
+            if 9 < nation['cities'] < 20:
+                if tentonineteenrole not in user.roles:
+                    await user.add_roles(tentonineteenrole)
+                if zerotoninerole in user.roles:
+                    await user.remove_roles(zerotoninerole)
+                if twentytotwentyninerole in user.roles:
+                    await user.remove_roles(twentytotwentyninerole)
+                if thirtyplusrole in user.roles:
+                    await user.remove_roles(thirtyplusrole)
+            if 19 < nation['cities'] < 30:
+                if twentytotwentyninerole not in user.roles:
+                    await user.add_roles(twentytotwentyninerole)
+                if tentonineteenrole in user.roles:
+                    await user.remove_roles(tentonineteenrole)
+                if zerotoninerole in user.roles:
+                    await user.remove_roles(zerotoninerole)
+                if thirtyplusrole in user.roles:
+                    await user.remove_roles(thirtyplusrole)
+            if 29 < nation['cities']:
+                if thirtyplusrole not in user.roles:
+                    await user.add_roles(thirtyplusrole)
+                if tentonineteenrole in user.roles:
+                    await user.remove_roles(tentonineteenrole)
+                if twentytotwentyninerole in user.roles:
+                    await user.remove_roles(twentytotwentyninerole)
+                if zerotoninerole in user.roles:
+                    await user.remove_roles(zerotoninerole)
 
-            for member in guild.members:
-                if zerotoninerole in member.roles or tentonineteenrole in member.roles or twentytotwentyninerole in member.roles or thirtyplusrole in member.roles:
-                    if heathen_role in member.roles:
-                        if twentytotwentyninerole in member.roles:
-                            await member.remove_roles(twentytotwentyninerole)
-                        if tentonineteenrole in member.roles:
-                            await member.remove_roles(tentonineteenrole)
-                        if zerotoninerole in member.roles:
-                            await member.remove_roles(zerotoninerole)
-                        if thirtyplusrole in member.roles:
-                            await member.remove_roles(thirtyplusrole)
-                        if love_pings in member.roles:
-                            await member.remove_roles(love_pings)
-                        if trader_role in member.roles:
-                            await member.remove_roles(trader_role)
+        for member in guild.members:
+            if zerotoninerole in member.roles or tentonineteenrole in member.roles or twentytotwentyninerole in member.roles or thirtyplusrole in member.roles:
+                if heathen_role in member.roles:
+                    if twentytotwentyninerole in member.roles:
+                        await member.remove_roles(twentytotwentyninerole)
+                    if tentonineteenrole in member.roles:
+                        await member.remove_roles(tentonineteenrole)
+                    if zerotoninerole in member.roles:
+                        await member.remove_roles(zerotoninerole)
+                    if thirtyplusrole in member.roles:
+                        await member.remove_roles(thirtyplusrole)
+                    if love_pings in member.roles:
+                        await member.remove_roles(love_pings)
+                    if trader_role in member.roles:
+                        await member.remove_roles(trader_role)
     
     @commands.command(brief='Debugging cmd, requires admin perms')
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
