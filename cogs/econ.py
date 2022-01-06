@@ -6,7 +6,7 @@ from lxml import html
 import math
 import pytz
 import re
-from utils import pre_revenue_calc, revenue_calc
+import utils
 import copy
 import asyncio
 from datetime import datetime, timedelta
@@ -142,8 +142,7 @@ class Economic(commands.Cog):
     @commands.has_any_role('Pam', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def withdraw(self, ctx, recipient, *, rss):
         async with aiohttp.ClientSession() as session:
-            Database = self.bot.get_cog('Database')
-            randy = await Database.find_user(465463547200012298)
+            randy = await utils.find_user(self, 465463547200012298)
             if randy['email'] == '' or randy['pwd'] == '':
                 await ctx.send('Randy has not registered his PnW credentials with Fuquiem.')
 
@@ -158,8 +157,7 @@ class Economic(commands.Cog):
                 }
                 s.post(login_url, data=login_data)
 
-                Database = self.bot.get_cog('Database')
-                person = await Database.find_user(recipient)
+                person = await utils.find_user(self, recipient)
 
                 res = []
                 for sub in rss.split(','):
@@ -261,8 +259,7 @@ class Economic(commands.Cog):
     @commands.command(brief='Deposit your resources to the alliance bank', help='type "$deposit <type of resource> - <amount of resource>, <type of resource> - <amount of resource>..." Please note that spaces are ignored, so it does not matter if you type "-" and "," or " - " and ", "',  aliases=['dep', 'dp'])
     async def deposit(self, ctx, *, rss):
         async with aiohttp.ClientSession() as session:
-            Database = self.bot.get_cog('Database')
-            person = await Database.find_user(ctx.author.id)
+            person = await utils.find_user(self, ctx.author.id)
             if person['email'] == '' or person['pwd'] == '':
                 await ctx.send('You have not registered your PnW credentials with Fuquiem.')
 
@@ -379,8 +376,7 @@ class Economic(commands.Cog):
     @commands.has_any_role('Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def food(self, ctx):
         async with aiohttp.ClientSession() as session:
-            Database = self.bot.get_cog('Database')
-            randy = await Database.find_user(465463547200012298)
+            randy = await utils.find_user(self, 465463547200012298)
             if randy['email'] == '' or randy['pwd'] == '':
                 await ctx.send('Randy has not registered his PnW credentials with Fuquiem.')
 
@@ -395,8 +391,7 @@ class Economic(commands.Cog):
                 }
                 s.post(login_url, data=login_data)
 
-                Database = self.bot.get_cog('Database')
-                person = await Database.find_user(ctx.author.id)
+                person = await utils.find_user(self, ctx.author.id)
                 
                 withdraw_url = f'https://politicsandwar.com/alliance/id=4729&display=bank'
                 withdraw_data = {
@@ -440,8 +435,7 @@ class Economic(commands.Cog):
     @commands.has_any_role('Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def uranium(self, ctx):
         async with aiohttp.ClientSession() as session:
-            Database = self.bot.get_cog('Database')
-            randy = await Database.find_user(465463547200012298)
+            randy = await utils.find_user(self, 465463547200012298)
             if randy['email'] == '' or randy['pwd'] == '':
                 await ctx.send('Randy has not registered his PnW credentials with Fuquiem.')
 
@@ -456,8 +450,7 @@ class Economic(commands.Cog):
                 }
                 s.post(login_url, data=login_data)
 
-                Database = self.bot.get_cog('Database')
-                person = await Database.find_user(ctx.author.id)
+                person = await utils.find_user(self, ctx.author.id)
 
                 withdraw_url = f'https://politicsandwar.com/alliance/id=4729&display=bank'
                 withdraw_data = {
@@ -514,16 +507,14 @@ class Economic(commands.Cog):
     @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     @commands.command(aliases=['ba', 'balincrement', 'bi'], brief="Adds value to person's balance", help="")
     async def baladd(self, ctx, person, diff):
-        Database = self.bot.get_cog('Database')
-        user = await Database.find_user(person)
+        user = await utils.find_user(self, person)
         message = await ctx.send("Fuck Requiem...")
         await self.balmod(diff, message, 1, user)
 
     @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     @commands.command(aliases=['balremove', 'br'], brief="Subtracts value to person's balance", help="")
     async def balsubtract(self, ctx, person, diff):
-        Database = self.bot.get_cog('Database')
-        user = await Database.find_user(person)
+        user = await utils.find_user(self, person)
         message = await ctx.send("Fuck Requiem...")
         await self.balmod(diff, message, -1, user)
 
@@ -660,11 +651,10 @@ class Economic(commands.Cog):
             except:
                 pass
 
-            Database = self.bot.get_cog('Database')
             if person == '':
-                person = await Database.find_user(ctx.author.id)
+                person = await utils.find_user(self, ctx.author.id)
             else:
-                person = await Database.find_user(person)
+                person = await utils.find_user(self, person)
             if person == {}:
                 await message.edit(content='I could not find that person, please try again.', embed=bal_embed)
                 return None, None
@@ -754,8 +744,7 @@ class Economic(commands.Cog):
     @commands.has_any_role('Pam', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def grant(self, ctx, recipient, *, rss):
         async with aiohttp.ClientSession() as session:
-            Database = self.bot.get_cog('Database')
-            randy = await Database.find_user(465463547200012298)
+            randy = await utils.find_user(self, 465463547200012298)
             if randy['email'] == '' or randy['pwd'] == '':
                 await ctx.send('Randy has not registered his PnW credentials with Fuquiem.')
 
@@ -770,8 +759,7 @@ class Economic(commands.Cog):
                 }
                 s.post(login_url, data=login_data)
 
-                Database = self.bot.get_cog('Database')
-                person = await Database.find_user(recipient)
+                person = await utils.find_user(self, recipient)
 
                 res = []
                 for sub in rss.split(','):
@@ -876,8 +864,7 @@ class Economic(commands.Cog):
         message = await ctx.send('Stay with me...')
         if person == None:
             person = ctx.author.id
-        Database = self.bot.get_cog('Database')
-        db_nation = await Database.find_user(person)
+        db_nation = await utils.find_user(self, person)
 
         if db_nation == {}:
             try:
@@ -900,7 +887,7 @@ class Economic(commands.Cog):
                 await message.edit(content='I could not find that person!')
                 return
 
-        nation, colors, prices, treasures, radiation, seasonal_mod = await pre_revenue_calc(mongo, cipher_suite, api_key, message, query_for_nation=True, nationid=db_nation['nationid'])
+        nation, colors, prices, treasures, radiation, seasonal_mod = await utils.pre_revenue_calc(mongo, cipher_suite, api_key, message, query_for_nation=True, nationid=db_nation['nationid'])
 
         if build != None:
             build_txt = "daily city revenue with this build"
@@ -909,7 +896,7 @@ class Economic(commands.Cog):
             build_txt = "daily revenue"
             single_city = False
 
-        rev_obj = await revenue_calc(message, nation, radiation, treasures, prices, colors, seasonal_mod, build, single_city)
+        rev_obj = await utils.revenue_calc(message, nation, radiation, treasures, prices, colors, seasonal_mod, build, single_city)
 
         embed = discord.Embed(
             title=f"{db_nation['leader']}'s {build_txt}:", url=f"https://politicsandwar.com/nation/id={db_nation['nationid']}", description="", color=0x00ff00)

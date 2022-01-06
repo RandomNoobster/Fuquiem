@@ -2,24 +2,25 @@ import math
 import discord
 import asyncio
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Union
 import aiohttp
 from lxml import html
 import re
+from main import mongo
 
 def embed_pager(title: str, fields: list, description: str = "", color: int = 0x00ff00, inline: bool = True) -> list:
-        embeds = []
-        for i in range(math.ceil(len(fields)/25)):
-           embeds.append(discord.Embed(title=f"{title} page {i+1}", description=description, color=color)) 
-        index = 0
-        n = 0
-        for field in fields:
-            embeds[index].add_field(name=f"{field['name']}", value=field['value'], inline=inline)
-            n += 1
-            if n % 24 == 0:
-                index += 1
-        return embeds
+    embeds = []
+    for i in range(math.ceil(len(fields)/24)):
+        embeds.append(discord.Embed(title=f"{title} page {i+1}", description=description, color=color)) 
+    index = 0
+    n = 0
+    for field in fields:
+        embeds[index].add_field(name=f"{field['name']}", value=field['value'], inline=inline)
+        n += 1
+        if n % 24 == 0:
+            index += 1
+    return embeds
                 
 async def reaction_checker(self, message: discord.Message, embeds: list) -> None:
     reactions = []
@@ -39,6 +40,95 @@ async def reaction_checker(self, message: discord.Message, embeds: list) -> None
         except asyncio.TimeoutError:
             await message.edit(content="**Command timed out!**")
             break
+
+async def find_user(self, arg: Union[str, int]) -> dict:
+    current = current = list(mongo['users'].find({}))
+    members = self.bot.get_all_members()
+    guild = self.bot.get_guild(434071714893398016)
+    heathen_role = guild.get_role(434248817005690880)
+    try:
+        await self.bot.fetch_user(int(arg))
+        for x in current:
+            if x['user'] == int(arg):
+                return x
+    except:
+        try:
+            arg.startswith('<@') and arg.endswith('>')
+            if arg.startswith('<@!'):
+                user_id = arg[(arg.index('!')+1):arg.index('>')]
+            else:
+                user_id = arg[(arg.index('@')+1):arg.index('>')]
+            for x in current:
+                if x['user'] == int(user_id):
+                    return x
+        except:
+            try:
+                int(arg)
+                for x in current:
+                    if x['nationid'] == arg:
+                        return x
+            except:
+                try:
+                    for member in members:
+                        if arg.lower() in member.name.lower() and heathen_role not in member.roles:
+                            x = mongo.users.find_one({"user": member.id})
+                            return x
+                        elif arg.lower() in member.display_name.lower() and heathen_role not in member.roles:
+                            x = mongo.users.find_one({"user": member.id})
+                            return x
+                        elif str(member).lower() == arg.lower() and heathen_role not in member.roles:
+                            x = mongo.users.find_one({"user": member.id})
+                            return x
+                        for x in current:
+                            if arg.lower() in x['name'].lower():
+                                return x
+                            elif arg.lower() in x['leader'].lower():
+                                return x
+                    raise
+                except:
+                    try:
+                        for x in current:
+                            if x['nationid'] == arg[(arg.index('=')+1):]:
+                                return x
+                    finally:
+                        pass
+                finally:
+                    pass
+            finally:
+                pass
+        finally:
+            pass
+    finally:
+        return {}
+
+async def find_nation(arg: Union[str, int]) -> Union[dict, None]:
+    try:
+        result = list(mongo.world_nations.find({"nation": arg}).collation(
+            {"locale": "en", "strength": 1}))[0]
+    except:
+        try:
+            result = list(mongo.world_nations.find({"leader": arg}).collation(
+                {"locale": "en", "strength": 1}))[0]
+        except:
+            try:
+                arg = int(re.sub("[^0-9]", "", arg))
+                result = list(mongo.world_nations.find({"nationid": arg}).collation(
+                    {"locale": "en", "strength": 1}))[0]
+            except:
+                result = None
+    return result
+
+async def find_nation_plus(self, arg: Union[str, int]) -> Union[dict, None]: # only returns a nation if it is at least 1 day old
+    nation = await self.find_nation(arg)
+    if nation == None:
+        nation = await self.find_user(arg)
+        if nation == {}:
+            return None
+        else:
+            nation = await self.find_nation(nation['nationid'])
+            if nation == None:
+                return None
+    return nation
 
 async def pre_revenue_calc(mongo, cipher_suite, api_key, message: discord.Message, query_for_nation: bool = False, nationid: Union[int, str] = None, parsed_nation: dict = None):
     async with aiohttp.ClientSession() as session:

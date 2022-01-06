@@ -1,7 +1,7 @@
 import random
 import discord
 import requests
-from requests import api
+import utils
 from main import mongo
 from datetime import datetime, timedelta
 from discord.ext import commands
@@ -148,8 +148,7 @@ class Raffle(commands.Cog):
                 mongo.users.find_one_and_update({"user": winner['user']}, {'$inc': {"wins": 1}})
                 mongo.users.update_many({}, {'$set': {"signedup": False}})
 
-                Database = self.bot.get_cog('Database')
-                randy = await Database.find_user(465463547200012298)
+                randy = await utils.find_user(self, 465463547200012298)
                 if len(randy['email']) <= 1 or len(randy['pwd']) <= 1:
                     await debug_channel.send("<@465463547200012298>'s credentials are wrong?")
 

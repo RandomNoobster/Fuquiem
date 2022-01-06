@@ -19,7 +19,7 @@ from lxml import html
 from cryptography.fernet import Fernet
 import dload
 from csv import DictReader
-from utils import embed_pager, reaction_checker, revenue_calc, pre_revenue_calc
+import utils
 
 key = os.getenv("encryption_key")
 api_key = os.getenv("api_key")
@@ -45,7 +45,6 @@ class General(commands.Cog):
         await ctx.send(embed=embed)
 
     async def change_perm(self, message, api_nation, level: str):
-        Database = self.bot.get_cog('Database')
         if api_nation['allianceposition'] > '2':
             if message:
                 await message.edit(content="I cannot let you change the perms of a person of such high ranking!")
@@ -58,7 +57,7 @@ class General(commands.Cog):
             if message:
                 await message.edit(content='They are not affiliated with the Church nor the Convent!')
             return {}
-        admin = await Database.find_user(admin_id)
+        admin = await utils.find_user(self, admin_id)
         if admin['email'] == '' or admin['pwd'] == '':
             if message:
                 await message.edit(content='The admin has not registered their PnW credentials with Fuquiem.')
@@ -96,16 +95,15 @@ class General(commands.Cog):
     @commands.has_any_role('Internal Affairs')
     async def msg(self, ctx, arg):
         message = await ctx.send("Working on it..")
-        Database = self.bot.get_cog('Database')
 
-        nation = await Database.find_nation(arg)
+        nation = await utils.find_nation(arg)
         if nation == None:
-            nation = await Database.find_user(arg)
+            nation = await utils.find_user(self, arg)
             if nation == {}:
                 await message.edit(content='I could not find that nation!')
                 return
             else:
-                nation = await Database.find_nation(nation['nationid'])
+                nation = await utils.find_nation(nation['nationid'])
                 if nation == None:
                     await message.edit(content='I could not find that nation!')
                     return
@@ -114,7 +112,7 @@ class General(commands.Cog):
 
         api_nation = requests.get(f"http://politicsandwar.com/api/nation/id={nation['nationid']}&key=e5171d527795e8").json()
 
-        invoker = await Database.find_user(ctx.author.id)
+        invoker = await utils.find_user(self, ctx.author.id)
         if invoker == {}:
             await message.edit(content='I could not find you in the database!')
             return
@@ -459,8 +457,7 @@ class General(commands.Cog):
     @commands.command(brief='Add a beige reminder', help='', aliases=['ar', 'remindme', 'addreminder', 'add_reminder'])
     async def remind(self, ctx, arg):
         message = await ctx.send('Fuck requiem...')
-        Database = self.bot.get_cog('Database')
-        nation = await Database.find_nation(arg)
+        nation = await utils.find_nation(arg)
         if nation == None:
             await message.edit(content='I could not find that nation!')
             return
@@ -485,8 +482,7 @@ class General(commands.Cog):
     @commands.command(brief='When Deacons audit someone they can use "$audited <personyoujustaudited>" to register this to the spreadsheet')
     @commands.has_any_role('Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def audited(self, ctx, person):
-        Database = self.bot.get_cog('Database')
-        person = await Database.find_user(person)
+        person = await utils.find_user(self, person)
         if person['audited']:
             try:
                 await ctx.send(f"Are you sure you want to change `{await self.bot.fetch_user(person['user'])}`'s `audited` attribute from `{person['audited']}` to `{ctx.author.name}`?")
@@ -571,8 +567,7 @@ class General(commands.Cog):
     @commands.command(brief='Send an informative message')
     @commands.has_any_role('Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def welcome(self, ctx, arg):
-        Database = self.bot.get_cog('Database')
-        user = await Database.find_user(arg)
+        user = await utils.find_user(self, arg)
         dm_chan = ctx.guild.get_member(user['user'])
         content = ""
         heathen_role = ctx.guild.get_role(584676265932488705)
@@ -613,8 +608,7 @@ class General(commands.Cog):
     @commands.has_any_role('Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def admit(self, ctx, arg):
         message = await ctx.send("<:thonk:787399051582504980>")
-        Database = self.bot.get_cog('Database')
-        nation = await Database.find_nation_plus(arg)
+        nation = await utils.find_nation_plus(self, arg)
         if nation == None:
             await message.edit(content="Run $update or wait until daychange")
             return
@@ -701,10 +695,10 @@ class General(commands.Cog):
                     pass
             fields.append({"name": app['leader_name'], "value": f"[{app['nation_name']}](https://politicsandwar.com/nation/id={app['id']})\n{app['alliance']['name'][:app['alliance']['name'].find(' ')]}\n{db} {disc}\nLast active: {app['last_active']}\nCities: {app['num_cities']}\nValue of rss: ${round(on_hand):,}"})
 
-        embeds = embed_pager("Applicants", fields)
+        embeds = utils.embed_pager("Applicants", fields)
 
         await message.edit(content="", embed=embeds[0])
-        await reaction_checker(self, message, embeds)
+        await utils.reaction_checker(self, message, embeds)
 
     @commands.command(aliases=['builds'], brief="Shows you the best city builds", help="After calling the command, you have to tell Fuquiem 3 things. 1) How much infra you want. 2) How much land you want. 3) What MMR you want. When you're done with this, Fuquiem will link to a webpage showing the best builds for producing every resource. Note that these are the best builds for YOU and YOU only! I takes your projects and continent into consideration when calculating the revenue of each build. When calling the command, you can therefore supply a person for whom you want the builds to be calculated for. IMPORTANT! - This tool only shows builds that are currently being used somewhere in Orbis. This means that you may very well be able to improve upon these builds. It's worth mentioning that even though this shows the best builds for producing every type of resource (except for the ones you can't produce due to continent restrictions), the \"best build for net income\" is in reality best for every resource. This is because the higher monetary income lets you buy more of a resource than you could get by producing it. Another important thing to mention, is that the monetary net income is dependent on market prices. This means that in times of war, manufactured resources will increase in price, increasing the profitability of builds producing these resources. The \"best\" build for net income may therefore not always be the same.")
     @commands.has_any_role('Pupil', 'Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
@@ -721,8 +715,7 @@ class General(commands.Cog):
         message = await ctx.send('Stay with me...')
         if person == None:
             person = ctx.author.id
-        Database = self.bot.get_cog('Database')
-        db_nation = await Database.find_user(person)
+        db_nation = await utils.find_user(self, person)
 
         if db_nation == {}:
             try:
@@ -974,13 +967,13 @@ class General(commands.Cog):
 
                 to_scan.append(city)
         
-        temp, colors, prices, treasures, radiation, seasonal_mod = await pre_revenue_calc(mongo, cipher_suite, api_key, message, query_for_nation=False, parsed_nation=nation)
+        temp, colors, prices, treasures, radiation, seasonal_mod = await utils.pre_revenue_calc(mongo, cipher_suite, api_key, message, query_for_nation=False, parsed_nation=nation)
 
         await message.edit(content="Calculating revenue...")
         cities = []
         for city in to_scan:
             nation['cities'] = [city]
-            cities.append(await revenue_calc(message, nation, radiation, treasures, prices, colors, seasonal_mod, single_city=True))
+            cities.append(await utils.revenue_calc(message, nation, radiation, treasures, prices, colors, seasonal_mod, single_city=True))
 
         if len(cities) == 0:
             await message.edit(content="No active builds matched your criteria <:derp:846795730210783233>")
