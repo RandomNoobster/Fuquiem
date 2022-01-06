@@ -45,8 +45,6 @@ async def find_user(self, arg):
     found = False
     current = list(mongo['users'].find({}))
     members = self.bot.get_all_members()
-    guild = self.bot.get_guild(434071714893398016)
-    heathen_role = guild.get_role(434248817005690880)
     try:
         await self.bot.fetch_user(int(arg))
         for x in current:
@@ -74,25 +72,25 @@ async def find_user(self, arg):
             except:
                 try:
                     for member in members:
-                        if arg.lower() in member.name.lower() and heathen_role not in member.roles:
+                        if arg.lower() in member.name.lower():
                             x = mongo.users.find_one({"user": member.id})
                             found = True
                             return x
-                        elif arg.lower() in member.display_name.lower() and heathen_role not in member.roles:
+                        elif arg.lower() in member.display_name.lower():
                             x = mongo.users.find_one({"user": member.id})
                             found = True
                             return x
-                        elif str(member).lower() == arg.lower() and heathen_role not in member.roles:
+                        elif str(member).lower() == arg.lower():
                             x = mongo.users.find_one({"user": member.id})
                             found = True
                             return x
-                        for x in current:
-                            if arg.lower() in x['name'].lower():
-                                found = True
-                                return x
-                            elif arg.lower() in x['leader'].lower():
-                                found = True
-                                return x
+                    for x in current:
+                        if arg.lower() in x['name'].lower():
+                            found = True
+                            return x
+                        elif arg.lower() in x['leader'].lower():
+                            found = True
+                            return x
                     raise
                 except:
                     try:
