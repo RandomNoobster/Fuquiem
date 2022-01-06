@@ -6,6 +6,7 @@ from cryptography.fernet import Fernet
 import re
 from main import mongo
 import aiohttp
+import utils
 import os
 api_key = os.getenv("api_key")
 convent_key = os.getenv("convent_api_key")
@@ -16,115 +17,7 @@ class Database(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-
-    async def find_user(self, arg):
-        #print(arg)
-        found = False
-        current = current = list(mongo['users'].find({}))
-        members = self.bot.get_all_members()
-        guild = self.bot.get_guild(434071714893398016)
-        heathen_role = guild.get_role(434248817005690880)
-        try:
-            await self.bot.fetch_user(int(arg))
-            #print('just tried a user')
-            for x in current:
-                if x['user'] == int(arg):
-                    found = True
-                    return x
-        except:
-            try:
-                arg.startswith('<@') and arg.endswith('>')
-                if arg.startswith('<@!'):
-                    user_id = arg[(arg.index('!')+1):arg.index('>')]
-                else:
-                    user_id = arg[(arg.index('@')+1):arg.index('>')]
-                #print('mention string?')
-                for x in current:
-                    if x['user'] == int(user_id):
-                        found = True
-                        return x
-            except:
-                try:
-                    int(arg)
-                    #print('nation id?')
-                    for x in current:
-                        if x['nationid'] == arg:
-                            found = True
-                            return x
-                except:
-                    try:
-                        #print('discord name?')
-                        for member in members:
-                            if arg.lower() in member.name.lower() and heathen_role not in member.roles:
-                                x = mongo.users.find_one({"user": member.id})
-                                found = True
-                                return x
-                            elif arg.lower() in member.display_name.lower() and heathen_role not in member.roles:
-                                x = mongo.users.find_one({"user": member.id})
-                                found = True
-                                return x
-                            elif str(member).lower() == arg.lower() and heathen_role not in member.roles:
-                                x = mongo.users.find_one({"user": member.id})
-                                found = True
-                                return x
-                            #print('name, leader?')
-                            for x in current:
-                                if arg.lower() in x['name'].lower():
-                                    found = True
-                                    return x
-                                elif arg.lower() in x['leader'].lower():
-                                    found = True
-                                    return x
-                        1/0
-                    except:
-                        try:
-                            #print('link?')
-                            for x in current:
-                                if x['nationid'] == arg[(arg.index('=')+1):]:
-                                    found = True
-                                    return x
-                        finally:
-                            pass
-                    finally:
-                        pass
-                finally:
-                    pass
-            finally:
-                pass
-        finally:
-            if not found:
-                return {}
-
-    async def find_nation(self, arg):
-        try:
-            result = list(mongo.world_nations.find({"nation": arg}).collation(
-                {"locale": "en", "strength": 1}))[0]
-        except:
-            try:
-                result = list(mongo.world_nations.find({"leader": arg}).collation(
-                    {"locale": "en", "strength": 1}))[0]
-            except:
-                try:
-                    arg = int(re.sub("[^0-9]", "", arg))
-                    result = list(mongo.world_nations.find({"nationid": arg}).collation(
-                        {"locale": "en", "strength": 1}))[0]
-                except:
-                    result = None
-        return result
-    
-    async def find_nation_plus(self, arg): # only returns a nation if it is at least 1 day old
-        nation = await self.find_nation(arg)
-        if nation == None:
-            nation = await self.find_user(arg)
-            if nation == {}:
-                return None
-            else:
-                nation = await self.find_nation(nation['nationid'])
-                if nation == None:
-                    return None
-        return nation
-
-
+ 
     @commands.command(brief='Meant for debugging purposes')
     @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def debug(self, ctx):
@@ -214,7 +107,7 @@ class Database(commands.Cog):
     @commands.dm_only()
     async def mycredentials(self, ctx):
         cipher_suite = Fernet(key)
-        person = await self.find_user(ctx.author.id)
+        person = await utils.find_user(self, ctx.author.id)
         try:
             email = str(cipher_suite.decrypt(person['email'].encode()))[2:-1]
             pwd = str(cipher_suite.decrypt(person['pwd'].encode()))[2:-1]
@@ -225,57 +118,66 @@ class Database(commands.Cog):
 
     @commands.command(brief="Get an overview of people in need of linkage or unlikage", aliases=['ul', 'unlink', 'registered', 'registration'], help="Shows a list of people that can be removed from the db. The reasons are also listed. It also shows people that are in the alliance, but not in the db.")
     async def unlinked(self, ctx):
+        message = await ctx.send("Working on it...")
         current = list(mongo['users'].find({}))
         heathen_role = ctx.guild.get_role(434248817005690880)
-        embed = discord.Embed(
-            title='Registration:', description='', color=0x00ff00)
         members = []
         member_ids = []
-
+        fields = []
+        
         for user in ctx.guild.members:
             if heathen_role not in user.roles and not user.bot:
                 members.append(user)
-
+        
         for x in current:
             member_ids.append(x['user'])
-
+        
         for member in members:
             if member.id not in member_ids:
-                embed.add_field(
-                    name=member, value='... is not registered.', inline=False)
-
+                fields.append({"name": member, "value": "**not registered**"})
+        
         church = requests.get(
             f'http://politicsandwar.com/api/alliance-members/?allianceid=4729&key={api_key}').json()['nations']
         convent = requests.get(
             f'http://politicsandwar.com/api/alliance-members/?allianceid=7531&key={convent_key}').json()['nations']
         nations = church + convent
         nation_ids = [str(nation['nationid']) for nation in nations]
-
+        
+        heathen_role = ctx.guild.get_role(434248817005690880)
         for member in current:
+            un_register = False
+            text = ""
             discord_member = ctx.guild.get_member(member['user'])
-            heathen_role = ctx.guild.get_role(434248817005690880)
-            if discord_member == None:
-                discord_user = await self.bot.fetch_user(member['user'])
-                embed.add_field(
-                    name=f'{discord_user} ({discord_user.id})', value='... can be un-registered, they are no longer in the server.', inline=False)
-            if discord_member not in ctx.guild.members or heathen_role in discord_member.roles:
-                discord_user = await self.bot.fetch_user(member['user'])
-                embed.add_field(
-                    name=f'{discord_user} ({discord_user.id})', value='... can be un-registered, they are a heathen.', inline=False)
+            discord_user = None
             if member['nationid'] not in nation_ids:
+                un_register = True
+                if not discord_user:
+                    discord_user = await self.bot.fetch_user(member['user'])
+                text += "not in-game\n"
+            if heathen_role in discord_member.roles:
+                un_register = True
+                if not discord_user:
+                    discord_user = await self.bot.fetch_user(member['user'])
+                text += "heathen\n"
+            if discord_member == None:
+                un_register = True
                 discord_user = await self.bot.fetch_user(member['user'])
-                embed.add_field(
-                    name=f'{discord_user} ({discord_user.id})', value='... can be un-registered, they are no longer in the in-game aa.', inline=False)
-        if len(embed.fields) == 0:
-            await ctx.send('All the right people are registered!')
+                text += "not in the server\n"
+            if un_register:
+                fields.append({"name": f'{discord_user} ({discord_user.id})', "value": text})
+        
+        if len(fields) == 0:
+            await message.edit(content='All the right people are registered!')
             return
-        else: 
-            await ctx.send(embed=embed)
+        else:
+            embeds = utils.embed_pager("Registration", fields)
+            await message.edit(content="", embed=embeds[0])
+            await utils.reaction_checker(self, message, embeds)
 
     @commands.command(brief='Remove someone from the db')
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def dbd(self, ctx, *, arg):
-        person = await self.find_user(arg)
+        person = await utils.find_user(self, arg)
         if person == {}:
             await ctx.send('I do not know who that is.')
             return
@@ -331,7 +233,7 @@ class Database(commands.Cog):
 
     @commands.command(brief='Anyways, who is that guy?', aliases=['whois'])
     async def who(self, ctx, *, arg):
-        person = await self.find_user(arg)
+        person = await utils.find_user(self, arg)
         if person == {} or person == None:
             try:
                 result = list(mongo.world_nations.find({"nation": arg}).collation(
