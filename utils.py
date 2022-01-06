@@ -41,8 +41,9 @@ async def reaction_checker(self, message: discord.Message, embeds: list) -> None
             await message.edit(content="**Command timed out!**")
             break
 
-async def find_user(self, arg: Union[str, int]) -> dict:
-    current = current = list(mongo['users'].find({}))
+async def find_user(self, arg):
+    found = False
+    current = list(mongo['users'].find({}))
     members = self.bot.get_all_members()
     guild = self.bot.get_guild(434071714893398016)
     heathen_role = guild.get_role(434248817005690880)
@@ -50,6 +51,7 @@ async def find_user(self, arg: Union[str, int]) -> dict:
         await self.bot.fetch_user(int(arg))
         for x in current:
             if x['user'] == int(arg):
+                found = True
                 return x
     except:
         try:
@@ -60,35 +62,43 @@ async def find_user(self, arg: Union[str, int]) -> dict:
                 user_id = arg[(arg.index('@')+1):arg.index('>')]
             for x in current:
                 if x['user'] == int(user_id):
+                    found = True
                     return x
         except:
             try:
                 int(arg)
                 for x in current:
-                    if x['nationid'] == arg:
+                    if int(x['nationid']) == int(arg):
+                        found = True
                         return x
             except:
                 try:
                     for member in members:
                         if arg.lower() in member.name.lower() and heathen_role not in member.roles:
                             x = mongo.users.find_one({"user": member.id})
+                            found = True
                             return x
                         elif arg.lower() in member.display_name.lower() and heathen_role not in member.roles:
                             x = mongo.users.find_one({"user": member.id})
+                            found = True
                             return x
                         elif str(member).lower() == arg.lower() and heathen_role not in member.roles:
                             x = mongo.users.find_one({"user": member.id})
+                            found = True
                             return x
                         for x in current:
                             if arg.lower() in x['name'].lower():
+                                found = True
                                 return x
                             elif arg.lower() in x['leader'].lower():
+                                found = True
                                 return x
                     raise
                 except:
                     try:
                         for x in current:
-                            if x['nationid'] == arg[(arg.index('=')+1):]:
+                            if int(x['nationid']) == int(re.sub("[^0-9]", "", arg)):
+                                found = True
                                 return x
                     finally:
                         pass
@@ -99,7 +109,8 @@ async def find_user(self, arg: Union[str, int]) -> dict:
         finally:
             pass
     finally:
-        return {}
+        if not found:
+            return {}
 
 async def find_nation(arg: Union[str, int]) -> Union[dict, None]:
     try:
