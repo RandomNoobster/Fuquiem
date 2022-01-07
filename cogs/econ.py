@@ -78,7 +78,7 @@ class Economic(commands.Cog):
             for x in f1:
                 t1 = dateutil.parser.parse(x['time'])
                 t2 = t1.replace(tzinfo=pytz.UTC)
-                t3 = t2.strftime("%m/%d/%Y, %H:%M:%S")
+                t3 = t2.strftime("%Y/%m/%d")
                 dates.append(t3)
                 data.append(x['prices'][index])
             post_data = {'chart': {'type': 'line', 'data': {
@@ -96,7 +96,7 @@ class Economic(commands.Cog):
             for x in f1:
                 t1 = dateutil.parser.parse(x['time'])
                 t2 = t1.replace(tzinfo=pytz.UTC)
-                t3 = t2.strftime("%m/%d/%Y, %H:%M:%S")
+                t3 = t2.strftime("%Y/%m/%d")
                 dates.append(t3)
                 for y in datasets:
                     temp_index = y['label'][:2].lower() + index
@@ -114,7 +114,6 @@ class Economic(commands.Cog):
         field += "\n\n**Price history**"
         embed.add_field(inline=True, name="Current prices", value=field)
         embed.add_field(inline=True, name="\u200b", value=field1)
-        print(chart_response)
         await message.edit(content='',embed=embed)
 
     @commands.command(brief='Debugging cmd, requires admin perms')
