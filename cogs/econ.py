@@ -123,6 +123,20 @@ class Economic(commands.Cog):
         mongo.price_history.insert_one(file)
         await ctx.send(f'Prices have been gathered!')
         # merely a debugging command
+    
+    @commands.command(brief='Debugging cmd, requires admin perms')
+    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    async def avgprices(self, ctx):
+        rss = ['Aluminum', 'Bauxite', 'Coal', 'Credits', 'Food', 'Gasoline', 'Iron', 'Lead', 'Munitions', 'Oil', 'Steel', 'Uranium']
+        resp = list(mongo.price_history.find({}))
+        avg = {}
+        for rs in rss:
+            avg[rs] = 0
+            for price in resp:
+                avg[rs] += int(price['prices'][f"{rs[:2].lower()}_avg"])
+            avg[rs] = round(avg[rs]/len(resp))
+        print(avg)
+        # merely a debugging command
 
     async def get_prices(self):
         async with aiohttp.ClientSession() as session:
