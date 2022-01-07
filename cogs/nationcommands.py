@@ -570,7 +570,7 @@ class General(commands.Cog):
         user = await utils.find_user(self, arg)
         dm_chan = ctx.guild.get_member(user['user'])
         content = ""
-        heathen_role = ctx.guild.get_role(584676265932488705)
+        heathen_role = ctx.guild.get_role(434248817005690880)
         pupil_role = ctx.guild.get_role(711385354929700905)
         try:
             await dm_chan.remove_roles(heathen_role)
