@@ -69,7 +69,7 @@ class Database(commands.Cog):
 
 
     @commands.command(brief='Add someone to the db', help='First argument should be a ping, and the second argument should be a nation link.', aliases=['dab'])
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role('Internal Affairs', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def dba(self, ctx, disc: discord.User, nation):
         async with aiohttp.ClientSession() as session:
             nid = str(re.sub("[^0-9]", "", nation))

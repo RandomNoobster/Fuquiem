@@ -565,7 +565,7 @@ class General(commands.Cog):
             await ctx.send(f"I didn't find anything!")
     
     @commands.command(brief='Send an informative message')
-    @commands.has_any_role('Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role('Internal Affairs')
     async def welcome(self, ctx, arg):
         user = await utils.find_user(self, arg)
         dm_chan = ctx.guild.get_member(user['user'])
