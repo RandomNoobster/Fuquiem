@@ -1,10 +1,8 @@
 import discord
 import requests
-import pytz
 import math
 from main import mongo
 from datetime import datetime, timedelta
-from lxml import html
 from mako.template import Template
 from discord.ext import commands
 import aiohttp
@@ -36,9 +34,9 @@ class Military(commands.Cog):
     async def milcheck(self, ctx):
         async with aiohttp.ClientSession() as session:
             message = await ctx.send('Hang on...')
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 first:500 alliance_id:4729){{data{{id leader_name nation_name alliance_id color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium espionage_available offensive_wars{{winner turnsleft}} defensive_wars{{winner turnsleft}} cities{{infrastructure barracks factory airforcebase drydock}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 first:500 alliance_id:4729){{data{{id leader_name nation_name alliance_id color alliance_position num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium espionage_available offensive_wars{{winner turnsleft}} defensive_wars{{winner turnsleft}} cities{{infrastructure barracks factory airforcebase drydock}}}}}}}}"}) as temp:
                 nations = (await temp.json())['data']['nations']['data']
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(page:1 first:500 alliance_id:7531){{data{{id leader_name nation_name alliance_id color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium espionage_available offensive_wars{{winner turnsleft}} defensive_wars{{winner turnsleft}} cities{{infrastructure barracks factory airforcebase drydock}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(page:1 first:500 alliance_id:7531){{data{{id leader_name nation_name alliance_id color alliance_position num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium espionage_available offensive_wars{{winner turnsleft}} defensive_wars{{winner turnsleft}} cities{{infrastructure barracks factory airforcebase drydock}}}}}}}}"}) as temp:
                 nations += (await temp.json())['data']['nations']['data']
 
         fields2 = []
@@ -47,6 +45,16 @@ class Military(commands.Cog):
         fields5 = []
 
         for x in nations:
+            if x['alliance_position'] == "APPLICANT":
+                continue
+            
+            person = await utils.find_user(self, x['id'])
+            if not person:
+                continue
+            user = ctx.guild.get_member(person['user'])
+            if not user:
+                continue
+
             barracks = 0
             factories = 0
             hangars = 0
@@ -75,7 +83,7 @@ class Military(commands.Cog):
                 if int(x['ships']) - max_ships < 0:
                     rebuy += f"{max_ships - int(x['ships'])} ships\n"
                 fields2.append(
-                    {'name': f"{x['leader_name']}", 'value': rebuy})
+                    {'name': user, 'value': rebuy})
             
 
             avg_bar = (barracks / x['num_cities'])
@@ -84,10 +92,10 @@ class Military(commands.Cog):
             avg_dry = (drydocks / x['num_cities'])
 
             fields3.append(
-                {'name': f"{x['leader_name']}", 'value': f'Average improvements:\n{round(avg_bar, 1)}/{round(avg_fac, 1)}/{round(avg_han, 1)}/{round(avg_dry, 1)}'})
+                {'name': user, 'value': f'Average improvements:\n{round(avg_bar, 1)}/{round(avg_fac, 1)}/{round(avg_han, 1)}/{round(avg_dry, 1)}'})
             
             city_count = x['num_cities']
-            fields4.append({'name': f"{x['leader_name']}", 'value': f"Warchest:\nMoney: ${round(float(x['money']) / 1000000)}M/${round(city_count * 500000 / 1000000)}M\nMunis: {round(float(x['munitions']) / 1000)}k/{round(city_count * 361.2 / 1000)}k\nGas: {round(float(x['gasoline']) / 1000)}k/{round(city_count * 320.25 / 1000)}k\nSteel: {round(float(x['steel']) / 1000)}k/{round(city_count * 619.5 / 1000)}k\n Alum: {round(float(x['aluminum']) / 1000)}k/{round(city_count * 315 / 1000)}k"})
+            fields4.append({'name': user, 'value': f"Warchest:\nMoney: ${round(float(x['money']) / 1000000)}M/${round(city_count * 500000 / 1000000)}M\nMunis: {round(float(x['munitions']) / 1000)}k/{round(city_count * 361.2 / 1000)}k\nGas: {round(float(x['gasoline']) / 1000)}k/{round(city_count * 320.25 / 1000)}k\nSteel: {round(float(x['steel']) / 1000)}k/{round(city_count * 619.5 / 1000)}k\n Alum: {round(float(x['aluminum']) / 1000)}k/{round(city_count * 315 / 1000)}k"})
 
             offensive_used_slots = 0
             for war in x['offensive_wars']:
@@ -100,33 +108,21 @@ class Military(commands.Cog):
                     defensive_used_slots += 1
 
             fields5.append(
-                {'name': f"{x['leader_name']}", 'value': f"Offensive: {offensive_used_slots} wars\nDefensive: {defensive_used_slots} wars"})
+                {'name': user, 'value': f"Offensive: {offensive_used_slots} wars\nDefensive: {defensive_used_slots} wars"})
 
-        embed2 = discord.Embed(title="Militarization pt. 1",
-                               description="", color=0x00ff00)
-        embed3 = discord.Embed(title="Militarization pt. 2",
-                               description="", color=0x00ff00)
-        embed4 = discord.Embed(title="Militarization pt. 3", description="",
-                               color=0x00ff00, timestamp=pytz.utc.localize(datetime.utcnow()))
-        embed5 = discord.Embed(title="Militarization pt. 4", description="",
-                               color=0x00ff00, timestamp=pytz.utc.localize(datetime.utcnow()))
+        embeds1 = utils.embed_pager("Rebuy", fields2)
+        embeds2 = utils.embed_pager("MMR", fields3)
+        embeds3 = utils.embed_pager("Warchest", fields4)
+        embeds4 = utils.embed_pager("Slots", fields5)
 
-        async def add_fields(fields, count, embed):
-            for x in fields:
-                if count == 24:
-                    await ctx.send(embed=embed)
-                    embed.clear_fields()
-                    count = 0
-                embed.add_field(name=x['name'], value=x['value'])
-                count += 1
-            if len(embed.fields) > 0:
-                await ctx.send(embed=embed)
-
-        await add_fields(fields2, 0, embed2)
-        await add_fields(fields3, 0, embed3)
-        await add_fields(fields4, 0, embed4)
-        await add_fields(fields5, 0, embed5)
-        await message.delete()
+        await message.edit(content="", embed=embeds1[0])
+        asyncio.create_task(utils.reaction_checker(self, message, embeds1))
+        message2 = await ctx.send(content="", embed = embeds2[0])
+        asyncio.create_task(utils.reaction_checker(self, message2, embeds2))
+        message3 = await ctx.send(content="", embed = embeds3[0])
+        asyncio.create_task(utils.reaction_checker(self, message3, embeds3))
+        message4 = await ctx.send(content="", embed = embeds4[0])
+        asyncio.create_task(utils.reaction_checker(self, message4, embeds4))
 
     @commands.command(brief='Delete all threads in this channel.')
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
