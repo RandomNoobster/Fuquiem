@@ -309,7 +309,6 @@ class Military(commands.Cog):
         cur_page = 1
                 
         async def reaction_checker():
-            #print('reaction')
             while True:
                 try:
                     nonlocal cur_page
@@ -334,10 +333,9 @@ class Military(commands.Cog):
 
                 except asyncio.TimeoutError:
                     await message.edit(content="**Command timed out!**")
-                    #print('reaction break')
                     break
 
-        reacttask = asyncio.create_task(reaction_checker())
+        asyncio.create_task(reaction_checker())
 
     @commands.command(brief='Debugging cmd, requires admin perms')
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
@@ -585,12 +583,7 @@ class Military(commands.Cog):
                             print((await temp.json())['errors'])
                             await asyncio.sleep(60)
                             continue
-                    #n = 0
                     for new_war in wars:
-                        #n += 1
-                        #if n < 150:
-                        #    continue
-                        #print(n)
                         if new_war['attacker']['alliance_id'] in ['4729', '7531']: ## CHANGE T0 ATOM ---------------------------------------------------------
                             atom = new_war['attacker']
                             non_atom = new_war['defender']
@@ -1048,87 +1041,91 @@ class Military(commands.Cog):
 
     async def wars_check(self):
         async with aiohttp.ClientSession() as session:
-            channel = self.bot.get_channel(842116871322337370)
+            channel = self.bot.get_channel(842116871322337370) ## 842116871322337370
             await channel.purge()
-            async with session.get(f"https://politicsandwar.com/api/wars/500&key={api_key}&alliance_id=7531,4729") as wars:
-                wars = await wars.json()
-                if wars['success'] == False:
-                    print('api call failed, not checking wars')
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] days_ago:5 active:true){{id att_resistance def_resistance attacker{{nation_name score beigeturns alliance_position alliance{{name}} id num_cities alliance_id defensive_wars{{turnsleft}}}} defender{{nation_name score beigeturns alliance_position alliance{{name}} id num_cities alliance_id defensive_wars{{turnsleft}}}}}}}}"}) as temp:
+                try:
+                    wars = (await temp.json())['data']['wars']
+                except:
+                    print("not finding threaths", (await temp.json())['errors'])
                     return
+
             enemy_list = []
-            for war in wars['wars']:
-                if war['status'] in ['Active', 'Attacker Offered Peace', 'Defender Offered Peace']:
-                    async with session.get(f"https://politicsandwar.com/api/war/{war['warID']}&key={api_key_2}") as warinfo:
-                        warinfo = await warinfo.json()
-                        if warinfo['success'] == False:
-                            print('api call failed, not checking this war')
-                            continue
-                        warinfo = warinfo['war'][0]
-                        if 'Atom' in warinfo['aggressor_alliance_name']:
-                            warinfo.update({'atom': 'aggressor'})
-                            warinfo.update({'enemy': 'defender'})
-                        elif 'Atom' in warinfo['defender_alliance_name']:
-                            warinfo.update({'atom': 'defender'})
-                            warinfo.update({'enemy': 'aggressor'})
-                        elif 'Atom Applicant' in warinfo["agressor_alliance_name"]:
-                            print('applicant offensive war, skipping')
-                            continue
-                        else:
-                            print('Atom is in not an alliance in the war')
-                            continue
-                        if mongo.world_nations.find_one({"nationid": int(warinfo[f"{warinfo['enemy']}_id"])}):
-                            score =list(mongo.world_nations.find({"nationid": int(warinfo[f"{warinfo['enemy']}_id"])}))[0]["score"]
-                        else:
-                            score = 0
-                        obj = next((item for item in enemy_list if item["nationid"] == int(warinfo[f"{warinfo['enemy']}_id"])), {
-                                'nationid': int(warinfo[f"{warinfo['enemy']}_id"]), 'score': score, 'wars': []})
-                        try:
-                            enemy_list.remove(obj)
-                        except:
-                            pass
-                        obj['wars'].append(warinfo)
-                        enemy_list.append(obj)
+            for war in wars:
+                if war['attacker']['alliance_id'] in ['4729', '7531']:
+                    atom = war['attacker']
+                    non_atom = war['defender']
+                    non_atom['atom_res'] = war['att_resistance']
+                    non_atom['non_atom_res'] = war['def_resistance']
+                    non_atom['status'] = "defender"
+                elif war['defender']['alliance_id'] in ['4729', '7531']:
+                    atom = war['defender']
+                    non_atom = war['attacker']
+                    non_atom['atom_res'] = war['def_resistance']
+                    non_atom['non_atom_res'] = war['att_resistance']
+                    non_atom['status'] = "attacker"
+                else:
+                    continue
+
+                if not non_atom['alliance']:
+                    continue
+
+                non_atom['currently_fighting'] = atom['alliance_position']
+
+                to_append = {"id": non_atom['id'], "engagements": [non_atom]}
+                
+                found = next((elem for elem in enemy_list if elem['id'] == non_atom['id']), None)
+                if not found:
+                    def_wars = 0
+                    for war in non_atom['defensive_wars']:
+                        if war['turnsleft'] > 0:
+                            def_wars += 1
+                    to_append['def_wars'] = def_wars
+                    enemy_list.append(to_append)
+                else:
+                    enemy_list.remove(found)
+                    found["engagements"].append(non_atom)
+                    enemy_list.append(found)
 
             await channel.send("~~strikethrough~~ = this person is merely fighting our applicants\n\❗ = a follower of atom is currently losing against this opponent\n\⚔️ = this person is fighting offensive wars against atom\n\🛡️ = this person is fighting defensive wars against atom\n🟢 = you are able to attack this person\n🟡 = this person is in beige\n🔴 = this person is fully slotted")
-            enemy_list = sorted(enemy_list, key=lambda k: k['score'])
-            async with session.get(f"http://politicsandwar.com/api/nations/?key={api_key}") as temp:
-                world_nations = (await temp.json())['nations']
+            enemy_list = sorted(enemy_list, key=lambda k: k['engagements'][0]['score'])
+            
+            content = ""
+            n = 0
             for enemy in enemy_list:
-                try:
-                    enemy_nation = [element for element in world_nations if element['nationid'] == enemy['nationid']][0]
-                except:
-                    print("couldn't find enemy", enemy['nationid'])
-                    continue
-                if enemy_nation['alliance'] == "None":
-                    continue
-
-                applicant = ''
-                if enemy_nation['allianceposition'] == 1:
-                    applicant = ' (Applicant)'
+                n += 1
                 circle = '🟢'
                 exclamation = ''
                 sword = ''
                 shield = ''
                 str_start = '~~'
                 str_end = '~~'
-                for warinfo in enemy['wars']:
-                    if int(warinfo[f"{warinfo['atom']}_resistance"]) <= int(warinfo[f"{warinfo['enemy']}_resistance"]):
+                applicant = ''
+                if enemy['def_wars'] == 3:
+                    circle = '🔴'
+                for engagement in enemy['engagements']:
+                    if engagement['alliance_position'] == "APPLICANT":
+                        applicant = ' (Applicant)'
+                    if engagement['non_atom_res'] > engagement['atom_res']: 
                         exclamation = '\❗'
-                    if enemy_nation['color'] == 'beige' and circle != '🔴':
+                    if engagement['beigeturns'] > 0 and circle != '🔴':
                         circle = '🟡'
-                    if enemy_nation['defensivewars'] == 3:
-                        circle = '🔴'
-                    if 'Applicant' not in warinfo[f"{warinfo['atom']}_alliance_name"]:
+                    if engagement['currently_fighting'] != "APPLICANT":
                         str_start = ''
                         str_end = ''
-                    if enemy_nation['nationid'] == int(warinfo["aggressor_id"]):
+                    if engagement['status'] == "attacker":
                         sword = '\⚔️'
-                    if enemy_nation['nationid'] == int(warinfo["defender_id"]):
+                    elif engagement['status'] == "defender":
                         shield = '\🛡️'
 
-                minscore = round(enemy_nation['score'] / 1.75)
-                maxscore = round(enemy_nation['score'] / 0.75)
-                await channel.send(content=f"{str_start}Priority target! {sword}{shield}{exclamation}{circle} Defensive range: {minscore} - {maxscore} <https://politicsandwar.com/nation/id={enemy['nationid']}>, {enemy_nation['alliance']}{applicant}{str_end}", embed=None)
+                minscore = round(engagement['score'] / 1.75)
+                maxscore = round(engagement['score'] / 0.75)
+                content += f"{str_start}Priority target! {sword}{shield}{exclamation}{circle} Defensive range: {minscore} - {maxscore} <https://politicsandwar.com/nation/id={enemy['id']}>, {engagement['alliance']['name']}{applicant}{str_end}\n"
+                if n % 10 == 0:
+                    await channel.send(content)
+                    content = ""
+            await channel.send(content)
+            
 
     @commands.command(brief='something something')
     @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
