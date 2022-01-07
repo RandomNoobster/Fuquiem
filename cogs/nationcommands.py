@@ -1,3 +1,4 @@
+from asyncio import futures
 import os
 import aiohttp
 from discord.ext import commands
@@ -90,6 +91,50 @@ class General(commands.Cog):
                 if message:
                     await message.edit(content=f"I might have failed at changing their status, check their nation page to be sure: https://politicsandwar.com/nation/id={api_nation['nationid']}")
                 return {}
+
+    @commands.command(brief="Change the status of nations")
+    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    async def move(self, ctx, level: int, *, arg):
+        async with aiohttp.ClientSession() as session:
+            message = await ctx.send("Be patient, young padawan...")
+            nations = re.sub("[^0-9\,]", "", arg).split(",")
+
+            content = f"Do you really want to move these people to level {level}?\n\n"
+            responses = []
+            n = 0
+
+            async def iterate_nations(nation, session):
+                nonlocal content, n, self
+                user = await utils.find_user(self, nation)
+                if user:
+                    user = await self.bot.fetch_user(user['user'])
+                else:
+                    user = None
+                async with session.get(f"http://politicsandwar.com/api/nation/id={nation}&key=e5171d527795e8") as temp:
+                    res = await temp.json()
+                content += f"{res['leadername']} ({user}) of {res['name']} <https://politicsandwar.com/nation/id={nation}>\n"
+                n += 1
+                await message.edit(f"Fetching nations... ({n}/{len(nations)})")
+                return res
+
+            futures = []
+            for nation in nations:
+                futures.append(asyncio.ensure_future(iterate_nations(nation, session)) )
+            responses = await asyncio.gather(*futures)
+        
+        await message.edit(content=content)
+
+        msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
+        if msg.content.lower() in ['yes', 'y']:
+            await msg.delete()
+        elif msg.content.lower() in ['no', 'n']:
+            await msg.delete()
+            await message.edit(content="Demotion canceled.")
+            return
+        
+        for nation in responses:
+            message = await ctx.send("*Thinking...*")
+            await self.change_perm(message, nation, str(level))        
 
     @commands.command(aliases=['message'], brief="Send a premade message to someone")
     @commands.has_any_role('Internal Affairs')
@@ -642,8 +687,16 @@ class General(commands.Cog):
             return
         
     @commands.command(brief='Shows information about applicants', aliases=['apps'])
-    @commands.has_any_role('Pupil', 'Zealot', 'Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role('Internal Affairs')
     async def applicants(self, ctx):
+        await self.member_analysis(ctx, 1, "Applicants")
+
+    @commands.command(brief='Shows information about members', aliases=['mems'])
+    @commands.has_any_role('Internal Affairs')
+    async def members(self, ctx):
+        await self.member_analysis(ctx, 2, "Members")
+    
+    async def member_analysis(self, ctx, level: int, embed_title: str):
         message = await ctx.send("Finding plebs...")
 
         heathen_role = ctx.guild.get_role(584676265932488705)
@@ -654,9 +707,9 @@ class General(commands.Cog):
             async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{tradeprices(limit:1){{coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}}}"}) as temp:
                 prices = (await temp.json())['data']['tradeprices'][0]
                 prices['money'] = 1
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 alliance_position:1 first:500 alliance_id:4729){{data{{id leader_name nation_name alliance{{name}} color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium cities{{infrastructure barracks factory airforcebase drydock}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 alliance_position:{level} first:500 alliance_id:4729){{data{{id leader_name nation_name alliance{{name}} color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium cities{{infrastructure barracks factory airforcebase drydock}}}}}}}}"}) as temp:
                 apps = (await temp.json())['data']['nations']['data']
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(page:1 alliance_position:1 first:500 alliance_id:7531){{data{{id leader_name nation_name alliance{{name}} color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium cities{{infrastructure barracks factory airforcebase drydock}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(page:1 alliance_position:{level} first:500 alliance_id:7531){{data{{id leader_name nation_name alliance{{name}} color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium cities{{infrastructure barracks factory airforcebase drydock}}}}}}}}"}) as temp:
                 apps += (await temp.json())['data']['nations']['data']
 
         for app in apps:
@@ -696,7 +749,7 @@ class General(commands.Cog):
                     pass
             fields.append({"name": app['leader_name'], "value": f"[{app['nation_name']}](https://politicsandwar.com/nation/id={app['id']})\n{app['alliance']['name'][:app['alliance']['name'].find(' ')]}\n{db} {disc}\nLast active: {app['last_active']}\nCities: {app['num_cities']}\nValue of rss: ${round(on_hand):,}"})
 
-        embeds = utils.embed_pager("Applicants", fields)
+        embeds = utils.embed_pager(embed_title, fields)
 
         await message.edit(content="", embed=embeds[0])
         await utils.reaction_checker(self, message, embeds)
