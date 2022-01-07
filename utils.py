@@ -48,72 +48,68 @@ async def reaction_checker(self, message: discord.Message, embeds: list) -> None
 
 async def find_user(self, arg):
     found = False
-    current = list(mongo['users'].find({}))
-    members = self.bot.get_all_members()
+    current = list(mongo.users.find({}))
     try:
-        await self.bot.fetch_user(int(arg))
         for x in current:
-            if x['user'] == int(arg):
+            if int(x['nationid']) == int(arg):
                 found = True
-                return x
+                return x        
     except:
+        pass
+    
+    if not found:
         try:
-            arg.startswith('<@') and arg.endswith('>')
-            if arg.startswith('<@!'):
-                user_id = arg[(arg.index('!')+1):arg.index('>')]
-            else:
-                user_id = arg[(arg.index('@')+1):arg.index('>')]
             for x in current:
-                if x['user'] == int(user_id):
+                if int(x['user']) == int(arg):
                     found = True
                     return x
         except:
-            try:
-                int(arg)
-                for x in current:
-                    if int(x['nationid']) == int(arg):
-                        found = True
-                        return x
-            except:
-                try:
-                    for member in members:
-                        if arg.lower() in member.name.lower():
-                            x = mongo.users.find_one({"user": member.id})
-                            found = True
-                            return x
-                        elif arg.lower() in member.display_name.lower():
-                            x = mongo.users.find_one({"user": member.id})
-                            found = True
-                            return x
-                        elif str(member).lower() == arg.lower():
-                            x = mongo.users.find_one({"user": member.id})
-                            found = True
-                            return x
-                    for x in current:
-                        if arg.lower() in x['name'].lower():
-                            found = True
-                            return x
-                        elif arg.lower() in x['leader'].lower():
-                            found = True
-                            return x
-                    raise
-                except:
-                    try:
-                        for x in current:
-                            if int(x['nationid']) == int(re.sub("[^0-9]", "", arg)):
-                                found = True
-                                return x
-                    finally:
-                        pass
-                finally:
-                    pass
-            finally:
-                pass
-        finally:
             pass
-    finally:
-        if not found:
-            return {}
+        
+    if not found:
+        try:
+            for x in current:
+                if arg.lower() in x['name'].lower():
+                    found = True
+                    return x
+                elif arg.lower() in x['leader'].lower():
+                    found = True
+                    return x
+        except:
+            pass
+
+    if not found:
+        try:
+            members = self.bot.get_all_members()
+            for member in members:
+                if arg.lower() in member.name.lower():
+                    x = mongo.users.find_one({"user": member.id})
+                    found = True
+                    return x
+                elif arg.lower() in member.display_name.lower():
+                    x = mongo.users.find_one({"user": member.id})
+                    found = True
+                    return x
+                elif str(member).lower() == arg.lower():
+                    x = mongo.users.find_one({"user": member.id})
+                    found = True
+                    return x
+        except:
+            pass
+
+    if not found:
+        try:
+            for x in current:
+                if int(x['nationid']) == int(re.sub("[^0-9]", "", arg)):
+                    found = True
+                    return x
+                elif int(x['user']) == int(re.sub("[^0-9]", "", arg)):
+                    found = True
+                    return x
+        except:
+            pass
+
+    return {}   
 
 async def find_nation(arg: Union[str, int]) -> Union[dict, None]:
     try:
