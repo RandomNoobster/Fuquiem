@@ -374,7 +374,7 @@ class Military(commands.Cog):
                     found = True
                     matching_thread = thread
                     break
-            print(new_war, found)
+            #print(new_war, found)
             if not found:
                 message = await channel.send(embed=embed)
                 try:
@@ -402,7 +402,7 @@ class Military(commands.Cog):
             else:
                 #print([new_war['attacker']['id'], new_war['defender']['id']], attack['victor'], attack)
                 attacker = [new_war['attacker']['id'], new_war['defender']['id']]
-                print([new_war['attacker']['id'], new_war['defender']['id']])
+                #print([new_war['attacker']['id'], new_war['defender']['id']])
                 attacker.remove(attack['victor'])
                 attacker = attacker[0]
                 #print(attacker)
