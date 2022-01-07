@@ -42,10 +42,9 @@ class Raffle(commands.Cog):
 
     @commands.command(alias=['statistics', 'statsget'], brief='Shows stats, accepts 1 argument', help='By default it sorts by the winrate. Optional argument can be "su" for sorting by signups, "wins" for sorting by wins or if you would for some reason like to do something completely unnecessary, you can do "wr".')
     async def stats(self, ctx, sort='wr'):
+        message = await ctx.send("Scanning social security numbers...")
         users = list(mongo.users.find({"signups": {'$gt': 0}}))
-        print(users)
-
-        embed = discord.Embed(title="Stats", description="", color=0x00ff00)
+        fields = []
         if sort.lower() == 'su':
             users = sorted(users, key=lambda k: k['signups'])
             users.reverse()
@@ -55,12 +54,7 @@ class Raffle(commands.Cog):
         elif sort.lower() == 'wr':
             users = sorted(users, key=lambda k: k['wins'] / k['signups'])
             users.reverse()
-        n = 0
         for x in users:
-            if n == 25:
-                await ctx.send(embed=embed)
-                embed.clear_fields()
-                n = 0
             user = ctx.guild.get_member(x['user'])
             if user == None:
                 print('for stats, skipped', x['leader'])
@@ -80,10 +74,10 @@ class Raffle(commands.Cog):
             else:
                 su_plural = 'signups'
 
-            embed.add_field(
-                name=user, value=f"↳ has {x['wins']} {wins_plural}, {x['signups']} {su_plural}, and a {winrate}% winrate", inline=False)
-            n += 1
-        await ctx.send(embed=embed)
+            fields.append({"name": user, "value": f"↳ has {x['wins']} {wins_plural}, {x['signups']} {su_plural}, and a {winrate}% winrate"})
+        embeds = utils.embed_pager("Raffle stats", fields)
+        await message.edit(content="", embed=embeds[0])
+        await utils.reaction_checker(self, message, embeds)
 
     @commands.command(brief='Shows a list of everyone that has signed up for the daily raffle')
     async def get(self, ctx):
@@ -91,7 +85,8 @@ class Raffle(commands.Cog):
         mention_string = ''
         n = 0
         for x in current:
-            mention_string += f"<@{x['user']}>"
+            user = ctx.guild.get_member(x['user'])
+            mention_string += f"**{user}**"
             n += 1
             if n < len(current) - 1:
                 mention_string += ', '
