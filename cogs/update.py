@@ -76,9 +76,9 @@ class Update(commands.Cog):
     async def food_check(self, channel, aa='all'):
         async with aiohttp.ClientSession() as session:
             message = await channel.send("<:thonk:787399051582504980>")
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:500 alliance_id:4729){{data{{nation_name leader_name id alliance_position continent color food vmode dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid winner}} defensive_wars{{date attid winner}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:500 alliance_id:4729){{data{{nation_name leader_name id alliance_position continent color food vmode dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid turnsleft winner}} defensive_wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
                 church = (await temp.json())['data']['nations']['data']
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(first:500 alliance_id:7531){{data{{nation_name leader_name id alliance_position continent color food vmode dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid winner}} defensive_wars{{date attid winner}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(first:500 alliance_id:7531){{data{{nation_name leader_name id alliance_position continent color food vmode dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid turnsleft winner}} defensive_wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
                 convent = (await temp.json())['data']['nations']['data']
 
             if aa == 'all':
@@ -91,59 +91,7 @@ class Update(commands.Cog):
                 await message.edit(content="That's an illegal argument!")
                 return
 
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{colors{{color turn_bonus}}}}"}) as temp:
-                res_colors = (await temp.json())['data']['colors']
-                colors = {}
-                for color in res_colors:
-                    colors[color['color']] = color['turn_bonus'] * 12
-
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{tradeprices(limit:1){{coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}}}"}) as temp:
-                prices = (await temp.json())['data']['tradeprices'][0]
-                prices['money'] = 1
-
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{treasures{{bonus nation{{id alliance_id}}}}}}"}) as temp:
-                treasures = (await temp.json())['data']['treasures']
-                
-            with requests.Session() as s:
-                banker = mongo.users.find_one({"user": 465463547200012298})
-                login_url = "https://politicsandwar.com/login/"
-                login_data = {
-                    "email": str(cipher_suite.decrypt(banker['email'].encode()))[2:-1],
-                    "password": str(cipher_suite.decrypt(banker['pwd'].encode()))[2:-1],
-                    "loginform": "Login"
-                }
-                s.post(login_url, data=login_data)
-
-                radiation_page = s.get(f"https://politicsandwar.com/world/radiation/")
-                tree = html.fromstring(radiation_page.content)
-                info = tree.xpath("//div[@class='col-md-10']/div[@class='row']/div/p")
-                for x in info.copy():
-                    #print(x.text_content())
-                    if "Food" not in x.text_content():
-                        info.remove(x)
-                    else:
-                        info.remove(x)
-                        x = re.sub(r"[^0-9.]+", "", x.text_content().strip())
-                        info.append(x)
-                radiation = {"na": 1 - float(info[0])/100, "sa": 1 - float(info[1])/100, "eu": 1 - float(info[2])/100, "as": 1 - float(info[3])/100, "af": 1 - float(info[4])/100, "au": 1 - float(info[5])/100, "an": 1 - float(info[6])/100}
-
-                info2 = tree.xpath("//div[@class='sidebar'][contains(@style,'padding-left: 20px;')]/text()")
-                date = info2[2].strip()
-                seasonal_mod = {"na": 1, "sa": 1, "eu": 1, "as": 1, "af": 1, "au": 1, "an": 0.5}
-                if "June" in date or "July" in date or "August" in date:
-                    seasonal_mod['na'] = 1.2
-                    seasonal_mod['as'] = 1.2
-                    seasonal_mod['eu'] = 1.2
-                    seasonal_mod['sa'] = 0.8
-                    seasonal_mod['af'] = 0.8
-                    seasonal_mod['au'] = 0.8
-                elif "December" in date or "January" in date or "February" in date:
-                    seasonal_mod['na'] = 0.8
-                    seasonal_mod['as'] = 0.8
-                    seasonal_mod['eu'] = 0.8
-                    seasonal_mod['sa'] = 1.2
-                    seasonal_mod['af'] = 1.2
-                    seasonal_mod['au'] = 1.2
+            temp, colors, prices, treasures, radiation, seasonal_mod = await utils.pre_revenue_calc(mongo, cipher_suite, api_key, message)
 
             for alliance in aa:
                 embed = discord.Embed(title=f"{alliance[0]['alliance']['name']} Food", description="", color=0x00ff00, timestamp=pytz.utc.localize(datetime.utcnow()))
