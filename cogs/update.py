@@ -2,7 +2,6 @@ import asyncio
 import discord
 import math
 import aiohttp
-import pytz
 from flask.views import MethodView
 from mako.template import Template
 from keep_alive import app
@@ -11,8 +10,6 @@ from main import mongo
 from datetime import datetime, timedelta
 from discord.ext import commands
 import os
-import requests
-from lxml import html
 from cryptography.fernet import Fernet
 import re
 import utils
@@ -34,51 +31,16 @@ class Update(commands.Cog):
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def check(self, ctx, aa='all'):
         try:
-            await self.food_check(ctx.channel, aa)
+            await self.nation_check(ctx.channel, aa)
         except Exception as e:
             await ctx.send(f"I encountered an error whilst performing self.food_check():\n```{e}```")
-        try:
-            await self.spies_check(ctx.channel, aa)
-        except Exception as e:
-            await ctx.send(f"I encountered an error whilst performing self.spies_check():\n```{e}```")
-        try:
-            await self.inactivity_check(ctx.channel, aa)
-        except Exception as e:
-            await ctx.send(f"I encountered an error whilst performing self.inactivity_check():\n```{e}```")
-        try:
-            await self.color_check(ctx.channel)
-        except Exception as e:
-            await ctx.send(f"I encountered an error whilst performing self.color_check():\n```{e}```")
-        await ctx.send("I sent 'em all some DMs!")
 
-    async def aa_check(self):
-        channel = self.bot.get_channel(677883771810349067)
-        try:
-            await self.food_check(channel)
-        except Exception as e:
-            await channel.send(f"I encountered an error whilst performing self.food_check():\n```{e}```")
-        try:
-            await self.spies_check(channel)
-        except Exception as e:
-            await channel.send(f"I encountered an error whilst performing self.spies_check():\n```{e}```")
-        try:
-            await self.inactivity_check(channel)
-        except Exception as e:
-            await channel.send(f"I encountered an error whilst performing self.inactivity_check():\n```{e}```")
-        try:
-            await self.color_check(channel)
-        except Exception as e:
-            await channel.send(f"I encountered an error whilst performing self.color_check():\n```{e}```")
-        await channel.send("I sent 'em all some DMs!")
-
-    @commands.command(brief='Gives you an overview of, and sends a DM to everyone that needs to login/buy spies/get food')
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
-    async def food_check(self, channel, aa='all'):
+    async def nation_check(self, channel, aa='all'):
         async with aiohttp.ClientSession() as session:
             message = await channel.send("<:thonk:787399051582504980>")
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:500 alliance_id:4729){{data{{nation_name leader_name id alliance_position continent color food vmode dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid turnsleft winner}} defensive_wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:500 alliance_id:4729 vmode:false){{data{{nation_name leader_name id alliance_position continent color food vmode dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid turnsleft winner}} defensive_wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
                 church = (await temp.json())['data']['nations']['data']
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(first:500 alliance_id:7531){{data{{nation_name leader_name id alliance_position continent color food vmode dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid turnsleft winner}} defensive_wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(first:500 alliance_id:7531 vmode:false){{data{{nation_name leader_name id alliance_position continent color food vmode dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid turnsleft winner}} defensive_wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
                 convent = (await temp.json())['data']['nations']['data']
 
             if aa == 'all':
@@ -91,24 +53,32 @@ class Update(commands.Cog):
                 await message.edit(content="That's an illegal argument!")
                 return
 
-            temp, colors, prices, treasures, radiation, seasonal_mod = await utils.pre_revenue_calc(mongo, cipher_suite, api_key, message)
+            temp, colors, prices, treasures, radiation, seasonal_mod = await utils.pre_revenue_calc(api_key, message)
 
+            embeds = []
             for alliance in aa:
-                embed = discord.Embed(title=f"{alliance[0]['alliance']['name']} Food", description="", color=0x00ff00, timestamp=pytz.utc.localize(datetime.utcnow()))
+                food_fields = []
+                spy_fields = []
+                inactivity_fields = []
+                color_fields = []
+
                 for nation in alliance:
                     if nation['alliance_position'] == "APPLICANT":
                         continue
+
+                    person = await utils.find_user(self, nation['id'])
+                    if person == {}:
+                        continue
+                    user = await self.bot.fetch_user(person['user'])
+                    
+                    ## food_check
                     rev_obj = await utils.revenue_calc(message, nation, radiation, treasures, prices, colors, seasonal_mod, None)
                     if nation['food'] == None:
-                        embed.add_field(name=nation['leader_name'], value=f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) runs out of food in ??? days (??? food).", inline=False)
+                        food_fields.append({"name": nation['leader_name'], "value": f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) runs out of food in ??? days (??? food)."})
                         continue
                     days = float(nation['food']) / rev_obj['food']
-                    if -1 < days < 1 and int(nation['vmode']) == 0:
-                        embed.add_field(name=nation['leader_name'], value=f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) runs out of food in {math.ceil(days)} days ({nation['food']} food).", inline=False)
-                        person = await utils.find_user(self, str(nation['id']))
-                        if person == {}:
-                            continue
-                        user = await self.bot.fetch_user(person['user'])
+                    if -1 < days < 1:
+                        food_fields.append({"name": nation['leader_name'], "value": f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) runs out of food in {math.ceil(days)} days ({nation['food']} food)."})
                         if nation['alliance_id'] == "4729":
                             try:
                                 await user.send('Hey, you should get some food. Type "$food" in <#850302301838114826>')
@@ -123,44 +93,13 @@ class Update(commands.Cog):
                                 await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
                                 await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Food', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because it seems that you are running out of food. You don't really want to miss out on 1/3 of your income due to a a lack of food... You can go here to buy some food for your nation: <a href=\"https://politicsandwar.com/index.php?id=26&display=world\">https://politicsandwar.com/index.php?id=26&display=world</a>"})
 
-                if len(embed.fields) == 0:
-                    await channel.send(f"Nobody is starving in the {alliance[0]['alliance']}!")
-                else:
-                    await channel.send(embed=embed)
-            await message.delete()
-
-    async def spies_check(self, channel, aa='church'):
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f'http://politicsandwar.com/api/alliance-members/?allianceid=4729&key={api_key}') as church:
-                church = (await church.json())['nations']
-            async with session.get(f'http://politicsandwar.com/api/alliance-members/?allianceid=7531&key={convent_key}') as convent:
-                convent = (await convent.json())['nations']
-
-            if aa == 'all':
-                aa = [church, convent]
-            elif aa in 'church':
-                aa = [church]
-            elif aa in 'convent':
-                aa = [convent]
-            else:
-                await channel.send("That's an illegal argument!")
-                return
-
-            for alliance in aa:
-                embed = discord.Embed(title=f"{alliance[0]['alliance']} Spies", description="",
-                                    color=0x00ff00, timestamp=pytz.utc.localize(datetime.utcnow()))
-                for nation in alliance:
+                    ## spies_check
                     max_spies = 50
                     if nation['intagncy'] == 1:
                         max_spies += 10
-                    if int(nation['spies']) < max_spies and int(nation['vacmode']) == 0:
-                        embed.add_field(
-                            name=nation['leader'], value=f"[{nation['nation']}](https://politicsandwar.com/nation/id={nation['nationid']}) only has {nation['spies']} spies.", inline=False)
-                        person = await utils.find_user(self, str(nation['nationid']))
-                        if person == {}:
-                            continue
+                    if int(nation['spies']) < max_spies:
+                        spy_fields.append({"name": nation['leader'], "value": f"[{nation['nation']}](https://politicsandwar.com/nation/id={nation['nationid']}) only has {nation['spies']} spies."})
                         if alliance[0]['allianceid'] == 4729:
-                            user = await self.bot.fetch_user(person['user'])
                             try:
                                 await user.send('Hey, you should get some spies: https://politicsandwar.com/nation/military/spies/')
                                 print('i just sent a msg to', user)
@@ -168,80 +107,22 @@ class Update(commands.Cog):
                                 await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
                                 await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Spies', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you don't have max spies. To buy spies, please go here: <a href=\"https://politicsandwar.com/nation/military/spies/\">https://politicsandwar.com/nation/military/spies/</a>"})
 
-                if len(embed.fields) == 0:
-                    await channel.send(f"Everyone has max spies in the {alliance[0]['alliance']}!")
-                else:
-                    await channel.send(embed=embed)
-
-    async def inactivity_check(self, channel, aa='all'):
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f'http://politicsandwar.com/api/alliance-members/?allianceid=4729&key={api_key}') as church:
-                church = (await church.json())['nations']
-            async with session.get(f'http://politicsandwar.com/api/alliance-members/?allianceid=7531&key={convent_key}') as convent:
-                convent = (await convent.json())['nations']
-
-            if aa == 'all':
-                aa = [church, convent]
-            elif aa in 'church':
-                aa = [church]
-            elif aa in 'convent':
-                aa = [convent]
-            else:
-                await channel.send("That's an illegal argument!")
-                return
-
-            for alliance in aa:
-                embed = discord.Embed(title=f"{alliance[0]['alliance']} Inactivity", description="",
-                                    color=0x00ff00, timestamp=pytz.utc.localize(datetime.utcnow()))
-                for nation in alliance:
-                    if nation['minutessinceactive'] > 2880 and int(nation['vacmode']) == 0:
-                        embed.add_field(
-                            name=nation['leader'], value=f"[{nation['nation']}](https://politicsandwar.com/nation/id={nation['nationid']}) has been inactive for {math.ceil(nation['minutessinceactive']/1440)} days.", inline=False)
-                        person = await utils.find_user(self, str(nation['nationid']))
-                        if person == {}:
-                            continue
-                        user = await self.bot.fetch_user(person['user'])
+                    ## inactivity_check
+                    if nation['minutessinceactive'] > 2880:
+                        inactivity_fields.append({"name": nation['leader'], "value": f"[{nation['nation']}](https://politicsandwar.com/nation/id={nation['nationid']}) has been inactive for {math.ceil(nation['minutessinceactive']/1440)} days."})
                         try:
                             await user.send('Hey, you should log in: https://politicsandwar.com')
                             print('i just sent a msg to', user)
                         except discord.Forbidden:
                             await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
                             await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Inactivity', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you have been somewhat inactive lately. He sent this message in the hopes that you might get a notification by email, increasing the probability of you logging in to the game."})
-                if len(embed.fields) == 0:
-                    await channel.send(f"Everyone has been active in the {alliance[0]['alliance']}!")
-                else:
-                    await channel.send(embed=embed)
-        
-    async def color_check(self, channel, aa='all'):
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f'http://politicsandwar.com/api/alliance-members/?allianceid=4729&key={api_key}') as church:
-                church = (await church.json())['nations']
-            async with session.get(f'http://politicsandwar.com/api/alliance-members/?allianceid=7531&key={convent_key}') as convent:
-                convent = (await convent.json())['nations']
 
-            if aa == 'all':
-                aa = [church, convent]
-            elif aa in 'church':
-                aa = [church]
-            elif aa in 'convent':
-                aa = [convent]
-            else:
-                await channel.send("That's an illegal argument!")
-                return
-
-            for alliance in aa:
-                embed = discord.Embed(title=f"{alliance[0]['alliance']} Color", description="",
-                                    color=0x00ff00, timestamp=pytz.utc.localize(datetime.utcnow()))
-                for nation in alliance:
+                    ## color_check
                     if nation['allianceid'] == 4729 and nation['color'] not in ['green', 'beige'] or nation['allianceid'] == 7531 and nation['color'] not in ['blue', 'beige']:
                         if int(nation['vacmode']) > 0:
                             continue
-                        embed.add_field(
-                            name=nation['leader'], value=f"[{nation['nation']}](https://politicsandwar.com/nation/id={nation['nationid']}) are on {nation['color']}", inline=False)
-                        person = await utils.find_user(self, str(nation['nationid']))
-                        if person == {}:
-                            continue
-                        user = await self.bot.fetch_user(person['user'])
+                        color_fields.append({"name": nation['leader'], "value": f"[{nation['nation']}](https://politicsandwar.com/nation/id={nation['nationid']}) are on {nation['color']}"})
+                        
                         if nation['allianceid'] == 4729:
                             color = 'green'
                         elif nation['allianceid'] == 7531:
@@ -254,10 +135,15 @@ class Update(commands.Cog):
                         except discord.Forbidden:
                             await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
                             await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Color', 'message': f"Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you are currently not getting any money from the color bonus. If you change your nation's color to {color}, your daily revenue will increase. You can change your color here: <a href=\"https://politicsandwar.com/nation/edit/\">https://politicsandwar.com/nation/edit/</a>"})
-                if len(embed.fields) == 0:
-                    await channel.send(f"Everyone has the correct colors in the {alliance[0]['alliance']}!")
-                else:
-                    await channel.send(embed=embed)
+                
+                embeds += await utils.embed_pager(f"{alliance['name']} food", food_fields)
+                embeds += await utils.embed_pager(f"{alliance['name']} inactivity", inactivity_fields)
+                embeds += await utils.embed_pager(f"{alliance['name']} spies", spy_fields)
+                embeds += await utils.embed_pager(f"{alliance['name']} color", color_fields)
+
+            await message.delete()
+            for embed in embeds:
+                await channel.send(embed=embed)
 
     @commands.command(brief='Debugging cmd, requires admin perms')
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
@@ -495,9 +381,9 @@ class Update(commands.Cog):
             if now.hour == 0:
                 print(datetime.utcnow(), 'hour is 0')
                 try:
-                    await self.aa_check()
+                    await self.nation_check()
                 except Exception as e:
-                    await debug_channel.send(f"I encountered an error whilst performing self.aa_check():\n```{e}```")
+                    await debug_channel.send(f"I encountered an error whilst performing self.nation_check():\n```{e}```")
 
             if now.hour == 18:
                 try:
