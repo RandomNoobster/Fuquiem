@@ -134,7 +134,7 @@ class Database(commands.Cog):
         
         for member in members:
             if member.id not in member_ids:
-                fields.append({"name": member, "value": "**not registered**"})
+                fields.append({"name": member, "value": "**in the discord, but not not registered**"})
         
         church = requests.get(
             f'http://politicsandwar.com/api/alliance-members/?allianceid=4729&key={api_key}').json()['nations']
