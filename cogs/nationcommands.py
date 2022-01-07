@@ -968,7 +968,7 @@ class General(commands.Cog):
 
                 to_scan.append(city)
         
-        temp, colors, prices, treasures, radiation, seasonal_mod = await utils.pre_revenue_calc(mongo, cipher_suite, api_key, message, query_for_nation=False, parsed_nation=nation)
+        temp, colors, prices, treasures, radiation, seasonal_mod = await utils.pre_revenue_calc(api_key, message, query_for_nation=False, parsed_nation=nation)
 
         await message.edit(content="Calculating revenue...")
         cities = []

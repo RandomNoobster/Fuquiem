@@ -1378,7 +1378,7 @@ class Military(commands.Cog):
                         filters += ","
                     filters += f" {max_wars} or less active wars"
 
-            temp, colors, prices, treasures, radiation, seasonal_mod = await utils.pre_revenue_calc(mongo, cipher_suite, api_key, message, query_for_nation=False, parsed_nation=atck_ntn)
+            temp, colors, prices, treasures, radiation, seasonal_mod = await utils.pre_revenue_calc(api_key, message, query_for_nation=False, parsed_nation=atck_ntn)
 
             await message.edit(content='Calculating best targets...')
 

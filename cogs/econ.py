@@ -887,7 +887,7 @@ class Economic(commands.Cog):
                 await message.edit(content='I could not find that person!')
                 return
 
-        nation, colors, prices, treasures, radiation, seasonal_mod = await utils.pre_revenue_calc(mongo, cipher_suite, api_key, message, query_for_nation=True, nationid=db_nation['nationid'])
+        nation, colors, prices, treasures, radiation, seasonal_mod = await utils.pre_revenue_calc(api_key, message, query_for_nation=True, nationid=db_nation['nationid'])
 
         if build != None:
             build_txt = "daily city revenue with this build"
