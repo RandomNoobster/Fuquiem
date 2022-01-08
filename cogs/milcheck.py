@@ -360,7 +360,7 @@ class Military(commands.Cog):
         try:
             await thread.remove_user(user)
         except:
-            await thread.send(f"I was unable to add {user} to the thread.")
+            await thread.send(f"I was unable to remove {user} from the thread.")
 
     async def wars(self):
         await self.bot.wait_until_ready()
@@ -560,7 +560,7 @@ class Military(commands.Cog):
             try:
                 #print("check", datetime.utcnow())
                 async with aiohttp.ClientSession() as session:
-                    async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] days_ago:5){{id att_fortify war_type def_fortify attpeace defpeace turnsleft attacker{{nation_name alliance{{name}} id num_cities alliance_id cities{{id}}}} defender{{nation_name alliance{{name}} id num_cities alliance_id cities{{id}}}} attacks{{type victor moneystolen success cityid resistance_eliminated infradestroyed infra_destroyed_value improvementslost attcas1 attcas2 defcas1 defcas2}}}}}}"}) as temp:
+                    async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] days_ago:5 active:true){{id att_fortify war_type def_fortify attpeace defpeace turnsleft attacker{{nation_name alliance{{name}} id num_cities alliance_id cities{{id}}}} defender{{nation_name alliance{{name}} id num_cities alliance_id cities{{id}}}} attacks{{type victor moneystolen success cityid resistance_eliminated infradestroyed infra_destroyed_value improvementslost attcas1 attcas2 defcas1 defcas2}}}}}}"}) as temp:
                         try:
                             wars = (await temp.json())['data']['wars']
                         except:
