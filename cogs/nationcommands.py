@@ -62,6 +62,8 @@ class General(commands.Cog):
                     admin = church_admin
                 elif api_nation['allianceid'] == '7531':
                     admin = convent_admin
+                elif level == "-3":
+                    admin = convent_admin
                 else:
                     if message:
                         content += f"{api_nation['leadername']} are not affiliated with the Church nor the Convent!\n"
@@ -109,8 +111,8 @@ class General(commands.Cog):
     @commands.command(brief="Change the status of nations")
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def move(self, ctx, level: int, *, arg):
+        message = await ctx.send("Be patient, young padawan...")
         async with aiohttp.ClientSession() as session:
-            message = await ctx.send("Be patient, young padawan...")
             nations = re.sub("[^0-9\,]", "", arg).split(",")
 
             content = f"Do you really want to move these people to level {level}?\n\n"
@@ -136,7 +138,7 @@ class General(commands.Cog):
                 futures.append(asyncio.ensure_future(iterate_nations(nation, session)) )
             responses = await asyncio.gather(*futures)
         
-        await message.edit(content=content)
+        await message.edit(content=content[:2000])
 
         msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
         if msg.content.lower() in ['yes', 'y']:
@@ -146,9 +148,7 @@ class General(commands.Cog):
             await message.edit(content="Demotion canceled.")
             return
         
-        for nation in responses:
-            message = await ctx.send("*Thinking...*")
-            await self.change_perm([nation], str(level), message)        
+        await self.change_perm(responses, str(level), message)        
 
     @commands.command(aliases=['message'], brief="Send a premade message to someone")
     @commands.has_any_role('Internal Affairs')
@@ -415,7 +415,7 @@ class General(commands.Cog):
                                     await msg.delete()
                                     await message.edit(content='I will attempt to change their status.')
                                     await asyncio.sleep(2)
-                                    res = await self.change_perm([api_nation], "1", message)
+                                    res = await self.change_perm(to_message, "1", message)
                                     if res == {}:
                                         return
                                     message = await ctx.send("Hmmm...")
