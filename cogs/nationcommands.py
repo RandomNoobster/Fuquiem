@@ -9,7 +9,6 @@ from main import mongo
 from cryptography.fernet import Fernet
 import pathlib
 import math
-import math
 import random
 from mako.template import Template
 import re
