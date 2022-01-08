@@ -341,12 +341,13 @@ class General(commands.Cog):
                                     res = await self.change_perm(to_message, "0", message)
                                     if res == {}:
                                         return
+                                    message = await ctx.send("*Thinking...*")
                                     break
                                 elif msg.content.lower() in ['no', 'n']:
                                     await msg.delete()
                                     await message.edit(content='I will not change their status.')
                                     await asyncio.sleep(2)
-                                    return
+                                    break
 
                         except asyncio.TimeoutError:
                             await ctx.send('Command timed out, you were too slow to respond.')
@@ -486,6 +487,9 @@ class General(commands.Cog):
         
         for nation in to_message:
             mongo.message_history.find_one_and_update({"nationid": nation['nationid']}, {"$push": {"log": {"sender": ctx.author.id, "epoch": round(datetime.now().timestamp()), "dm": dm, "variant": variant}}}, upsert=True)
+       
+        content += "Done!"
+        await message.edit(content=content)
         
     @commands.command(brief='Displays a list the 25 first people sorted by shortest timer', help='Accepts an optional argument "convent"', aliases=['ct', 'citytimers', 'timers', 'timer'])
     async def citytimer(self, ctx, aa='church'):
