@@ -104,7 +104,8 @@ class General(commands.Cog):
                     if len(nations) == 1:
                         await message.edit(content=content)
                         return {}
-                await message.edit(content=content)
+                if message:
+                    await message.edit(content=content)
 
     @commands.command(brief="Change the status of nations")
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
@@ -724,7 +725,8 @@ class General(commands.Cog):
             await dm_chan.send(dm)
             content += "DMed them practical information.\n"
         except:
-            content += "Did not DM them practical information. Are they not accepting DMs?\n"
+            content += "Did not DM them practical information. Are they not accepting DMs? Sending here instead.\n"
+            await ctx.send(dm)
         await message.edit(content=content)
 
     @commands.command(brief='Admits an applicant, accepts 1 argument')
