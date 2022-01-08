@@ -150,7 +150,7 @@ class Military(commands.Cog):
                     await ctx.send("I do not know who to find the status of.")
                     return
         else:
-            person = await utils.find_nation_plus(arg)
+            person = await utils.find_nation_plus(self, arg)
             nation_id = str(person['nationid'])
 
         async with aiohttp.ClientSession() as session:

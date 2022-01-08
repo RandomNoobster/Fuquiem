@@ -731,7 +731,7 @@ class General(commands.Cog):
     @commands.has_any_role('Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def admit(self, ctx, arg):
         message = await ctx.send("<:thonk:787399051582504980>")
-        nation = await utils.find_nation_plus(arg)
+        nation = await utils.find_nation_plus(self, arg)
         if nation == None:
             await message.edit(content="Run $update or wait until daychange")
             return
