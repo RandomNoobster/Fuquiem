@@ -94,17 +94,23 @@ class General(commands.Cog):
                     "level": level,
                     "permsubmit": 'Go',
                 }
-                s.post(withdraw_url, data=withdraw_data)
+                req = s.post(withdraw_url, data=withdraw_data)
 
-                if requests.get(f"http://politicsandwar.com/api/nation/id={api_nation['nationid']}&key=e5171d527795e8").json()['allianceposition'] == level:
-                    if message:
-                        content += f"{api_nation['leadername']}'s status was successfully changed.\n"
+                if level not in ["-3", "-2", "-1"]:
+                    if requests.get(f"http://politicsandwar.com/api/nation/id={api_nation['nationid']}&key=e5171d527795e8").json()['allianceposition'] == level:
+                        if message:
+                            content += f"{api_nation['leadername']}'s status was successfully changed.\n"
+                    else:
+                        if message:
+                            content += f"I might have failed at changing {api_nation['leadername']}'s status, check their nation page to be sure: https://politicsandwar.com/nation/id={api_nation['nationid']}\n"
+                        if len(nations) == 1:
+                            await message.edit(content=content)
+                            return {}
                 else:
-                    if message:
-                        content += f"I might have failed at changing {api_nation['leadername']}'s status, check their nation page to be sure: https://politicsandwar.com/nation/id={api_nation['nationid']}"
-                    if len(nations) == 1:
-                        await message.edit(content=content)
-                        return {}
+                    if req.status_code == 200:
+                        content += f"{api_nation['leadername']}'s status was successfully changed.\n"
+                    else:
+                        content += f"I might have failed at changing {api_nation['leadername']}'s status, check their nation page to be sure: https://politicsandwar.com/nation/id={api_nation['nationid']}\n"
                 if message:
                     await message.edit(content=content)
 
