@@ -192,20 +192,19 @@ class General(commands.Cog):
                 if nation == None:
                     nation = await utils.find_user(self, x)
                     if nation == {}:
-                        content += f"I could not find {x}!\n"
+                        content += f"I could not find {x}\n"
                         return
                     else:
                         nation = await utils.find_nation(nation['nationid'])
                         if nation == None:
-                            content=f"I could not find {x}!\n"
+                            content=f"I could not find {x}\n"
                             return
-                content += f"I found {x}.\n"
 
                 async with session.get(f"http://politicsandwar.com/api/nation/id={nation['nationid']}&key=e5171d527795e8") as temp:
                     api_nation = await temp.json()
                 api_nation['user'] = mongo.users.find_one({"nationid": api_nation['nationid']})
                 n += 1
-                await message.edit(f"Fetching nations ({n}/{len(nations)})")
+                await message.edit(f"Fetching nations ({n}/{len(nations)})...")
                 return api_nation
         
             futures = []
@@ -215,7 +214,13 @@ class General(commands.Cog):
             to_message = await asyncio.gather(*futures)
 
         api_nation = to_message[0]
-        await message.edit(content=content)
+        try:
+            await message.edit(content=content, embed=None)
+        except:
+            await message.delete()
+        finally:
+            if not api_nation:
+                return
 
         msg_hist = mongo.message_history.find_one({"nationid": api_nation['nationid']})
 
@@ -306,130 +311,135 @@ class General(commands.Cog):
                     return {}
 
         while True:
-            reaction, reacting_user = await self.bot.wait_for("reaction_add", timeout=300)
-            if reaction.message != message or reacting_user.id != ctx.author.id:
-                continue
+            try:
+                reaction, reacting_user = await self.bot.wait_for("reaction_add", timeout=300)
+                if reaction.message != message or reacting_user.id != ctx.author.id:
+                    continue
 
-            if str(reaction.emoji) == "1\N{variation selector-16}\N{combining enclosing keycap}":
-                variant = 1
-                await message.edit(embed=None, content="Thinking...")
-                await message.clear_reactions()
-                if len(to_message) < 2:
-                    res = await last_message(variant)
-                    if res == {}:
-                        return
-                if api_nation['allianceposition'] == '1' and len(to_message) < 2 or len(to_message) > 1:
-                    try:
-                        while True:
-                            if api_nation['allianceposition'] == '1' and len(to_message) < 2:
-                                await message.edit(content=f"I noticed that {api_nation['leadername']} of {api_nation['name']} (<https://politicsandwar.com/nation/id={api_nation['nationid']}>) is currently an applicant, do you want me to remove them?")
-                            else:
-                                await message.edit(content=f"Do you want me to remove them?")
+                if str(reaction.emoji) == "1\N{variation selector-16}\N{combining enclosing keycap}":
+                    variant = 1
+                    await message.edit(embed=None, content="Thinking...")
+                    await message.clear_reactions()
+                    if len(to_message) < 2:
+                        res = await last_message(variant)
+                        if res == {}:
+                            return
+                    if api_nation['allianceposition'] == '1' and len(to_message) < 2 or len(to_message) > 1:
+                        try:
+                            while True:
+                                if api_nation['allianceposition'] == '1' and len(to_message) < 2:
+                                    await message.edit(content=f"I noticed that {api_nation['leadername']} of {api_nation['name']} (<https://politicsandwar.com/nation/id={api_nation['nationid']}>) is currently an applicant, do you want me to remove them?")
+                                else:
+                                    await message.edit(content=f"Do you want me to remove them?")
 
-                            msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
+                                msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
 
-                            if msg.content.lower() in ['yes', 'y']:
-                                await msg.delete()
-                                await message.edit(content='I will attempt to change their status.')
-                                await asyncio.sleep(2)
-                                res = await self.change_perm(to_message, "0", message)
-                                if res == {}:
+                                if msg.content.lower() in ['yes', 'y']:
+                                    await msg.delete()
+                                    await message.edit(content='I will attempt to change their status.')
+                                    await asyncio.sleep(2)
+                                    res = await self.change_perm(to_message, "0", message)
+                                    if res == {}:
+                                        return
+                                    break
+                                elif msg.content.lower() in ['no', 'n']:
+                                    await msg.delete()
+                                    await message.edit(content='I will not change their status.')
+                                    await asyncio.sleep(2)
                                     return
-                                break
-                            elif msg.content.lower() in ['no', 'n']:
-                                await msg.delete()
-                                await message.edit(content='I will not change their status.')
-                                await asyncio.sleep(2)
-                                return
 
-                    except asyncio.TimeoutError:
-                        await ctx.send('Command timed out, you were too slow to respond.')
-                        return
-            
-                elif api_nation['allianceposition'] > '1' and len(to_message) < 2:
-                    await message.edit(content="They are a member, not an applicant!")
-                    return
-
-                res = await discord_dm()
-                if res == {}:
-                    return
-                subject = "Removal from our applicant pool, sorry!"
-                for nation in to_message:
-                    nation['text'] = f"Hi {nation['leadername']},\n\nWe do our best to defend our applicants, but your inactivity leads us to believe that you are incapable of winning any attacks against your nation. We have therefore decided to retract your status as an applicant to our alliance. If you ever turn active again, you are welcome to re-apply.\n\nPlease follow these steps if you wish to re-apply:\n1) Apply in-game <a href=\"https://politicsandwar.com/alliance/join/id=7531\">here</a>\n2) Join our discord <a href=\"https://discord.gg/uszcTxr\">here</a>\n3) There is a channel called #apply-here in our discord server. Go there and create a ticket. We will take care of it from there!\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
-                break
-
-            elif str(reaction.emoji) == "2\N{variation selector-16}\N{combining enclosing keycap}":
-                variant = 2
-                await message.edit(embed=None, content="Thinking...")
-                await message.clear_reactions()
-                if len(to_message) < 2:
-                    res = await last_message(variant)
-                    if res == {}:
-                        return
-                res = await discord_dm()                
-                if res == {}:
-                    return
-                subject = "Application ticket closed, sorry!"
-                for nation in to_message:
-                    nation['text'] = f"Hi {nation['leadername']},\n\nYour application ticket to the Convent of Atom has been closed because you haven't completed the application process and have been inactive for more than 48 hours. If you wish to continue your application, you can create a new ticket. Let me know if you have any questions, or need help with anything.\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
-                break
+                        except asyncio.TimeoutError:
+                            await ctx.send('Command timed out, you were too slow to respond.')
+                            return
                 
-            elif str(reaction.emoji) == "3\N{variation selector-16}\N{combining enclosing keycap}":
-                variant = 3
-                await message.edit(embed=None, content="Thinking...")
-                await message.clear_reactions()
-                if len(to_message) < 2:
-                    res = await last_message(variant)
+                    elif api_nation['allianceposition'] > '1' and len(to_message) < 2:
+                        await message.edit(content="They are a member, not an applicant!")
+                        return
+
+                    res = await discord_dm()
                     if res == {}:
                         return
-                subject = "Incomplete application, please complete it!"
-                for nation in to_message:
-                    nation['text'] = f"Hi {nation['leadername']},\n\nI can see that you are currently applying to our alliance. Please note that you have to apply on discord as well in order to become a member.\n\nJoin the Church of Atom discord <a href=\"https://discord.gg/uszcTxr\">here</a>. After joining the discord, go to the channel called #apply-here to create an application ticket.\n\nLet me know if you have any questions.\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
-                break
+                    subject = "Removal from our applicant pool, sorry!"
+                    for nation in to_message:
+                        nation['text'] = f"Hi {nation['leadername']},\n\nWe do our best to defend our applicants, but your inactivity leads us to believe that you are incapable of winning any attacks against your nation. We have therefore decided to retract your status as an applicant to our alliance. If you ever turn active again, you are welcome to re-apply.\n\nPlease follow these steps if you wish to re-apply:\n1) Apply in-game <a href=\"https://politicsandwar.com/alliance/join/id=7531\">here</a>\n2) Join our discord <a href=\"https://discord.gg/uszcTxr\">here</a>\n3) There is a channel called #apply-here in our discord server. Go there and create a ticket. We will take care of it from there!\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
+                    break
 
-            elif str(reaction.emoji) == "4\N{variation selector-16}\N{combining enclosing keycap}":
-                variant = 4
-                await message.edit(embed=None, content="Thinking...")
-                await message.clear_reactions()
-                if len(to_message) < 2:
-                    res = await last_message(variant)
+                elif str(reaction.emoji) == "2\N{variation selector-16}\N{combining enclosing keycap}":
+                    variant = 2
+                    await message.edit(embed=None, content="Thinking...")
+                    await message.clear_reactions()
+                    if len(to_message) < 2:
+                        res = await last_message(variant)
+                        if res == {}:
+                            return
+                    res = await discord_dm()                
                     if res == {}:
                         return
-                if api_nation['allianceposition'] == 2 and len(to_message) < 2 or len(to_message) > 1:
-                    try:
-                        while True:
-                            if api_nation['allianceposition'] == 2 and len(to_message):
-                                await message.edit(content=f"I noticed that {api_nation['leadername']} of {api_nation['name']} (<https://politicsandwar.com/nation/id={api_nation['nationid']}>) is currently a member, do you want me to move them to applicant?")
-                            else:
-                                await message.edit(content="Do you want me to move them to applicant?")
-                            msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
-
-                            if msg.content.lower() in ['yes', 'y']:
-                                await msg.delete()
-                                await message.edit(content='I will attempt to change their status.')
-                                await asyncio.sleep(2)
-                                res = await self.change_perm([api_nation], "1", message)
-                                if res == {}:
-                                    return
-                                message = await ctx.send("Hmmm...")
-                                break
-                            elif msg.content.lower() in ['no', 'n']:
-                                await msg.delete()
-                                await message.edit(content='I will not change their status.')
-                                await asyncio.sleep(2)
-                                break
-
-                    except asyncio.TimeoutError:
-                        await ctx.send('Command timed out, you were too slow to respond.')
-                        return
+                    subject = "Application ticket closed, sorry!"
+                    for nation in to_message:
+                        nation['text'] = f"Hi {nation['leadername']},\n\nYour application ticket to the Convent of Atom has been closed because you haven't completed the application process and have been inactive for more than 48 hours. If you wish to continue your application, you can create a new ticket. Let me know if you have any questions, or need help with anything.\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
+                    break
                     
-                res = await discord_dm()
-                if res == {}:
-                    return
-                subject = "Moved to applicant status, check in on discord!"
-                for nation in to_message:
-                    nation['text'] = f"Hi {nation['leadername']},\n\nIf a member loses a war, the alliance bank is looted. Due to your inactivity, we are worried that you might lose if you were to be attacked. To avoid the bank being looted, we have therefore decided to change your ingame status from member to applicant. Please note that you are still a member on discord. All you need to do to get repromoted ingame is to reach out to us and let us know that you are once again active.\n\nLet me know if you have any questions.\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
-                break
+                elif str(reaction.emoji) == "3\N{variation selector-16}\N{combining enclosing keycap}":
+                    variant = 3
+                    await message.edit(embed=None, content="Thinking...")
+                    await message.clear_reactions()
+                    if len(to_message) < 2:
+                        res = await last_message(variant)
+                        if res == {}:
+                            return
+                    subject = "Incomplete application, please complete it!"
+                    for nation in to_message:
+                        nation['text'] = f"Hi {nation['leadername']},\n\nI can see that you are currently applying to our alliance. Please note that you have to apply on discord as well in order to become a member.\n\nJoin the Church of Atom discord <a href=\"https://discord.gg/uszcTxr\">here</a>. After joining the discord, go to the channel called #apply-here to create an application ticket.\n\nLet me know if you have any questions.\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
+                    break
+
+                elif str(reaction.emoji) == "4\N{variation selector-16}\N{combining enclosing keycap}":
+                    variant = 4
+                    await message.edit(embed=None, content="Thinking...")
+                    await message.clear_reactions()
+                    if len(to_message) < 2:
+                        res = await last_message(variant)
+                        if res == {}:
+                            return
+                    if api_nation['allianceposition'] == 2 and len(to_message) < 2 or len(to_message) > 1:
+                        try:
+                            while True:
+                                if api_nation['allianceposition'] == 2 and len(to_message):
+                                    await message.edit(content=f"I noticed that {api_nation['leadername']} of {api_nation['name']} (<https://politicsandwar.com/nation/id={api_nation['nationid']}>) is currently a member, do you want me to move them to applicant?")
+                                else:
+                                    await message.edit(content="Do you want me to move them to applicant?")
+                                msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
+
+                                if msg.content.lower() in ['yes', 'y']:
+                                    await msg.delete()
+                                    await message.edit(content='I will attempt to change their status.')
+                                    await asyncio.sleep(2)
+                                    res = await self.change_perm([api_nation], "1", message)
+                                    if res == {}:
+                                        return
+                                    message = await ctx.send("Hmmm...")
+                                    break
+                                elif msg.content.lower() in ['no', 'n']:
+                                    await msg.delete()
+                                    await message.edit(content='I will not change their status.')
+                                    await asyncio.sleep(2)
+                                    break
+
+                        except asyncio.TimeoutError:
+                            await ctx.send('Command timed out, you were too slow to respond.')
+                            return
+                        
+                    res = await discord_dm()
+                    if res == {}:
+                        return
+                    subject = "Moved to applicant status, check in on discord!"
+                    for nation in to_message:
+                        nation['text'] = f"Hi {nation['leadername']},\n\nIf a member loses a war, the alliance bank is looted. Due to your inactivity, we are worried that you might lose if you were to be attacked. To avoid the bank being looted, we have therefore decided to change your ingame status from member to applicant. Please note that you are still a member on discord. All you need to do to get repromoted ingame is to reach out to us and let us know that you are once again active.\n\nLet me know if you have any questions.\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
+                    break
+
+            except asyncio.TimeoutError:
+                await ctx.send('Command timed out, you were too slow to respond.')
+                return
 
         if len(to_message) < 2:
             await message.edit(embed=None, content=f"Do you want to send {nation['leadername']} of {nation['name']} (<https://politicsandwar.com/nation/id={nation['nationid']}>) this message? (y/n)\n\n```{nation['text']}```")
