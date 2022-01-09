@@ -53,24 +53,25 @@ async def reaction_checker(self, message: discord.Message, embeds: list) -> None
 
 async def find_user(self, arg):
     found = False
-    current = list(mongo.users.find({}))
     try:
-        for x in current:
-            if int(x['nationid']) == int(arg):
-                found = True
-                return x        
+        int(arg)
+        x = mongo.users.find_one({"nationid": str(arg)})
+        if x:
+            found = True
+            return x        
     except:
         pass
     
     if not found:
         try:
-            for x in current:
-                if int(x['user']) == int(arg):
-                    found = True
-                    return x
+            x = mongo.users.find_one({"user": int(arg)})
+            if x:
+                found = True
+                return x        
         except:
             pass
-        
+            
+    current = list(mongo.users.find({}))
     if not found:
         try:
             for x in current:
