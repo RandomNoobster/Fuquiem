@@ -14,6 +14,7 @@ import pathlib
 import re
 import asyncio
 import utils
+from typing import Union
 import os
 from cryptography.fernet import Fernet
 
@@ -338,11 +339,15 @@ class Military(commands.Cog):
     async def war_scanner(self, ctx):
         await self.wars()
 
-    async def add_to_thread(self, thread, atom):
+    async def add_to_thread(self, thread, atom_id: Union[str, int], atom: dict = None):
         #print("adding", atom)
-        person = await utils.find_user(self, atom)
+        person = await utils.find_user(self, atom_id)
         if person == {}:
-            print("tried to add, but could not find", atom)
+            print("tried to add, but could not find", atom_id)
+            if atom:
+                await thread.send(f"I was unable to add {atom['leader_name']} of {atom['nation_name']} to the thread. Have they not linked their nation with their discord account?")
+            else:
+                await thread.send(f"I was unable to add nation {atom_id} from the thread. Have they not linked their nation with their discord account?")
             return
         user = await self.bot.fetch_user(person['user'])
         try:
@@ -350,11 +355,15 @@ class Military(commands.Cog):
         except Exception as e:
             await thread.send(f"I was unable to add {user} to the thread.\n```{e}```")
     
-    async def remove_from_thread(self, thread, atom):
+    async def remove_from_thread(self, thread, atom_id: Union[str, int], atom: dict = None):
         #print("removing ", atom)
-        person = await utils.find_user(self, atom)
+        person = await utils.find_user(self, atom_id)
         if person == {}:
-            print("tried to remove, but could not find", atom)
+            print("tried to remove, but could not find", atom_id)
+            if atom:
+                await thread.send(f"I was unable to remove {atom['leader_name']} of {atom['nation_name']} from the thread. Have they not linked their nation with their discord account?")
+            else:
+                await thread.send(f"I was unable to remove nation {atom_id} from the thread. Have they not linked their nation with their discord account?")
             return
         user = await self.bot.fetch_user(person['user'])
         try:
@@ -364,27 +373,35 @@ class Military(commands.Cog):
 
     async def wars(self):
         await self.bot.wait_until_ready()
-        channel = self.bot.get_channel(923249186500116560)
+        channel = self.bot.get_channel(796752432263725066) ## 923249186500116560
         prev_wars = None
 
-        async def cthread(name, embed, non_atom, atom, new_war):
+        async def cthread(war, non_atom, atom):
+            attack_logs = {"id": war['id'], "attacks": [], "detected": datetime.utcnow(), "finished": False}
+            mongo.war_logs.insert_one(attack_logs)
+
+            url = f"https://politicsandwar.com/nation/war/timeline/war={war['id']}"
+            embed = discord.Embed(title=f"New {war['war_type'].lower().capitalize()} War", url=url, description=f"[{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) declared a{'n'[:(len(war['war_type'])-5)^1]} {war['war_type'].lower()} war on [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']})", color=0x2F3136)
+            name = f"{non_atom['nation_name']} ({non_atom['id']})"
             found = False
+
             for thread in channel.threads:
                 if f"({non_atom['id']})" in thread.name:
                     found = True
                     matching_thread = thread
                     break
-            #print(new_war, found)
             if not found:
                 message = await channel.send(embed=embed)
                 try:
                     thread = await channel.create_thread(name=name, message=message, auto_archive_duration=4320, type=discord.ChannelType.private_thread, reason="War declaration")
                 except:
                     thread = await channel.create_thread(name=name, message=message, auto_archive_duration=1440, type=discord.ChannelType.private_thread, reason="War declaration")
-                await self.add_to_thread(thread, atom['id'])
-            elif new_war and found:
+                await self.add_to_thread(thread, atom['id'], atom)
+            elif found:
                 await matching_thread.send(embed=embed)
-                await self.add_to_thread(matching_thread, atom['id'])
+                await self.add_to_thread(matching_thread, atom['id'], atom)
+
+            return attack_logs
 
         async def attack_check(attack, new_war):
             if attack['type'] in ["MISSILEFAIL", "MISSILE", "NUKE", "NUKEFAIL"]:
@@ -396,29 +413,23 @@ class Military(commands.Cog):
                 attacker = None
             elif attack['success'] > 0:
                 attacker = attack['victor']
-                #print(attack)
-                #print(new_war)
-                #print(old_war)
             else:
-                #print([new_war['attacker']['id'], new_war['defender']['id']], attack['victor'], attack)
                 attacker = [new_war['attacker']['id'], new_war['defender']['id']]
-                #print([new_war['attacker']['id'], new_war['defender']['id']])
                 attacker.remove(attack['victor'])
                 attacker = attacker[0]
-                #print(attacker)
             return attacker
 
         async def smsg(attacker_id, attack, war, atom, non_atom, peace):
             embed = discord.Embed(title=f"New {war['war_type'].lower().capitalize()} War", description=f"[{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) declared a{'n'[:(len(war['war_type'])-5)^1]} {war['war_type'].lower()} war on [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']})", color=0x2F3136)
-            await cthread(f"{non_atom['nation_name']} ({non_atom['id']})", embed, non_atom, atom, False)
             
             for thread in channel.threads:
                 if f"({non_atom['id']})" in thread.name:
-                    #print("match")
+                    url = f"https://politicsandwar.com/nation/war/timeline/war={war['id']}"
                     if peace != None:
-                        embed = discord.Embed(title="Peace offering", description=f"[{peace['offerer']['nation_name']}](https://politicsandwar.com/nation/id={peace['offerer']['id']}) is offering peace to [{peace['reciever']['nation_name']}](https://politicsandwar.com/nation/id={peace['reciever']['id']}). The peace offering will be canceled if either side performs an act of aggression.", color=0xffffff)
+                        embed = discord.Embed(title="Peace offering", url=url, description=f"[{peace['offerer']['nation_name']}](https://politicsandwar.com/nation/id={peace['offerer']['id']}) is offering peace to [{peace['reciever']['nation_name']}](https://politicsandwar.com/nation/id={peace['reciever']['id']}). The peace offering will be canceled if either side performs an act of aggression.", color=0xffffff)
                         await thread.send(embed=embed)
                         break
+                    footer = f"<t:{round(datetime.strptime(attack['date'], '%Y-%m-%d %H:%M:%S').timestamp())}:R> <t:{round(datetime.strptime(attack['date'], '%Y-%m-%d %H:%M:%S').timestamp())}>"
                     if attack['type'] != "FORTIFY":
                         if attack['type'] in ["GROUND", "NAVAL", "AIRVINFRA", "AIRVSOLDIERS", "AIRVTANKS", "AIRVMONEY", "AIRVSHIPS", "AIRVAIR"]:
                             for nation in [war['attacker'], war['defender']]:
@@ -428,11 +439,8 @@ class Military(commands.Cog):
                                     defender_nation = nation
 
                             colors = [0xff0000, 0xffff00, 0xffff00, 0x00ff00]
-                            #print(war['attacker'], war['defender'], attacker_id)
                             if attacker_nation['id'] == non_atom['id']:
                                 colors.reverse()
-                            #print(colors)
-                            #print(attack['success'])
 
                             if attack['success'] == 3:
                                 success = "Immense Triumph"
@@ -443,16 +451,16 @@ class Military(commands.Cog):
                             elif attack['success'] == 0:
                                 success = "Utter Failure"
 
-                            description = f"[War timeline](https://politicsandwar.com/nation/war/timeline/war={war['id']})\nSuccess: {success}"
+                            description = f"Success: {success}"
 
                             if attack['type'] == "GROUND":
                                 title = "Ground battle"
                                 att_casualties = f"{attack['attcas1']:,} soldiers\n{attack['attcas2']:,} tanks"
-                                def_casualties = f"{attack['defcas1']:,} soldiers\n{attack['defcas2']:,} tanks\n{attack['infradestroyed']} infra (${attack['infra_destroyed_value']:,})\n${attack['moneystolen']:,} money"
+                                def_casualties = f"{attack['defcas1']:,} soldiers\n{attack['defcas2']:,} tanks"
                             elif attack['type'] == "NAVAL":
                                 title = "Naval Battle"
                                 att_casualties = f"{attack['attcas1']:,} ships"
-                                def_casualties = f"{attack['defcas1']:,} ships\n{attack['infradestroyed']} infra (${attack['infra_destroyed_value']:,})"
+                                def_casualties = f"{attack['defcas1']:,} ships"
                             elif attack['type'] == "AIRVINFRA":
                                 title = "Airstrike targeting infrastructure"
                                 att_casualties = f"{attack['attcas1']:,} planes"
@@ -486,23 +494,39 @@ class Military(commands.Cog):
                             except:
                                 daa_link = "No alliance"
 
-                            embed = discord.Embed(title=title, description=description, color=colors[attack['success']])
-                            embed.add_field(name=f"Attacker", value=f"[{attacker_nation['nation_name']}](https://politicsandwar.com/nation/id={attacker_nation['id']})\n{aaa_link}\n\n**Casualties**: ```{att_casualties}```")
-                            embed.add_field(name=f"Defender", value=f"[{defender_nation['nation_name']}](https://politicsandwar.com/nation/id={defender_nation['id']})\n{daa_link}\n\n**Casualties**: ```{def_casualties}```")
+                            embed = discord.Embed(title=title, description=description, color=colors[attack['success']], url=url)
+                            embed.add_field(name=f"Attacker", value=f"[{attacker_nation['nation_name']}](https://politicsandwar.com/nation/id={attacker_nation['id']})\n{aaa_link}\n\n**Casualties**:\n{att_casualties}")
+                            embed.add_field(name=f"Defender", value=f"[{defender_nation['nation_name']}](https://politicsandwar.com/nation/id={defender_nation['id']})\n{daa_link}\n\n**Casualties**:\n{def_casualties}")
+                            embed.add_field(name="\u200b", value=footer, inline=False)
                             await thread.send(embed=embed)
+                            mongo.war_logs.find_one_and_update({"id": war['id']}, {"$push": {"attacks": attack['id']}})
                             break
                         elif attack['type'] in ["PEACE", "VICTORY", "ALLIANCELOOT"]:
                             if attack['type'] == "PEACE":
-                                title = "Peace"
-                                content = f"[{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) & [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']}) peaced out???"
+                                title = "White peace"
+                                color = 0xffFFff
+                                content = f"The peace offer was accepted, and [{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) is no longer fighting an offensive war against [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']})."
                             elif attack['type'] == "VICTORY":
-                                title = "Victory"
-                                content = f"[{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) & [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']}) won???"
+                                if attack['victor'] == atom['id']:
+                                    title = "Victory"
+                                    color = 0x00ff00
+                                else:
+                                    title = "Defeat"
+                                    color = 0xff0000
+                                loot = attack['loot_info'].replace('\r\n                            ', '')
+                                content = f"[{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) is no longer fighting an offensive war against [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']}).\n\n{loot}"
                             elif attack['type'] == "ALLIANCELOOT":
+                                if atom['nation_name'] in attack['loot_info']:
+                                    color = 0x00ff00
+                                else:
+                                    color = 0xff0000
                                 title = "Alliance loot"
-                                content = f"[{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) & [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']}) looted someone???"
-                            embed = discord.Embed(title=title, description=content, color=0xfff)
+                                loot = attack['loot_info'].replace('\r\n                            ', '')
+                                content = f"{loot}"
+                            embed = discord.Embed(title=title, url=url, description=content, color=color)
+                            embed.add_field(name="\u200b", value=footer, inline=False)
                             await thread.send(embed=embed)
+                            mongo.war_logs.find_one_and_update({"id": war['id']}, {"$push": {"attacks": attack['id']}})
                             break
                         else:
                             for nation in [war['attacker'], war['defender']]:
@@ -528,9 +552,10 @@ class Military(commands.Cog):
                                 title = "Failed nuke"
                                 content = f"[{attacker_nation['nation_name']}](https://politicsandwar.com/nation/id={attacker_nation['id']}) launched a nuclear weapon upon [{defender_nation['nation_name']}](https://politicsandwar.com/nation/id={defender_nation['id']}), but the nuke was shot down."
                         
-                            #print(attack['type'])
-                            embed = discord.Embed(title=title, description=content, color=colors[attack['success']])
+                            embed = discord.Embed(title=title, url=url, description=content, color=colors[attack['success']])
+                            embed.add_field(name="\u200b", value=footer, inline=False)
                             await thread.send(embed=embed)
+                            mongo.war_logs.find_one_and_update({"id": war['id']}, {"$push": {"attacks": attack['id']}})
                             break
                     else:
                         if war['att_fortify'] and war['def_fortify']:
@@ -551,16 +576,17 @@ class Military(commands.Cog):
                         else:
                             content = f"{war['attacker']['nation_name']} or {war['defender']['nation_name']} fortified (idk who due to api limitations), then subsequently attacked, losing the fortified effect."
                             color = 0xffffff
-                        #print(war)
-                        embed = discord.Embed(title=f"Fortification", description=content, color=color)
+                        
+                        embed = discord.Embed(title="Fortification", url=url, description=content, color=color)
+                        embed.add_field(name="\u200b", value=footer, inline=False)
                         await thread.send(embed=embed)
+                        mongo.war_logs.find_one_and_update({"id": war['id']}, {"$push": {"attacks": attack['id']}})
                         break
 
         while True:
             try:
-                #print("check", datetime.utcnow())
                 async with aiohttp.ClientSession() as session:
-                    async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] days_ago:5 active:true){{id att_fortify war_type def_fortify attpeace defpeace turnsleft attacker{{nation_name alliance{{name}} id num_cities alliance_id cities{{id}}}} defender{{nation_name alliance{{name}} id num_cities alliance_id cities{{id}}}} attacks{{type victor moneystolen success cityid resistance_eliminated infradestroyed infra_destroyed_value improvementslost attcas1 attcas2 defcas1 defcas2}}}}}}"}) as temp:
+                    async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] days_ago:5 active:true){{id att_fortify war_type def_fortify attpeace defpeace turnsleft attacker{{nation_name leader_name alliance{{name}} id num_cities alliance_id cities{{id}}}} defender{{nation_name leader_name alliance{{name}} id num_cities alliance_id cities{{id}}}} attacks{{type id date loot_info victor moneystolen success cityid resistance_eliminated infradestroyed infra_destroyed_value improvementslost attcas1 attcas2 defcas1 defcas2}}}}}}"}) as temp:
                         try:
                             wars = (await temp.json())['data']['wars']
                         except:
@@ -569,14 +595,16 @@ class Military(commands.Cog):
                             continue
                         if prev_wars == None:
                             prev_wars = wars
-                            print("previous is none")
-                            #await asyncio.sleep(60)
                             continue
-                    async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] days_ago:5 active:false){{id att_fortify war_type def_fortify attpeace defpeace turnsleft attacker{{nation_name alliance{{name}} id num_cities alliance_id cities{{id}}}} defender{{nation_name alliance{{name}} id num_cities alliance_id cities{{id}}}} attacks{{type victor moneystolen success cityid resistance_eliminated infradestroyed infra_destroyed_value improvementslost attcas1 attcas2 defcas1 defcas2}}}}}}"}) as temp:
+                    async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] days_ago:5 active:false){{id att_fortify war_type def_fortify attpeace defpeace turnsleft attacker{{nation_name leader_name alliance{{name}} id num_cities alliance_id cities{{id}}}} defender{{nation_name leader_name alliance{{name}} id num_cities alliance_id cities{{id}}}} attacks{{type id date loot_info victor moneystolen success cityid resistance_eliminated infradestroyed infra_destroyed_value improvementslost attcas1 attcas2 defcas1 defcas2}}}}}}"}) as temp1:
                         try:
-                            done_wars = (await temp.json())['data']['wars']
+                            temp1 = (await temp1.json())['data']['wars']
+                            done_wars = []
+                            for war in temp1:
+                                if war['turnsleft'] <= 0:
+                                    done_wars.append(war)
                         except:
-                            print((await temp.json())['errors'])
+                            print((await temp1.json())['errors'])
                             await asyncio.sleep(60)
                             continue
                     for new_war in wars:
@@ -586,7 +614,9 @@ class Military(commands.Cog):
                         else:
                             atom = new_war['defender']
                             non_atom = new_war['attacker']
-                        found_war = False
+                        attack_logs = mongo.war_logs.find_one({"id": new_war['id']})
+                        if not attack_logs:
+                            attack_logs = await cthread(new_war, non_atom, atom)
                         for old_war in prev_wars:
                             if new_war['id'] == old_war['id']:
                                 if new_war['attpeace'] and not old_war['attpeace']:
@@ -595,47 +625,34 @@ class Military(commands.Cog):
                                 elif new_war['defpeace'] and not old_war['defpeace']:
                                     peace_obj = {"offerer": new_war['defender'], "reciever": new_war['attacker']}
                                     await smsg(None, None, new_war, atom, non_atom, peace_obj)
-                                found_war = True
-                                if len(new_war['attacks']) == 0:
-                                    break
-                                attack = None
-                                for attack in new_war['attacks']:
-                                    if attack not in old_war['attacks']:
-                                        attacker = await attack_check(attack, new_war)
-                                        await smsg(attacker, attack, new_war, atom, non_atom, None)
                                 break
-                        if not found_war:
-                            print("war not found")
-                            embed = discord.Embed(title=f"New {new_war['war_type'].lower().capitalize()} War", description=f"[{new_war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={new_war['attacker']['id']}) declared a{'n'[:(len(new_war['war_type'])-5)^1]} {new_war['war_type'].lower()} war on [{new_war['defender']['nation_name']}](https://politicsandwar.com/nation/id={new_war['defender']['id']})", color=0x2F3136)
-                            await cthread(f"{non_atom['nation_name']} ({non_atom['id']})", embed, non_atom, atom, True)
-                            for attack in new_war['attacks']:
+                        for attack in new_war['attacks']:
+                            if attack['id'] not in attack_logs['attacks']:
                                 attacker = await attack_check(attack, new_war)
                                 await smsg(attacker, attack, new_war, atom, non_atom, None)
-                    for old_war in prev_wars:
-                        for done_war in done_wars:
-                            if done_war['id'] == old_war['id']:
-                                print("wars match")
-                                if old_war['attacker']['alliance_id'] in ['4729', '7531']: ## CHANGE T0 ATOM ---------------------------------------------------------
-                                    atom = old_war['attacker']
-                                    non_atom = old_war['defender']
-                                else:
-                                    atom = old_war['defender']
-                                    non_atom = old_war['attacker']
-                                attack = None
-                                for attack in done_war['attacks']:
-                                    if attack not in old_war['attacks']:
-                                        attacker = await attack_check(attack, done_war)
-                                        await smsg(attacker, attack, done_war, atom, non_atom, None)
-                                for thread in channel.threads:
-                                    if f"({non_atom['id']})" in thread.name:
-                                        print("found thread")
-                                        embed = discord.Embed(title=f"War finished", description=f"[{old_war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={old_war['attacker']['id']}) is no longer at war with [{old_war['defender']['nation_name']}](https://politicsandwar.com/nation/id={old_war['defender']['id']})", color=0xffFFff)
-                                        await thread.send(embed=embed)
-                                        await self.remove_from_thread(thread, atom)
-                                        if thread.member_count == 1:
-                                            await thread.edit(archive=True)
-                                        break
-                            break
+                    for done_war in done_wars:
+                        if done_war['attacker']['alliance_id'] in ['4729', '7531']: ## CHANGE T0 ATOM ---------------------------------------------------------
+                            atom = done_war['attacker']
+                            non_atom = done_war['defender']
+                        else:
+                            atom = done_war['defender']
+                            non_atom = done_war['attacker']
+                        attack_logs = mongo.war_logs.find_one({"id": done_war['id']})
+                        if not attack_logs:
+                            attack_logs = await cthread(done_war, non_atom, atom)
+                        elif attack_logs['finished']:
+                            continue
+                        for attack in done_war['attacks']:
+                            if attack['id'] not in attack_logs['attacks']:
+                                attacker = await attack_check(attack, done_war)
+                                await smsg(attacker, attack, done_war, atom, non_atom, None)
+                        for thread in channel.threads:
+                            if f"({non_atom['id']})" in thread.name:
+                                await self.remove_from_thread(thread, atom['id'], atom)
+                                if thread.member_count == 1:
+                                    await thread.edit(archived=True)
+                                mongo.war_logs.find_one_and_update({"id": done_war['id']}, {"$set": {"finished": True}})
+                                break
                 prev_wars = wars
                 await asyncio.sleep(60)
             except Exception as e:
