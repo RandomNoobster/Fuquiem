@@ -373,7 +373,7 @@ class Military(commands.Cog):
 
     async def wars(self):
         await self.bot.wait_until_ready()
-        channel = self.bot.get_channel(796752432263725066) ## 923249186500116560
+        channel = self.bot.get_channel(923249186500116560) ## 923249186500116560
         prev_wars = None
 
         async def cthread(war, non_atom, atom):
