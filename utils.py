@@ -7,10 +7,15 @@ from typing import Union
 import aiohttp
 from lxml import html
 import re
-from main import mongo
+from pymongo.mongo_client import MongoClient
+import pymongo
+import ssl
 import os
 from cryptography.fernet import Fernet
 
+client = pymongo.MongoClient(os.getenv("pymongolink"), ssl_cert_reqs=ssl.CERT_NONE)
+version = os.getenv("version")
+mongo = client[str(version)]
 key = os.getenv("encryption_key")
 cipher_suite = Fernet(key)
 
