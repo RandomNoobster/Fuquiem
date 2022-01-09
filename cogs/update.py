@@ -381,7 +381,7 @@ class Update(commands.Cog):
             if now.hour == 0:
                 print(datetime.utcnow(), 'hour is 0')
                 try:
-                    await self.nation_check()
+                    await self.nation_check(debug_channel)
                 except Exception as e:
                     await debug_channel.send(f"I encountered an error whilst performing self.nation_check():\n```{e}```")
 
