@@ -1120,7 +1120,8 @@ class Military(commands.Cog):
                 if n % 10 == 0:
                     await channel.send(content)
                     content = ""
-            await channel.send(content)
+            if len(content) > 0:
+                await channel.send(content)
             
 
     @commands.command(brief='something something')
