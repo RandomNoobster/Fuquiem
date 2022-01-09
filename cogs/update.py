@@ -38,9 +38,9 @@ class Update(commands.Cog):
     async def nation_check(self, channel, aa='all'):
         async with aiohttp.ClientSession() as session:
             message = await channel.send("<:thonk:787399051582504980>")
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:500 alliance_id:4729 vmode:false){{data{{nation_name leader_name id alliance_position continent color food vmode dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid turnsleft winner}} defensive_wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:500 alliance_id:4729 vmode:false){{data{{nation_name leader_name id alliance_position continent color food spies dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid turnsleft winner}} defensive_wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr cia itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
                 church = (await temp.json())['data']['nations']['data']
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(first:500 alliance_id:7531 vmode:false){{data{{nation_name leader_name id alliance_position continent color food vmode dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid turnsleft winner}} defensive_wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(first:500 alliance_id:7531 vmode:false){{data{{nation_name leader_name id alliance_position continent color food spies dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid turnsleft winner}} defensive_wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr cia itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
                 convent = (await temp.json())['data']['nations']['data']
 
             if aa == 'all':
@@ -95,11 +95,11 @@ class Update(commands.Cog):
 
                     ## spies_check
                     max_spies = 50
-                    if nation['intagncy'] == 1:
+                    if nation['cia']:
                         max_spies += 10
                     if int(nation['spies']) < max_spies:
                         spy_fields.append({"name": nation['leader'], "value": f"[{nation['nation']}](https://politicsandwar.com/nation/id={nation['nationid']}) only has {nation['spies']} spies."})
-                        if alliance[0]['allianceid'] == 4729:
+                        if nation['alliance_id'] == "4729":
                             try:
                                 await user.send('Hey, you should get some spies: https://politicsandwar.com/nation/military/spies/')
                                 print('i just sent a msg to', user)
@@ -108,7 +108,8 @@ class Update(commands.Cog):
                                 await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Spies', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you don't have max spies. To buy spies, please go here: <a href=\"https://politicsandwar.com/nation/military/spies/\">https://politicsandwar.com/nation/military/spies/</a>"})
 
                     ## inactivity_check
-                    if nation['minutessinceactive'] > 2880:
+                    minutes_inactive = round((datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%d %H:%M:%S")).total_seconds()/60)
+                    if minutes_inactive > 2880:
                         inactivity_fields.append({"name": nation['leader'], "value": f"[{nation['nation']}](https://politicsandwar.com/nation/id={nation['nationid']}) has been inactive for {math.ceil(nation['minutessinceactive']/1440)} days."})
                         try:
                             await user.send('Hey, you should log in: https://politicsandwar.com')
@@ -118,14 +119,12 @@ class Update(commands.Cog):
                             await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Inactivity', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you have been somewhat inactive lately. He sent this message in the hopes that you might get a notification by email, increasing the probability of you logging in to the game."})
 
                     ## color_check
-                    if nation['allianceid'] == 4729 and nation['color'] not in ['green', 'beige'] or nation['allianceid'] == 7531 and nation['color'] not in ['blue', 'beige']:
-                        if int(nation['vacmode']) > 0:
-                            continue
+                    if nation['alliance_id'] == "4729" and nation['color'] not in ['green', 'beige'] or nation['alliance_id'] == "7531" and nation['color'] not in ['blue', 'beige']:
                         color_fields.append({"name": nation['leader'], "value": f"[{nation['nation']}](https://politicsandwar.com/nation/id={nation['nationid']}) are on {nation['color']}"})
                         
-                        if nation['allianceid'] == 4729:
+                        if nation['alliance_id'] == "4729":
                             color = 'green'
-                        elif nation['allianceid'] == 7531:
+                        elif nation['alliance_id'] == "7531":
                             color = 'blue'
                         else:
                             continue
