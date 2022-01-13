@@ -38,9 +38,9 @@ class Update(commands.Cog):
     async def nation_check(self, channel, aa='all'):
         async with aiohttp.ClientSession() as session:
             message = await channel.send("<:thonk:787399051582504980>")
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:500 alliance_id:4729 vmode:false){{data{{nation_name leader_name id alliance_position continent color food spies dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid turnsleft winner}} defensive_wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr cia itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:500 alliance_id:4729 vmode:false){{data{{nation_name leader_name id alliance_position continent color food last_active spies dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid turnsleft winner}} defensive_wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr cia itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
                 church = (await temp.json())['data']['nations']['data']
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(first:500 alliance_id:7531 vmode:false){{data{{nation_name leader_name id alliance_position continent color food spies dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid turnsleft winner}} defensive_wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr cia itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(first:500 alliance_id:7531 vmode:false){{data{{nation_name leader_name id alliance_position continent color food last_active spies dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid turnsleft winner}} defensive_wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr cia itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
                 convent = (await temp.json())['data']['nations']['data']
 
             if aa == 'all':
@@ -98,7 +98,7 @@ class Update(commands.Cog):
                     if nation['cia']:
                         max_spies += 10
                     if int(nation['spies']) < max_spies:
-                        spy_fields.append({"name": nation['leader'], "value": f"[{nation['nation']}](https://politicsandwar.com/nation/id={nation['nationid']}) only has {nation['spies']} spies."})
+                        spy_fields.append({"name": nation['leader_name'], "value": f"[{nation['leader_name']}](https://politicsandwar.com/nation/id={nation['id']}) only has {nation['spies']} spies."})
                         if nation['alliance_id'] == "4729":
                             try:
                                 await user.send('Hey, you should get some spies: https://politicsandwar.com/nation/military/spies/')
@@ -110,7 +110,7 @@ class Update(commands.Cog):
                     ## inactivity_check
                     minutes_inactive = round((datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%d %H:%M:%S")).total_seconds()/60)
                     if minutes_inactive > 2880:
-                        inactivity_fields.append({"name": nation['leader'], "value": f"[{nation['nation']}](https://politicsandwar.com/nation/id={nation['nationid']}) has been inactive for {math.ceil(nation['minutessinceactive']/1440)} days."})
+                        inactivity_fields.append({"name": nation['leader_name'], "value": f"[{nation['leader_name']}](https://politicsandwar.com/nation/id={nation['id']}) has been inactive for {round(minutes_inactive/1440)} days."})
                         try:
                             await user.send('Hey, you should log in: https://politicsandwar.com')
                             print('i just sent a msg to', user)
@@ -120,7 +120,7 @@ class Update(commands.Cog):
 
                     ## color_check
                     if nation['alliance_id'] == "4729" and nation['color'] not in ['green', 'beige'] or nation['alliance_id'] == "7531" and nation['color'] not in ['blue', 'beige']:
-                        color_fields.append({"name": nation['leader'], "value": f"[{nation['nation']}](https://politicsandwar.com/nation/id={nation['nationid']}) are on {nation['color']}"})
+                        color_fields.append({"name": nation['leader_name'], "value": f"[{nation['leader_name']}](https://politicsandwar.com/nation/id={nation['id']}) are on {nation['color']}"})
                         
                         if nation['alliance_id'] == "4729":
                             color = 'green'
@@ -135,10 +135,10 @@ class Update(commands.Cog):
                             await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
                             await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Color', 'message': f"Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you are currently not getting any money from the color bonus. If you change your nation's color to {color}, your daily revenue will increase. You can change your color here: <a href=\"https://politicsandwar.com/nation/edit/\">https://politicsandwar.com/nation/edit/</a>"})
                 
-                embeds += await utils.embed_pager(f"{alliance['name']} food", food_fields)
-                embeds += await utils.embed_pager(f"{alliance['name']} inactivity", inactivity_fields)
-                embeds += await utils.embed_pager(f"{alliance['name']} spies", spy_fields)
-                embeds += await utils.embed_pager(f"{alliance['name']} color", color_fields)
+                embeds += utils.embed_pager(f"{alliance[0]['alliance']['name']} food", food_fields)
+                embeds += utils.embed_pager(f"{alliance[0]['alliance']['name']} inactivity", inactivity_fields)
+                embeds += utils.embed_pager(f"{alliance[0]['alliance']['name']} spies", spy_fields)
+                embeds += utils.embed_pager(f"{alliance[0]['alliance']['name']} color", color_fields)
 
             await message.delete()
             for embed in embeds:
