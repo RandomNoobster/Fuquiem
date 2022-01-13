@@ -158,8 +158,6 @@ class Military(commands.Cog):
             async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation_id}){{data{{nation_name leader_name id alliance{{name}} cities{{barracks factory airforcebase drydock}} population score last_active beigeturns vmode pirate_economy color dompolicy alliance_id num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{defender{{nation_name leader_name alliance_id alliance{{name}} cities{{barracks factory airforcebase drydock}} id pirate_economy score last_active beigeturns vmode num_cities color defensive_wars{{turnsleft}} offensive_wars{{turnsleft}} soldiers tanks aircraft ships nukes missiles}} date id attid winner att_resistance def_resistance attpoints defpoints attpeace defpeace war_type groundcontrol airsuperiority navalblockade turnsleft att_fortify def_fortify}} defensive_wars{{attacker{{nation_name leader_name alliance_id alliance{{name}} id cities{{barracks factory airforcebase drydock}} pirate_economy score last_active beigeturns vmode num_cities color defensive_wars{{turnsleft}} offensive_wars{{turnsleft}} soldiers tanks aircraft ships nukes missiles}} date id attid winner att_resistance def_resistance attpoints defpoints attpeace defpeace war_type groundcontrol airsuperiority navalblockade turnsleft att_fortify def_fortify}}}}}}}}"}) as temp:
                 try:
                     nation = (await temp.json())['data']['nations']['data'][0]
-                    #pretty_response = json.dumps(nation, indent=4)
-                    #print(pretty_response)
                 except:
                     print((await temp.json())['errors'])
                     return
@@ -209,8 +207,8 @@ class Military(commands.Cog):
         desc = f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) | {alliance}\n\nLast login: <t:{round(datetime.strptime(nation['last_active'], '%Y-%m-%d %H:%M:%S').timestamp())}:R>\nOffensive wars: {len(nation['offensive_wars'])}/{max_offense}\nDefensive wars: {len(nation['defensive_wars'])}/3\nDefensive range: {round(nation['score'] / 1.75)} - {round(nation['score'] / 0.75)}{beige}\n\nSoldiers: **{nation['soldiers']:,}** / {max_sol:,}\nTanks: **{nation['tanks']:,}** / {max_tnk:,}\nPlanes: **{nation['aircraft']:,}** / {max_pln:,}\nShips: **{nation['ships']:,}** / {max_shp:,}"
         embed = discord.Embed(title=f"{nation['nation_name']} ({nation['id']}) & their wars", description=desc, color=0x00ff00)
         embed1 = discord.Embed(title=f"{nation['nation_name']} ({nation['id']}) & their wars", description=desc, color=0x00ff00)
-        embed.set_footer(text="_________________________________\nThe winrate is the chance for the nation in question to win a ground/air/naval roll. Battles consists of 3 rolls. A percentage abvove 50 is good. Use $battlesim for more detailed battle predictions.")
-        embed1.set_footer(text="_________________________________\nThe winrate is the chance for the nation in question to win a ground/air/naval roll. Battles consists of 3 rolls. A percentage abvove 50 is good. Use $battlesim for more detailed battle predictions.")
+        embed.set_footer(text="_________________________________\nThe winrate is the chance for the nation in question to win a ground/air/naval roll against the main enemy. Battles consists of 3 rolls. A percentage abvove 50 is good. Use $battlesim for more detailed battle predictions.")
+        embed1.set_footer(text="_________________________________\nThe winrate is the chance for the nation in question to win a ground/air/naval roll against the main enemy. Battles consists of 3 rolls. A percentage abvove 50 is good. Use $battlesim for more detailed battle predictions.")
         n = 1
 
         for war in nation['offensive_wars'] + nation['defensive_wars']:
@@ -1790,13 +1788,25 @@ class Military(commands.Cog):
             embed1.add_field(name="Naval Battle", value="Nobody has any forces!")
 
         embed.add_field(name="Casualties", value=f"Att. Sol.: {results['nation1_ground_nation1_avg_soldiers']:,} ± {results['nation1_ground_nation1_diff_soldiers']:,}\nAtt. Tnk.: {results['nation1_ground_nation1_avg_tanks']:,} ± {results['nation1_ground_nation1_diff_tanks']:,}\n\nDef. Sol.: {results['nation1_ground_nation2_avg_soldiers']:,} ± {results['nation1_ground_nation2_diff_soldiers']:,}\nDef. Tnk.: {results['nation1_ground_nation2_avg_tanks']:,} ± {results['nation1_ground_nation2_diff_tanks']:,}\n\n{results['aircas1']}")        
-        embed1.add_field(name="results", value=f"Att. Sol.: {results['nation2_ground_nation2_avg_soldiers']:,} ± {results['nation2_ground_nation2_diff_soldiers']:,}\nAtt. Tnk.: {results['nation2_ground_nation2_avg_tanks']:,} ± {results['nation2_ground_nation2_diff_tanks']:,}\n\nDef. Sol.: {results['nation2_ground_nation1_avg_soldiers']:,} ± {results['nation2_ground_nation1_diff_soldiers']:,}\nDef. Tnk.: {results['nation2_ground_nation1_avg_tanks']:,} ± {results['nation2_ground_nation1_diff_tanks']:,}\n\n{results['aircas2']}")        
+        embed1.add_field(name="Casualties", value=f"Att. Sol.: {results['nation2_ground_nation2_avg_soldiers']:,} ± {results['nation2_ground_nation2_diff_soldiers']:,}\nAtt. Tnk.: {results['nation2_ground_nation2_avg_tanks']:,} ± {results['nation2_ground_nation2_diff_tanks']:,}\n\nDef. Sol.: {results['nation2_ground_nation1_avg_soldiers']:,} ± {results['nation2_ground_nation1_diff_soldiers']:,}\nDef. Tnk.: {results['nation2_ground_nation1_avg_tanks']:,} ± {results['nation2_ground_nation1_diff_tanks']:,}\n\n{results['aircas2']}")        
         
-        embed.add_field(name="Casualties", value=f"*Targeting air:*\nAtt. Plane: {results['nation1_airtoair_nation1_avg']:,} ± {results['nation1_airtoair_nation1_diff']:,}\nDef. Plane: {results['nation1_airtoair_nation2_avg']:,} ± {results['nation1_airtoair_nation2_diff']:,}\n\n*Targeting other:*\nAtt. Plane: {results['nation1_airtoother_nation1_avg']:,} ± {results['nation1_airtoother_nation1_diff']:,}\nDef. Plane: {results['nation1_airtoother_nation2_avg']:,} ± {results['nation1_airtoother_nation2_diff']:,}")        
-        embed1.add_field(name="Casualties", value=f"*Targeting air:*\nAtt. Plane: {results['nation2_airtoair_nation2_avg']:,} ± {results['nation2_airtoair_nation2_diff']:,}\nDef. Plane: {results['nation2_airtoair_nation1_avg']:,} ± {results['nation2_airtoair_nation1_diff']:,}\n\n*Targeting other:*\nAtt. Plane: {results['nation2_airtoother_nation2_avg']:,} ± {results['nation2_airtoother_nation2_diff']:,}\nDef. Plane: {results['nation2_airtoother_nation1_avg']:,} ± {results['nation2_airtoother_nation1_diff']:,}")        
+        embed.add_field(name="Casualties", value=f"*Targeting air:*\nAtt. Plane: {results['nation1_airtoair_nation1_avg']:,} ± {results['nation1_airtoair_nation1_diff']:,}\nDef. Plane: {results['nation1_airtoair_nation2_avg']:,} ± {results['nation1_airtoair_nation2_diff']:,}\n\n*Targeting other:*\nAtt. Plane: {results['nation1_airtoother_nation1_avg']:,} ± {results['nation1_airtoother_nation1_diff']:,}\nDef. Plane: {results['nation1_airtoother_nation2_avg']:,} ± {results['nation1_airtoother_nation2_diff']:,}\n\u200b")        
+        embed1.add_field(name="Casualties", value=f"*Targeting air:*\nAtt. Plane: {results['nation2_airtoair_nation2_avg']:,} ± {results['nation2_airtoair_nation2_diff']:,}\nDef. Plane: {results['nation2_airtoair_nation1_avg']:,} ± {results['nation2_airtoair_nation1_diff']:,}\n\n*Targeting other:*\nAtt. Plane: {results['nation2_airtoother_nation2_avg']:,} ± {results['nation2_airtoother_nation2_diff']:,}\nDef. Plane: {results['nation2_airtoother_nation1_avg']:,} ± {results['nation2_airtoother_nation1_diff']:,}\n\u200b")        
 
         embed.add_field(name="Casualties", value=f"Att. Ships: {results['nation1_naval_nation1_avg']:,} ± {results['nation1_naval_nation1_diff']:,}\nDef. Ships: {results['nation1_naval_nation2_avg']:,} ± {results['nation1_naval_nation2_diff']:,}")        
         embed1.add_field(name="Casualties", value=f"Att. Ships: {results['nation2_naval_nation2_avg']:,} ± {results['nation2_naval_nation2_diff']:,}\nDef. Ships: {results['nation2_naval_nation1_avg']:,} ± {results['nation2_naval_nation1_diff']:,}")        
+
+        embed.add_field(name="Consumption", value=f"Att. Mun.: {round(results['nation1_ground_nation1_mun'], 2):,}\nAtt. Gas.: {round(results['nation1_ground_nation1_gas'], 2):,}\n\nDef. Mun.: {round(results['nation1_ground_nation2_mun'], 2):,}\nDef. Gas.: {round(results['nation1_ground_nation2_gas'], 2):,}")
+        embed1.add_field(name="Consumption", value=f"Att. Mun.: {round(results['nation2_ground_nation2_mun'], 2):,}\nAtt. Gas.: {round(results['nation2_ground_nation2_gas'], 2):,}\n\nDef. Mun.: {round(results['nation2_ground_nation1_mun'], 2):,}\nDef. Gas.: {round(results['nation2_ground_nation1_gas'], 2):,}")
+        
+        embed.add_field(name="Consumption", value=f"Att. Mun.: {round(results['nation1_air_nation1_mun'], 2):,}\nAtt. Gas.: {round(results['nation1_air_nation1_gas'], 2):,}\n\nDef. Mun.: {round(results['nation1_air_nation2_mun'], 2):,}\nDef. Gas.: {round(results['nation1_air_nation2_gas'], 2):,}")
+        embed1.add_field(name="Consumption", value=f"Att. Mun.: {round(results['nation2_air_nation2_mun'], 2):,}\nAtt. Gas.: {round(results['nation2_air_nation2_gas'], 2):,}\n\nDef. Mun.: {round(results['nation2_air_nation1_mun'], 2):,}\nDef. Gas.: {round(results['nation2_air_nation1_gas'], 2):,}")
+
+        embed.add_field(name="Consumption", value=f"Att. Mun.: {round(results['nation1_naval_nation1_mun']):,}\nAtt. Gas.: {round(results['nation1_naval_nation1_gas']):,}\n\nDef. Mun.: {round(results['nation1_naval_nation2_mun']):,}\nDef. Gas.: {round(results['nation1_naval_nation2_gas']):,}")
+        embed1.add_field(name="Consumption", value=f"Att. Mun.: {round(results['nation2_naval_nation2_mun']):,}\nAtt. Gas.: {round(results['nation2_naval_nation2_gas']):,}\n\nDef. Mun.: {round(results['nation2_naval_nation1_mun']):,}\nDef. Gas.: {round(results['nation2_naval_nation1_gas']):,}")
+
+        embed.set_footer(text="_________________________\nIf the attacker gets an Utter Failure *and* consumes less munitions/gasoline than the amount predicted for the defender, the defender will consume the same amount of munitions and/or gasoline as the attacker.")
+        embed1.set_footer(text="_________________________\nIf the attacker gets an Utter Failure *and* consumes less munitions/gasoline than the amount predicted for the defender, the defender will consume the same amount of munitions and/or gasoline as the attacker.")
 
         await message.edit(embed=embed, content="")
         await message.add_reaction("↔️")
@@ -1840,9 +1850,9 @@ class Military(commands.Cog):
         results = {}
 
         async with aiohttp.ClientSession() as session:
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation1_id}){{data{{nation_name population id soldiers tanks aircraft ships defensive_wars{{groundcontrol airsuperiority navalblockade attpeace defpeace attid defid att_fortify def_fortify turnsleft}} offensive_wars{{groundcontrol airsuperiority navalblockade attpeace defpeace attid defid att_fortify def_fortify turnsleft}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation1_id}){{data{{nation_name population warpolicy id soldiers tanks aircraft ships cities{{infrastructure land}} defensive_wars{{groundcontrol airsuperiority navalblockade attpeace defpeace attid defid att_fortify def_fortify turnsleft war_type}} offensive_wars{{groundcontrol airsuperiority navalblockade attpeace defpeace attid defid att_fortify def_fortify turnsleft war_type}}}}}}}}"}) as temp:
                 results['nation1_nation'] = (await temp.json())['data']['nations']['data'][0]
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation2_id}){{data{{nation_name population id soldiers tanks aircraft ships}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation2_id}){{data{{nation_name population warpolicy id soldiers tanks aircraft ships cities{{infrastructure land}}}}}}}}"}) as temp:
                 results['nation2_nation'] = (await temp.json())['data']['nations']['data'][0]
 
         results['nation1_append'] = ""
@@ -1878,9 +1888,9 @@ class Military(commands.Cog):
                     results['nation1_append'] += "<:fortified:925465012955385918>"
                     results['nation2_extra_cas'] = 1.25
                 if war['attpeace']:
-                    results['nation1_append'] += "<:peace:926855240655990836>"
-                elif war['defpeace']:
                     results['nation2_append'] += "<:peace:926855240655990836>"
+                elif war['defpeace']:
+                    results['nation1_append'] += "<:peace:926855240655990836>"
             elif war['defid'] == nation2_id and war['turnsleft'] > 0 and war in results['nation1_nation']['offensive_wars']:
                 if war['groundcontrol'] == nation1_id:
                     results['gc'] = results['nation1_nation']
@@ -1905,9 +1915,9 @@ class Military(commands.Cog):
                     results['nation2_append'] += "<:fortified:925465012955385918>"
                     results['nation1_extra_cas'] = 1.25
                 if war['attpeace']:
-                    results['nation2_append'] += "<:peace:926855240655990836>"
-                elif war['defpeace']:
                     results['nation1_append'] += "<:peace:926855240655990836>"
+                elif war['defpeace']:
+                    results['nation2_append'] += "<:peace:926855240655990836>"
         
         nation2_army_value = results['nation2_nation']['soldiers'] * 1.75 + results['nation2_nation']['tanks'] * 40 * results['nation2_tanks'] + results['nation2_nation']['population'] * 0.0025
         nation1_army_value = results['nation1_nation']['soldiers'] * 1.75 + results['nation1_nation']['tanks'] * 40 * results['nation1_tanks']
@@ -2009,8 +2019,68 @@ class Military(commands.Cog):
         results['nation1_naval_pyr'] = results['nation1_naval_win_rate'] * (1 - results['nation1_naval_win_rate'])**2 * 3
         results['nation1_naval_fail'] = (1 - results['nation1_naval_win_rate'])**3
 
-        return results
+        def def_rss_consumption(winrate: Union[int, float]) -> float:
+            rate = -0.4624 * winrate**2 + 1.06256 * winrate + 0.3999            
+            if rate < 0.4:
+                rate = 0.4
+            return rate
+            ## See note
 
+        results['nation1_ground_nation2_mun'] = (results['nation2_nation']['soldiers'] * 0.0002 + results['nation2_nation']['population'] / 2000000 + results['nation2_nation']['tanks'] * 0.01) * def_rss_consumption(results['nation1_ground_win_rate'])
+        results['nation1_ground_nation2_gas'] = (results['nation2_nation']['tanks'] * 0.01) * def_rss_consumption(results['nation1_ground_win_rate'])
+        results['nation1_ground_nation1_mun'] = results['nation1_nation']['soldiers'] * 0.0002 + results['nation1_nation']['tanks'] * 0.01
+        results['nation1_ground_nation1_gas'] = results['nation1_nation']['tanks'] * 0.01
+        
+        results['nation2_ground_nation2_gas'] = results['nation2_nation']['tanks'] * 0.01
+        results['nation2_ground_nation2_mun'] = results['nation2_nation']['soldiers'] * 0.0002 + results['nation2_nation']['tanks'] * 0.01
+        results['nation2_ground_nation1_gas'] = (results['nation1_nation']['tanks'] * 0.01) * def_rss_consumption(results['nation2_ground_win_rate'])
+        results['nation2_ground_nation1_mun'] = (results['nation1_nation']['soldiers'] * 0.0002 + results['nation1_nation']['population'] / 2000000 + results['nation1_nation']['tanks'] * 0.01) * def_rss_consumption(results['nation2_ground_win_rate'])
+        
+        results['nation1_air_nation1_mun'] = results['nation1_nation']['aircraft'] / 4 
+        results['nation1_air_nation1_gas'] = results['nation1_nation']['aircraft'] / 4 
+        results['nation1_air_nation2_mun'] = results['nation2_nation']['aircraft'] / 4 * def_rss_consumption(results['nation1_air_win_rate'])
+        results['nation1_air_nation2_gas'] = results['nation2_nation']['aircraft'] / 4 * def_rss_consumption(results['nation1_air_win_rate'])
+
+        results['nation2_air_nation2_mun'] = results['nation2_nation']['aircraft'] / 4 
+        results['nation2_air_nation2_gas'] = results['nation2_nation']['aircraft'] / 4 
+        results['nation2_air_nation1_mun'] = results['nation1_nation']['aircraft'] / 4 * def_rss_consumption(1 - results['nation1_air_win_rate'])
+        results['nation2_air_nation1_gas'] = results['nation1_nation']['aircraft'] / 4 * def_rss_consumption(1 - results['nation1_air_win_rate'])
+
+        results['nation1_naval_nation2_mun'] = results['nation2_nation']['ships'] * 3 * def_rss_consumption(results['nation1_naval_win_rate'])
+        results['nation1_naval_nation2_gas'] = results['nation2_nation']['ships'] * 2 * def_rss_consumption(results['nation1_naval_win_rate'])
+        results['nation1_naval_nation1_mun'] = results['nation1_nation']['ships'] * 3
+        results['nation1_naval_nation1_gas'] = results['nation1_nation']['ships'] * 2
+
+        results['nation2_naval_nation2_mun'] = results['nation2_nation']['ships'] * 3
+        results['nation2_naval_nation2_gas'] = results['nation2_nation']['ships'] * 2
+        results['nation2_naval_nation1_mun'] = results['nation1_nation']['ships'] * 3 * def_rss_consumption(1 - results['nation1_naval_win_rate'])
+        results['nation2_naval_nation1_gas'] = results['nation1_nation']['ships'] * 2 * def_rss_consumption(1 - results['nation1_naval_win_rate'])
+
+        ## NOTE!! Defender gas and min consumption will be attacker's consumption if that is the lesser option and the attack is an utter failure
+        
+        """nation1_city = sorted(results['nation1_nation']['cities'], key=lambda k: k['infrastructure'], reverse=True)[0]
+        nation2_city = sorted(results['nation2_nation']['cities'], key=lambda k: k['infrastructure'], reverse=True)[0]
+
+        temp = max(min((results['nation1_nation']['soldiers'] - (results['nation2_nation']['soldiers'] * 0.5) * 0.000606061 + (results['nation1_nation']['tanks'] - (results['nation2_nation']['tanks'] * 0.5)) * 0.01) * random.uniform(0.85, 1.05) * (results['nation1_ground_win_rate']**3 * 3 / 3), nation2_city['infrastructure'] * 0.2 + 25), 0)
+        print(temp)
+
+        results['nation1_ground_nation2_cost'] = (results['nation2_nation']['tanks'] * 0.01) * def_rss_consumption(results['nation1_ground_win_rate'])
+        results['nation1_ground_nation1_cost'] = results['nation1_nation']['soldiers'] * 0.0002 + results['nation1_nation']['tanks'] * 0.01
+        results['nation2_ground_nation2_cost'] = results['nation2_nation']['soldiers'] * 0.0002 + results['nation2_nation']['tanks'] * 0.01
+        results['nation2_ground_nation1_cost'] = (results['nation1_nation']['tanks'] * 0.01) * def_rss_consumption(results['nation2_ground_win_rate'])
+
+        results['nation1_air_nation1_cost'] = results['nation1_nation']['aircraft'] / 4 
+        results['nation1_air_nation2_cost'] = results['nation2_nation']['aircraft'] / 4 * def_rss_consumption(results['nation1_air_win_rate'])
+        results['nation2_air_nation2_cost'] = results['nation2_nation']['aircraft'] / 4 
+        results['nation2_air_nation1_cost'] = results['nation1_nation']['aircraft'] / 4 * def_rss_consumption(1 - results['nation1_air_win_rate'])
+        
+        results['nation1_naval_nation2_cost'] = results['nation2_nation']['ships'] * 2 * def_rss_consumption(results['nation1_naval_win_rate'])
+        results['nation1_naval_nation1_cost'] = results['nation1_nation']['ships'] * 3
+        results['nation2_naval_nation2_cost'] = results['nation2_nation']['ships'] * 2
+        results['nation2_naval_nation1_cost'] = results['nation1_nation']['ships'] * 3 * def_rss_consumption(1 - results['nation1_naval_win_rate'])"""
+        ## on hold until infra cost is figured out
+
+        return results
 
 def setup(bot):
     bot.add_cog(Military(bot))
