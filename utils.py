@@ -311,6 +311,7 @@ async def revenue_calc(message: discord.Message, nation: dict, radiation: dict, 
         city['land'] = round(land/nation['num_cities'])
         city['powered'] = True
         city['date'] = nation['cities'][math.ceil(nation['num_cities']/2)]['date']
+        city['airforcebase'] = city['hangars']
         nation['cities'] = [city]
         #print(city)
 
@@ -536,7 +537,7 @@ async def revenue_calc(message: discord.Message, nation: dict, radiation: dict, 
     rev_obj['monetary_net_num'] = round(money_income * policy_bonus * new_player_bonus * nation_treasure_bonus + color_bonus - power_upkeep - rss_upkeep - military_upkeep * mil_cost - civil_upkeep + coal * prices['coal'] + oil * prices['oil'] + uranium * prices['uranium'] + lead * prices['lead'] + iron * prices['iron'] + bauxite * prices['bauxite'] + gasoline * prices['gasoline'] + munitions * prices['munitions'] + steel * prices['steel'] + aluminum * prices['aluminum'] + food * prices['food'])
     rev_obj['net_cash_num'] = round(money_income * policy_bonus * new_player_bonus * nation_treasure_bonus + color_bonus - power_upkeep - rss_upkeep - military_upkeep * mil_cost - civil_upkeep)
     rev_obj['food'] = food
-    if single_city:
+    if single_city and not build:
         rev_obj['money'] = rev_obj['net_cash_num']
         rev_obj['net income'] = rev_obj['monetary_net_num']
         rev_obj['aluminum'] = aluminum
