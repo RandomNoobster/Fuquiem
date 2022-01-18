@@ -75,10 +75,12 @@ class Database(commands.Cog):
     async def dba(self, ctx, disc: discord.User, nation):
         async with aiohttp.ClientSession() as session:
             nid = str(re.sub("[^0-9]", "", nation))
-            current = list(mongo['users'].find({}))
-            for x in current:
-                if x['user'] == disc.id:
-                    await ctx.send(f'They are already in the db!')
+            for arg in [disc, nation]:
+                if utils.find_user(self, arg):
+                    await ctx.send(f'{arg} is already in the primary db!')
+                    return
+                if utils.find_user(self, arg, True):
+                    await ctx.send(f'{arg} is already in the secondary db!')
                     return
             async with session.get(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': f"{{nations(first:1 id:{nid}){{data{{id leader_name nation_name alliance{{name id}}}}}}}}"}) as temp:
                 try:
