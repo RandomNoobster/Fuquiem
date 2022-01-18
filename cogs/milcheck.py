@@ -500,7 +500,7 @@ class Military(commands.Cog):
                             await thread.send(embed=embed)
                             mongo.war_logs.find_one_and_update({"id": war['id']}, {"$push": {"attacks": attack['id']}})
                             break
-                        elif attack['type'] in ["PEACE", "VICTORY", "ALLIANCELOOT"]:
+                        elif attack['type'] in ["PEACE", "VICTORY", "ALLIANCELOOT", "EXPIRATION"]:
                             if attack['type'] == "PEACE":
                                 title = "White peace"
                                 color = 0xffFFff
@@ -522,6 +522,10 @@ class Military(commands.Cog):
                                 title = "Alliance loot"
                                 loot = attack['loot_info'].replace('\r\n                            ', '')
                                 content = f"{loot}"
+                            elif attack['type'] == "EXPIRATION":
+                                title = "War expiration"
+                                color = 0xffFFff
+                                content = f"The war has lasted 5 days, and has consequently expired. [{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) is no longer fighting an offensive war against [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']})."
                             embed = discord.Embed(title=title, url=url, description=content, color=color)
                             embed.add_field(name="\u200b", value=footer, inline=False)
                             await thread.send(embed=embed)
@@ -645,10 +649,13 @@ class Military(commands.Cog):
                             if attack['id'] not in attack_logs['attacks']:
                                 attacker = await attack_check(attack, done_war)
                                 await smsg(attacker, attack, done_war, atom, non_atom, None)
+                        if done_war['attacks'][-1]['type'] not in ["PEACE", "VICTORY", "ALLIANCELOOT"]:
+                            attack = {"type": "EXPIRATION"}
+                            await smsg(None, attack, done_war, atom, non_atom, None)
                         for thread in channel.threads:
                             if f"({non_atom['id']})" in thread.name:
                                 await self.remove_from_thread(thread, atom['id'], atom)
-                                if thread.member_count == 1:
+                                if thread.member_count >= 1:
                                     await thread.edit(archived=True)
                                 mongo.war_logs.find_one_and_update({"id": done_war['id']}, {"$set": {"finished": True}})
                                 break
