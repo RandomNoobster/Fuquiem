@@ -372,6 +372,7 @@ class Military(commands.Cog):
     async def wars(self):
         await self.bot.wait_until_ready()
         channel = self.bot.get_channel(923249186500116560) ## 923249186500116560
+        debug_channel = self.bot.get_channel(739155202640183377)
         prev_wars = None
 
         async def cthread(war, non_atom, atom):
@@ -654,7 +655,7 @@ class Military(commands.Cog):
                 prev_wars = wars
                 await asyncio.sleep(60)
             except Exception as e:
-                await channel.send(f"I encountered an error```{e}```")
+                await debug_channel.send(f"I encountered an error```{e}```")
 
     @commands.command(brief='Add someone to the military coordination thread.')
     @commands.has_any_role('Pupil', 'Zealot', 'Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
@@ -729,48 +730,70 @@ class Military(commands.Cog):
                 alliance = 'convent'
                 aa = requests.get(
                     f'http://politicsandwar.com/api/alliance-members/?allianceid=7531&key={convent_key}').json()
-            f1 = list(mongo.users.find({}))
-            randy = await utils.find_user(self, 465463547200012298)
-            if len(randy['email']) <= 1 or len(randy['pwd']) <= 1:
-                await ctx.send("<@465463547200012298>'s credentials are wrong?")
-            for nation in aa['nations']:
+
+            await self.top_up(ctx, aa['nations'])
+            await ctx.send("Finished!")
+                    
+    @commands.command(brief="Sends a warchest top up to the person you specified", help="Requires admin perms. It's basically the $warchest command, but it's limited to the person you specified.")
+    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    async def resupply(self, ctx, *, arg):
+        async with aiohttp.ClientSession() as session:
+            person = await utils.find_user(self, arg)
+
+            async with session.get(f"http://politicsandwar.com/api/nation/id={person['nationid']}&key={api_key}") as temp:
+                nation = (await temp.json())
+            if nation['allianceid'] == '4729':
+                async with session.get(f"http://politicsandwar.com/api/alliance-members/?allianceid=4729&key={api_key}") as temp1:
+                    aa = (await temp1.json())
+            elif nation['allianceid'] == '7531':
+                async with session.get(f"http://politicsandwar.com/api/alliance-members/?allianceid=7531&key={convent_key}") as temp2:
+                    aa = (await temp2.json())
+            else:
+                await ctx.send(content="They are not in CoA.")
+
+            for member in aa['nations']:
+                if str(member['nationid']) == nation['nationid']:
+                    nation = member
+                    break
+
+            await self.top_up(ctx, [nation])
+            await ctx.send("Finished!")
+
+    async def top_up(self, ctx, nations: list):
+        randy = await utils.find_user(self, 465463547200012298)
+        if len(randy['email']) <= 1 or len(randy['pwd']) <= 1:
+            await ctx.send(content="<@465463547200012298>'s credentials are wrong?")
+        async with aiohttp.ClientSession() as session:            
+            for nation in nations:
                 try:
                     if int(nation['vacmode']) > 0:
                         continue
                     city_count = nation['cities']
                     user = None
                     excess = ""
-                    person = await utils.find_user(self, str(nation['nationid']))
+                    person = await utils.find_user(self, 465463547200012298)
                     minmoney = round(city_count * 500000 - float(nation['money']))
                     maxmoney = round(city_count * 500000 * 3 - float(nation['money']))
                     if maxmoney < 0:
                         if person != {}:
                             user = await self.bot.fetch_user(person['user'])
-                            excess += "$" + \
-                                str(round(abs(city_count * 500000 * 2 -
-                                    float(nation['money'])))) + " money, "
+                            excess += "&d_money=" + str(round(abs(city_count * 500000 * 2 - float(nation['money']))))
                     if minmoney < 0:
                         minmoney = 0
-                    mingasoline = round(city_count * 320.25 -
-                                        float(nation['gasoline']))
-                    maxgasoline = round(city_count * 320.25 * 3 -
-                                        float(nation['gasoline']))
+                    mingasoline = round(city_count * 320.25 - float(nation['gasoline']))
+                    maxgasoline = round(city_count * 320.25 * 3 - float(nation['gasoline']))
                     if maxgasoline < 0:
                         if person != {}:
                             user = await self.bot.fetch_user(person['user'])
-                            excess += str(round(abs(city_count * 320.25 *
-                                        2 - float(nation['gasoline'])))) + " gasoline, "
+                            excess += "&d_gasoline=" + str(round(abs(city_count * 320.25 * 2 - float(nation['gasoline']))))
                     if mingasoline < 0:
                         mingasoline = 0
-                    minmunitions = round(city_count * 361.2 -
-                                        float(nation['munitions']))
-                    maxmunitions = round(city_count * 361.2 * 3 -
-                                        float(nation['munitions']))
+                    minmunitions = round(city_count * 361.2 - float(nation['munitions']))
+                    maxmunitions = round(city_count * 361.2 * 3 - float(nation['munitions']))
                     if maxmunitions < 0:
                         if person != {}:
                             user = await self.bot.fetch_user(person['user'])
-                            excess += str(round(abs(city_count * 361.2 * 2 -
-                                        float(nation['munitions'])))) + " munitions, "
+                            excess += "&d_munitions=" + str(round(abs(city_count * 361.2 * 2 - float(nation['munitions']))))
                     if minmunitions < 0:
                         minmunitions = 0
                     minsteel = round(city_count * 619.5 - float(nation['steel']))
@@ -778,34 +801,32 @@ class Military(commands.Cog):
                     if maxsteel < 0:
                         if person != {}:
                             user = await self.bot.fetch_user(person['user'])
-                            excess += str(round(abs(city_count * 619.5 *
-                                        2 - float(nation['steel'])))) + " steel, "
+                            excess += "&d_steel=" + str(round(abs(city_count * 619.5 * 2 - float(nation['steel']))))
                     if minsteel < 0:
                         minsteel = 0
                     minaluminum = round(city_count * 315 - float(nation['aluminum']))
-                    maxaluminum = round(city_count * 315 * 3 -
-                                        float(nation['aluminum']))
+                    maxaluminum = round(city_count * 315 * 3 - float(nation['aluminum']))
                     if maxaluminum < 0:
                         if person != {}:
                             user = await self.bot.fetch_user(person['user'])
-                            excess += str(round(abs(city_count * 315 * 2 -
-                                        float(nation['aluminum'])))) + " aluminum, "
+                            excess += "&d_aluminum=" + str(round(abs(city_count * 315 * 2 - float(nation['aluminum']))))
                     if minaluminum < 0:
                         minaluminum = 0
 
+                    if excess:
+                        try:
+                            if user == None:
+                                pass
+                            else:
+                                await user.send(f"Hey, you have an excess of resources! Please use this pre-filled link to deposit the resources for safekeeping: <https://politicsandwar.com/alliance/id={nation['allianceid']}&display=bank{excess}>")
+                                await ctx.send(f"Sent a message to {user}")
+                        except discord.Forbidden:
+                            await ctx.send(f"{user} does not allow my DMs")
+                        except:
+                            await ctx.send(f"cannot message {nation['nation']} yet they did not block me")
+                    
                     if minmoney == 0 and mingasoline == 0 and minmunitions == 0 and minsteel == 0 and minaluminum == 0:
                         continue
-
-                    try:
-                        if user == None:
-                            pass
-                        else:
-                            await user.send(f"Hey, you have an excess of {excess}please deposit it here for safekeeping: https://politicsandwar.com/alliance/id={nation['allianceid']}&display=bank")
-                            print('i just sent a msg to', user, excess)
-                    except discord.Forbidden:
-                        await ctx.send(f"{user} does not allow my DMs")
-                    except:
-                        print('cannot message', nation['nation'], ' yet they did not block me')
 
                     with requests.Session() as s:
                         login_url = "https://politicsandwar.com/login/"
@@ -840,7 +861,6 @@ class Military(commands.Cog):
                         p = s.post(withdraw_url, data=withdraw_data)
                         end_time = (datetime.utcnow() + timedelta(seconds=5))
                         await ctx.send(f"```{withdraw_data}```")
-                        print(f'Response: {p}')
                         success = False
                         async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={person['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
                             txids = await txids.json()
@@ -848,148 +868,13 @@ class Military(commands.Cog):
                             if x['note'] == 'Resupplying warchest' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
                                 success = True
                         if success:
-                            await ctx.send(f"I can confirm that the transaction to {nation['nation']} ({nation['leader']}) has successfully commenced.")
+                            await ctx.send(f"I can confirm that the transaction to **{nation['nation']} ({nation['leader']})** has successfully commenced.")
                         else:
-                            await ctx.send(f"<@465463547200012298> the transaction to {nation['nation']} ({nation['leader']}) might have failed. Check this page to be sure:\nhttps://politicsandwar.com/nation/id={nation['nationid']}&display=bank")
+                            await ctx.send(f"<@465463547200012298> the transaction to **{nation['nation']} ({nation['leader']})** might have failed. Check this page to be sure:\nhttps://politicsandwar.com/nation/id={nation['nationid']}&display=bank")
                 except Exception as e:
                     print(e)
                     await ctx.send(e)
-                    
-    @commands.command(brief="Sends a warchest top up to the person you specified", help="Requires admin perms. It's basically the $warchest command, but it's limited to the person you specified.")
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
-    async def resupply(self, ctx, *, arg):
-        async with aiohttp.ClientSession() as session:
-            person = await utils.find_user(self, arg)
-            randy = await utils.find_user(self, 465463547200012298)
-
-            if len(randy['email']) <= 1 or len(randy['pwd']) <= 1:
-                await ctx.send("<@465463547200012298>'s credentials are wrong?")
-
-            async with session.get(f"http://politicsandwar.com/api/nation/id={person['nationid']}&key={api_key}") as temp:
-                nation = (await temp.json())
-            if nation['allianceid'] == '4729':
-                async with session.get(f"http://politicsandwar.com/api/alliance-members/?allianceid=4729&key={api_key}") as temp1:
-                    aa = (await temp1.json())
-            elif nation['allianceid'] == '7531':
-                async with session.get(f"http://politicsandwar.com/api/alliance-members/?allianceid=7531&key={convent_key}") as temp2:
-                    aa = (await temp2.json())
-            else:
-                await ctx.send("They are not in CoA.")
-
-            for member in aa['nations']:
-                if str(member['nationid']) == nation['nationid']:
-                    nation = member
-                    break
-
-            city_count = nation['cities']
-            excess = ""
-            minmoney = round(city_count * 500000 - float(nation['money']))
-            maxmoney = round(city_count * 500000 * 3 - float(nation['money']))
-            if maxmoney < 0:
-                if person != {}:
-                    user = await self.bot.fetch_user(person['user'])
-                    excess += "$" + \
-                        str(round(abs(city_count * 500000 * 2 -
-                            float(nation['money'])))) + " money, "
-            if minmoney < 0:
-                minmoney = 0
-            mingasoline = round(city_count * 320.25 -
-                                float(nation['gasoline']))
-            maxgasoline = round(city_count * 320.25 * 3 -
-                                float(nation['gasoline']))
-            if maxgasoline < 0:
-                if person != {}:
-                    user = await self.bot.fetch_user(person['user'])
-                    excess += str(round(abs(city_count * 320.25 *
-                                  2 - float(nation['gasoline'])))) + " gasoline, "
-            if mingasoline < 0:
-                mingasoline = 0
-            minmunitions = round(city_count * 361.2 -
-                                 float(nation['munitions']))
-            maxmunitions = round(city_count * 361.2 * 3 -
-                                 float(nation['munitions']))
-            if maxmunitions < 0:
-                if person != {}:
-                    user = await self.bot.fetch_user(person['user'])
-                    excess += str(round(abs(city_count * 361.2 * 2 -
-                                  float(nation['munitions'])))) + " munitions, "
-            if minmunitions < 0:
-                minmunitions = 0
-            minsteel = round(city_count * 619.5 - float(nation['steel']))
-            maxsteel = round(city_count * 619.5 * 3 - float(nation['steel']))
-            if maxsteel < 0:
-                if person != {}:
-                    user = await self.bot.fetch_user(person['user'])
-                    excess += str(round(abs(city_count * 619.5 *
-                                  2 - float(nation['steel'])))) + " steel, "
-            if minsteel < 0:
-                minsteel = 0
-            minaluminum = round(city_count * 315 - float(nation['aluminum']))
-            maxaluminum = round(city_count * 315 * 3 -
-                                float(nation['aluminum']))
-            if maxaluminum < 0:
-                if person != {}:
-                    user = await self.bot.fetch_user(person['user'])
-                    excess += str(round(abs(city_count * 315 * 2 -
-                                  float(nation['aluminum'])))) + " aluminum, "
-            if minaluminum < 0:
-                minaluminum = 0
-
-            if minmoney == 0 and mingasoline == 0 and minmunitions == 0 and minsteel == 0 and minaluminum == 0:
-                await ctx.send("This person already has enough resources to fulfill minimum requirements!")
-
-            try:
-                await user.send(f"Hey, you have an excess of {excess}please deposit it here for safekeeping: https://politicsandwar.com/alliance/id={nation['allianceid']}&display=bank")
-                print('i just sent a msg to', user, excess)
-            except discord.Forbidden:
-                await ctx.send(user, 'does not allow my DMs')
-            except:
-                print('no dm for', nation['nation'])
-
-            with requests.Session() as s:
-                login_url = "https://politicsandwar.com/login/"
-                login_data = {
-                    "email": str(cipher_suite.decrypt(randy['email'].encode()))[2:-1],
-                    "password": str(cipher_suite.decrypt(randy['pwd'].encode()))[2:-1],
-                    "loginform": "Login"
-                }
-                s.post(login_url, data=login_data)
-
-                withdraw_url = f'https://politicsandwar.com/alliance/id=4729&display=bank'
-                withdraw_data = {
-                    "withmoney": str(minmoney),
-                    "withfood": '0',
-                    "withcoal": '0',
-                    "withoil": '0',
-                    "withuranium": '0',
-                    "withlead": '0',
-                    "withiron": '0',
-                    "withbauxite": '0',
-                    "withgasoline": str(mingasoline),
-                    "withmunitions": str(minmunitions),
-                    "withsteel": str(minsteel),
-                    "withaluminum": str(minaluminum),
-                    "withtype": 'Nation',
-                    "withrecipient": nation['nation'],
-                    "withnote": 'Resupplying warchest',
-                    "withsubmit": 'Withdraw'
-                }
-                start_time = (datetime.utcnow() - timedelta(seconds=5))
-                p = s.post(withdraw_url, data=withdraw_data)
-                end_time = (datetime.utcnow() + timedelta(seconds=5))
-                await ctx.send(f"```{withdraw_data}```")
-                print(f'Response: {p}')
-                success = False
-                async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={person['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
-                    txids = await txids.json()
-                for x in txids['data']:
-                    if x['note'] == 'Resupplying warchest' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
-                        success = True
-                if success:
-                    await ctx.send(f"I can confirm that the transaction to {nation['nation']} ({nation['leader']}) has successfully commenced.")
-                else:
-                    await ctx.send(f"<@465463547200012298> the transaction to {nation['nation']} ({nation['leader']}) might have failed. Check this page to be sure:\nhttps://politicsandwar.com/nation/id={nation['nationid']}&display=bank")
-
+            
     async def spies_msg(self): #enable in times of war
         return
         async with aiohttp.ClientSession() as session:
