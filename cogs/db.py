@@ -139,36 +139,38 @@ class Database(commands.Cog):
         for member in members:
             if member.id not in member_ids:
                 fields.append({"name": member, "value": "**in the discord, but not not registered**"})
-        
-        church = requests.get(
-            f'http://politicsandwar.com/api/alliance-members/?allianceid=4729&key={api_key}').json()['nations']
-        convent = requests.get(
-            f'http://politicsandwar.com/api/alliance-members/?allianceid=7531&key={convent_key}').json()['nations']
-        nations = church + convent
-        nation_ids = [str(nation['nationid']) for nation in nations]
-        
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:500 alliance_id:[4729,7531]){{data{{id alliance_position}}}}}}"}) as temp:
+                nations = (await temp.json())['data']['nations']['data']
+
         heathen_role = ctx.guild.get_role(434248817005690880)
         for member in current:
             un_register = False
             text = ""
             discord_member = ctx.guild.get_member(member['user'])
             discord_user = None
-            if member['nationid'] not in nation_ids:
+            found = False
+            for nation in nations:
+                if nation['id'] == member['nationid']:
+                    if nation['alliance_position'] == "APPLICANT":
+                        un_register = True
+                        text += "applicant\n"
+                    found = True
+                    break
+            if not found:
                 un_register = True
-                if not discord_user:
-                    discord_user = await self.bot.fetch_user(member['user'])
                 text += "not in-game\n"
-            if heathen_role in discord_member.roles:
-                un_register = True
-                if not discord_user:
-                    discord_user = await self.bot.fetch_user(member['user'])
-                text += "heathen\n"
             if discord_member == None:
                 un_register = True
                 discord_user = await self.bot.fetch_user(member['user'])
                 text += "not in the server\n"
+            elif heathen_role in discord_member.roles:
+                un_register = True
+                text += "heathen\n"
             if un_register:
-                fields.append({"name": f'{discord_user} ({discord_user.id})', "value": text})
+                disc = discord_member or discord_user
+                fields.append({"name": f'{disc} ({disc.id})', "value": text})
         
         if len(fields) == 0:
             await message.edit(content='All the right people are registered!')
