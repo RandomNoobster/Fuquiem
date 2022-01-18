@@ -146,6 +146,11 @@ async def find_nation_plus(self, arg: Union[str, int]) -> Union[dict, None]: # o
                 return None
     return nation
 
+def militarization_checker(nation: dict) -> float:
+    cities = nation['num_cities']
+    milt = (nation['soldiers'] / (cities * 5 * 3000) + nation['tanks'] / (cities * 5 * 250) + nation['aircraft'] / (cities * 5 * 15) + nation['ships'] / (cities * 3 * 5)) / 4
+    return milt
+
 async def pre_revenue_calc(api_key, message: discord.Message, query_for_nation: bool = False, nationid: Union[int, str] = None, parsed_nation: dict = None):
     async with aiohttp.ClientSession() as session:
         if query_for_nation:
