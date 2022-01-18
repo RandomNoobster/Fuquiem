@@ -49,7 +49,7 @@ class Military(commands.Cog):
             if x['alliance_position'] == "APPLICANT":
                 continue
             
-            person = await utils.find_user(self, x['id'])
+            person = utils.find_user(self, x['id'])
             if not person:
                 continue
             user = ctx.guild.get_member(person['user'])
@@ -145,7 +145,7 @@ class Military(commands.Cog):
                 int(nation_id) # throw an error if not a number
             else:
                 try:
-                    person = await utils.find_user(self, ctx.author.id)
+                    person = utils.find_user(self, ctx.author.id)
                     nation_id = person['nationid']
                 except:
                     await ctx.send("I do not know who to find the status of.")
@@ -339,7 +339,7 @@ class Military(commands.Cog):
 
     async def add_to_thread(self, thread, atom_id: Union[str, int], atom: dict = None):
         #print("adding", atom)
-        person = await utils.find_user(self, atom_id)
+        person = utils.find_user(self, atom_id)
         if person == {}:
             print("tried to add, but could not find", atom_id)
             if atom:
@@ -355,7 +355,7 @@ class Military(commands.Cog):
     
     async def remove_from_thread(self, thread, atom_id: Union[str, int], atom: dict = None):
         #print("removing ", atom)
-        person = await utils.find_user(self, atom_id)
+        person = utils.find_user(self, atom_id)
         if person == {}:
             print("tried to remove, but could not find", atom_id)
             if atom:
@@ -713,7 +713,7 @@ class Military(commands.Cog):
     async def targets(self, ctx):
         await ctx.send('This command has been disabled.')
         return
-        person = await utils.find_user(self, ctx.author.id)
+        person = utils.find_user(self, ctx.author.id)
         embed = discord.Embed(title="Targets",
                               description=f"[Explore targets on slotter](https://slotter.bsnk.dev/search?nation={person['nationid']}&alliances=7452,8841,8624,9000,7450,6088,7306,4648,9187,8335,5476,8594&countersMode=false&threatsMode=false&vm=false&grey=true&beige=false)", color=0x00ff00)
         await ctx.send(embed=embed)
@@ -738,7 +738,7 @@ class Military(commands.Cog):
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def resupply(self, ctx, *, arg):
         async with aiohttp.ClientSession() as session:
-            person = await utils.find_user(self, arg)
+            person = utils.find_user(self, arg)
 
             async with session.get(f"http://politicsandwar.com/api/nation/id={person['nationid']}&key={api_key}") as temp:
                 nation = (await temp.json())
@@ -760,7 +760,7 @@ class Military(commands.Cog):
             await ctx.send("Finished!")
 
     async def top_up(self, ctx, nations: list):
-        randy = await utils.find_user(self, 465463547200012298)
+        randy = utils.find_user(self, 465463547200012298)
         if len(randy['email']) <= 1 or len(randy['pwd']) <= 1:
             await ctx.send(content="<@465463547200012298>'s credentials are wrong?")
         async with aiohttp.ClientSession() as session:            
@@ -771,7 +771,7 @@ class Military(commands.Cog):
                     city_count = nation['cities']
                     user = None
                     excess = ""
-                    person = await utils.find_user(self, 465463547200012298)
+                    person = utils.find_user(self, 465463547200012298)
                     minmoney = round(city_count * 500000 - float(nation['money']))
                     maxmoney = round(city_count * 500000 * 3 - float(nation['money']))
                     if maxmoney < 0:
@@ -885,7 +885,7 @@ class Military(commands.Cog):
             sum = church + convent
             for member in sum:
                 if member['espionage_available']:
-                    person = await utils.find_user(self, member['id'])
+                    person = utils.find_user(self, member['id'])
                     user = await self.bot.fetch_user(person['user']) # person['user']
                     if member['spy_satellite']:
                         spy_sat = "SS"
@@ -1045,7 +1045,7 @@ class Military(commands.Cog):
             message = await ctx.send('Finding person...')
             if arg == None:
                 arg = ctx.author.id
-            attacker = await utils.find_user(self, arg)
+            attacker = utils.find_user(self, arg)
             if attacker == {}:
                 try:
                     attacker = list(mongo.world_nations.find({"nation": arg}).collation(
@@ -1583,7 +1583,7 @@ class Military(commands.Cog):
         message = await ctx.send('Alright, give me a sec to calculate the winrates...')
         if nation1 == None:
             nation1 = ctx.author.id
-        nation1_nation = await utils.find_user(self, nation1)
+        nation1_nation = utils.find_user(self, nation1)
         if nation1_nation == {}:
             try:
                 nation1_nums = int(re.sub("[^0-9]", "", nation1))
@@ -1620,7 +1620,7 @@ class Military(commands.Cog):
         if not done:
             if nation2 == None:
                 nation2 = ctx.author.id
-            nation2_nation = await utils.find_user(self, nation2)
+            nation2_nation = utils.find_user(self, nation2)
             if nation2_nation == {}:
                 try:
                     nation2_nation = list(mongo.world_nations.find({"nation": nation2}).collation(

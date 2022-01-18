@@ -51,11 +51,17 @@ async def reaction_checker(self, message: discord.Message, embeds: list) -> None
             await message.edit(content="**Command timed out!**")
             break
 
-async def find_user(self, arg):
+def find_user(self, arg, secondary_database: bool = False):
     found = False
+
+    if secondary_database:
+        db = mongo.leaved_users
+    else:
+        db = mongo.users
+
     try:
         int(arg)
-        x = mongo.users.find_one({"nationid": str(arg)})
+        x = db.find_one({"nationid": str(arg)})
         if x:
             found = True
             return x        
@@ -64,14 +70,14 @@ async def find_user(self, arg):
     
     if not found:
         try:
-            x = mongo.users.find_one({"user": int(arg)})
+            x = db.find_one({"user": int(arg)})
             if x:
                 found = True
                 return x        
         except:
             pass
             
-    current = list(mongo.users.find({}))
+    current = list(db.find({}))
     if not found:
         try:
             for x in current:
@@ -89,15 +95,15 @@ async def find_user(self, arg):
             members = self.bot.get_all_members()
             for member in members:
                 if arg.lower() in member.name.lower():
-                    x = mongo.users.find_one({"user": member.id})
+                    x = db.find_one({"user": member.id})
                     found = True
                     return x
                 elif arg.lower() in member.display_name.lower():
-                    x = mongo.users.find_one({"user": member.id})
+                    x = db.find_one({"user": member.id})
                     found = True
                     return x
                 elif str(member).lower() == arg.lower():
-                    x = mongo.users.find_one({"user": member.id})
+                    x = db.find_one({"user": member.id})
                     found = True
                     return x
         except:
@@ -137,7 +143,7 @@ async def find_nation(arg: Union[str, int]) -> Union[dict, None]:
 async def find_nation_plus(self, arg: Union[str, int]) -> Union[dict, None]: # only returns a nation if it is at least 1 day old
     nation = await find_nation(arg)
     if nation == None:
-        nation = await find_user(self, arg)
+        nation = find_user(self, arg)
         if nation == {}:
             return None
         else:

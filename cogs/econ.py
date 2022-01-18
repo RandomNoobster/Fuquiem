@@ -155,7 +155,7 @@ class Economic(commands.Cog):
     @commands.has_any_role('Pam', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def withdraw(self, ctx, recipient, *, rss):
         async with aiohttp.ClientSession() as session:
-            randy = await utils.find_user(self, 465463547200012298)
+            randy = utils.find_user(self, 465463547200012298)
             if randy['email'] == '' or randy['pwd'] == '':
                 await ctx.send('Randy has not registered his PnW credentials with Fuquiem.')
 
@@ -170,7 +170,7 @@ class Economic(commands.Cog):
                 }
                 s.post(login_url, data=login_data)
 
-                person = await utils.find_user(self, recipient)
+                person = utils.find_user(self, recipient)
 
                 res = []
                 for sub in rss.split(','):
@@ -272,7 +272,7 @@ class Economic(commands.Cog):
     @commands.command(brief='Deposit your resources to the alliance bank', help='type "$deposit <type of resource> - <amount of resource>, <type of resource> - <amount of resource>..." Please note that spaces are ignored, so it does not matter if you type "-" and "," or " - " and ", "',  aliases=['dep', 'dp'])
     async def deposit(self, ctx, *, rss):
         async with aiohttp.ClientSession() as session:
-            person = await utils.find_user(self, ctx.author.id)
+            person = utils.find_user(self, ctx.author.id)
             if person['email'] == '' or person['pwd'] == '':
                 await ctx.send('You have not registered your PnW credentials with Fuquiem.')
 
@@ -389,7 +389,7 @@ class Economic(commands.Cog):
     @commands.has_any_role('Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def food(self, ctx):
         async with aiohttp.ClientSession() as session:
-            randy = await utils.find_user(self, 465463547200012298)
+            randy = utils.find_user(self, 465463547200012298)
             if randy['email'] == '' or randy['pwd'] == '':
                 await ctx.send('Randy has not registered his PnW credentials with Fuquiem.')
 
@@ -404,7 +404,7 @@ class Economic(commands.Cog):
                 }
                 s.post(login_url, data=login_data)
 
-                person = await utils.find_user(self, ctx.author.id)
+                person = utils.find_user(self, ctx.author.id)
                 
                 withdraw_url = f'https://politicsandwar.com/alliance/id=4729&display=bank'
                 withdraw_data = {
@@ -448,7 +448,7 @@ class Economic(commands.Cog):
     @commands.has_any_role('Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def uranium(self, ctx):
         async with aiohttp.ClientSession() as session:
-            randy = await utils.find_user(self, 465463547200012298)
+            randy = utils.find_user(self, 465463547200012298)
             if randy['email'] == '' or randy['pwd'] == '':
                 await ctx.send('Randy has not registered his PnW credentials with Fuquiem.')
 
@@ -463,7 +463,7 @@ class Economic(commands.Cog):
                 }
                 s.post(login_url, data=login_data)
 
-                person = await utils.find_user(self, ctx.author.id)
+                person = utils.find_user(self, ctx.author.id)
 
                 withdraw_url = f'https://politicsandwar.com/alliance/id=4729&display=bank'
                 withdraw_data = {
@@ -520,14 +520,14 @@ class Economic(commands.Cog):
     @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     @commands.command(aliases=['ba', 'balincrement', 'bi'], brief="Adds value to person's balance", help="")
     async def baladd(self, ctx, person, diff):
-        user = await utils.find_user(self, person)
+        user = utils.find_user(self, person)
         message = await ctx.send("Fuck Requiem...")
         await self.balmod(diff, message, 1, user)
 
     @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     @commands.command(aliases=['balremove', 'br'], brief="Subtracts value to person's balance", help="")
     async def balsubtract(self, ctx, person, diff):
-        user = await utils.find_user(self, person)
+        user = utils.find_user(self, person)
         message = await ctx.send("Fuck Requiem...")
         await self.balmod(diff, message, -1, user)
 
@@ -665,9 +665,9 @@ class Economic(commands.Cog):
                 pass
 
             if person == '':
-                person = await utils.find_user(self, ctx.author.id)
+                person = utils.find_user(self, ctx.author.id)
             else:
-                person = await utils.find_user(self, person)
+                person = utils.find_user(self, person)
             if person == {}:
                 await message.edit(content='I could not find that person, please try again.', embed=bal_embed)
                 return None, None
@@ -757,7 +757,7 @@ class Economic(commands.Cog):
     @commands.has_any_role('Pam', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def grant(self, ctx, recipient, *, rss):
         async with aiohttp.ClientSession() as session:
-            randy = await utils.find_user(self, 465463547200012298)
+            randy = utils.find_user(self, 465463547200012298)
             if randy['email'] == '' or randy['pwd'] == '':
                 await ctx.send('Randy has not registered his PnW credentials with Fuquiem.')
 
@@ -772,7 +772,7 @@ class Economic(commands.Cog):
                 }
                 s.post(login_url, data=login_data)
 
-                person = await utils.find_user(self, recipient)
+                person = utils.find_user(self, recipient)
 
                 res = []
                 for sub in rss.split(','):
@@ -877,7 +877,7 @@ class Economic(commands.Cog):
         message = await ctx.send('Stay with me...')
         if person == None:
             person = ctx.author.id
-        db_nation = await utils.find_user(self, person)
+        db_nation = utils.find_user(self, person)
 
         if db_nation == {}:
             try:

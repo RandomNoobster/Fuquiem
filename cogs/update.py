@@ -66,7 +66,7 @@ class Update(commands.Cog):
                     if nation['alliance_position'] == "APPLICANT":
                         continue
 
-                    person = await utils.find_user(self, nation['id'])
+                    person = utils.find_user(self, nation['id'])
                     if person == {}:
                         continue
                     user = await self.bot.fetch_user(person['user'])
@@ -169,7 +169,7 @@ class Update(commands.Cog):
         trader_role = guild.get_role(796057460502298684)
     
         for nation in nations:
-            person = await utils.find_user(self, str(nation['nationid']))
+            person = utils.find_user(self, str(nation['nationid']))
             if person == {}:
                 print(f"I couldn't assign a city-role to {nation['nation']}")
                 continue

@@ -43,8 +43,8 @@ class General(commands.Cog):
         await ctx.send(embed=embed)
 
     async def change_perm(self, nations: list, level: str, message: discord.Message = None):
-        convent_admin = await utils.find_user(self, 154886766275461120)
-        church_admin = await utils.find_user(self, 465463547200012298)
+        convent_admin = utils.find_user(self, 154886766275461120)
+        church_admin = utils.find_user(self, 465463547200012298)
         cipher_suite = Fernet(key)
         logged_in = {}
         content = ""
@@ -127,7 +127,7 @@ class General(commands.Cog):
 
             async def iterate_nations(nation, session):
                 nonlocal content, n, self
-                user = await utils.find_user(self, nation)
+                user = utils.find_user(self, nation)
                 if user:
                     user = await self.bot.fetch_user(user['user'])
                 else:
@@ -165,7 +165,7 @@ class General(commands.Cog):
         else:
             nations = [arg]
 
-        invoker = await utils.find_user(self, ctx.author.id)
+        invoker = utils.find_user(self, ctx.author.id)
         if invoker == {}:
             await message.edit(content='I could not find you in the database!')
             return
@@ -196,7 +196,7 @@ class General(commands.Cog):
                 nonlocal content, n
                 nation = await utils.find_nation(x)
                 if nation == None:
-                    nation = await utils.find_user(self, x)
+                    nation = utils.find_user(self, x)
                     if nation == {}:
                         content += f"I could not find {x}\n"
                         return
@@ -614,7 +614,7 @@ class General(commands.Cog):
     @commands.command(brief='When Deacons audit someone they can use "$audited <personyoujustaudited>" to register this to the spreadsheet')
     @commands.has_any_role('Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def audited(self, ctx, person):
-        person = await utils.find_user(self, person)
+        person = utils.find_user(self, person)
         if person['audited']:
             try:
                 await ctx.send(f"Are you sure you want to change `{await self.bot.fetch_user(person['user'])}`'s `audited` attribute from `{person['audited']}` to `{ctx.author.name}`?")
@@ -700,7 +700,7 @@ class General(commands.Cog):
     @commands.has_any_role('Internal Affairs')
     async def welcome(self, ctx, arg):
         message = await ctx.send("Doing my job...")
-        user = await utils.find_user(self, arg)
+        user = utils.find_user(self, arg)
         dm_chan = ctx.guild.get_member(user['user'])
         content = ""
         heathen_role = ctx.guild.get_role(434248817005690880)
@@ -860,7 +860,7 @@ class General(commands.Cog):
         message = await ctx.send('Stay with me...')
         if person == None:
             person = ctx.author.id
-        db_nation = await utils.find_user(self, person)
+        db_nation = utils.find_user(self, person)
 
         if db_nation == {}:
             try:
