@@ -152,6 +152,16 @@ async def find_nation_plus(self, arg: Union[str, int]) -> Union[dict, None]: # o
                 return None
     return nation
 
+async def yes_or_no(self, ctx) -> Union[bool, None]:
+    try:
+        msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=40)
+        if msg.content.lower() in ['yes', 'y']:
+            return True
+        elif msg.content.lower() in ['no', 'n']:
+            return False
+    except asyncio.TimeoutError:
+        return None
+
 def militarization_checker(nation: dict) -> float:
     cities = nation['num_cities']
     milt = (nation['soldiers'] / (cities * 5 * 3000) + nation['tanks'] / (cities * 5 * 250) + nation['aircraft'] / (cities * 5 * 15) + nation['ships'] / (cities * 3 * 5)) / 4
