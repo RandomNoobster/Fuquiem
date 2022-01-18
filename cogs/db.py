@@ -8,6 +8,8 @@ from main import mongo
 import aiohttp
 import utils
 import os
+from datetime import datetime, timedelta
+import asyncio
 api_key = os.getenv("api_key")
 convent_key = os.getenv("convent_api_key")
 key = os.getenv("encryption_key")
@@ -190,6 +192,105 @@ class Database(commands.Cog):
         mongo.users.delete_one({"user": person['user']})
         await ctx.send('It was sucessfully deleted')
 
+    @commands.command(brief='Move someone back from the secondary db', help='')
+    @commands.has_any_role('Internal Affairs', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    async def restore(self, ctx, *, arg):
+        message = await ctx.send("Asking James for selfies...")
+        result = None
+        async with aiohttp.ClientSession() as session:
+            try:
+                int(arg)
+                x = mongo.leaved_users.find_one({"nationid": str(arg)})
+                if x:
+                    result = x        
+            except:
+                pass
+            if not result:
+                try:
+                    x = mongo.leaved_users.find_one({"user": int(arg)})
+                    if x:
+                        result = x        
+                except:
+                    pass
+            current = list(mongo.leaved_users.find({}))
+            if not result:
+                try:
+                    for x in current:
+                        if arg.lower() in x['name'].lower():
+                            result = x
+                        elif arg.lower() in x['leader'].lower():
+                            result = x
+                except:
+                    pass
+            if not result:
+                try:
+                    members = self.bot.get_all_members()
+                    for member in members:
+                        if arg.lower() in member.name.lower():
+                            x = mongo.leaved_users.find_one({"user": member.id})
+                            result = x
+                        elif arg.lower() in member.display_name.lower():
+                            x = mongo.leaved_users.find_one({"user": member.id})
+                            result = x
+                        elif str(member).lower() == arg.lower():
+                            x = mongo.leaved_users.find_one({"user": member.id})
+                            result = x
+                except:
+                    pass
+            if not result:
+                try:
+                    for x in current:
+                        if int(x['nationid']) == int(re.sub("[^0-9]", "", arg)):
+                            result = x
+                        elif int(x['user']) == int(re.sub("[^0-9]", "", arg)):
+                            result = x
+                except:
+                    pass
+            if result:
+                content = ""
+                fatal = False
+                for key in ["user", "nationid", "name", "leader", "signups", "wins", "raids", "email", "pwd", "signedup", "audited", "beige_alerts"]:
+                    if key not in result:
+                        if key in ["user", "nationid"]:
+                            content += "**FATAL** "
+                            fatal = True
+                        content += f"there is no `{key}`\n"
+                        result[key] = None
+                    elif not result[key]:
+                        if key in ["user", "nationid"]:
+                            content += f"**FATAL** `{key}` is empty: `{result[key]}\u200b`\n"
+                            fatal = True
+                if content:
+                    content = "I encountered the following issues:\n\n" + content + "\nI fixed any non-fatal issues. "
+                if fatal:
+                    await message.edit(content=content)
+                    return
+                
+                async with session.get(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': f"{{nations(first:1 id:{result['nationid']}){{data{{id leader_name nation_name alliance{{name id}}}}}}}}"}) as temp:
+                    try:
+                        nation = (await temp.json())['data']['nations']['data'][0]
+                    except:
+                        print((await temp.json())['errors'])
+                        return
+                new_obj = {"user": result['user'], "nationid": result['nationid'], "name": nation['nation_name'], "leader": nation['leader_name'], "signups": result['signups'] or 0, "wins": result['wins'] or 0, "raids": result['raids'] or [], "email": result['email'] or '', 'pwd': result['pwd'] or '', 'signedup': result['signedup'] or False, "audited": result['audited'] or False, "beige_alerts": result['beige_alerts'] or []}
+                try:
+                    await message.edit(content=f'I was able to find a match in the secondary database. {content}Do you want me to attempt to restore them to the primary database? (yes/no)\n```\n{new_obj}```')
+                    msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=40)
+                    if msg.content.lower() in ['yes', 'y']:
+                        pass
+                    elif msg.content.lower() in ['no', 'n']:
+                        await ctx.send('Transaction was canceled')
+                        return
+                except asyncio.TimeoutError:
+                    await ctx.send('Command timed out, you were too slow to respond.')
+                    return
+            else:
+                await ctx.send("I was not able to find any matches!")
+
+            mongo.users.insert_one(new_obj)
+            mongo.leaved_users.find_one_and_delete({"user": result['user']})
+            await ctx.send(content=f"I added <@{result['user']}> with the nation {result['nationid']}.```{new_obj}```", allowed_mentions=discord.AllowedMentions(everyone=False, users=False, roles=False))
+
     @commands.Cog.listener()
     async def on_member_remove(self, member):
         to_delete = mongo.users.find_one({"user": member.id})
@@ -203,33 +304,23 @@ class Database(commands.Cog):
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def db(self, ctx):
         current = list(mongo['users'].find({}))
-        n = 0
-        embed = discord.Embed(title="Database", description="", color=0x00ff00)
+        fields = []        
         for x in current:
-            if n == 25:
-                await ctx.send(embed=embed)
-                embed.clear_fields()
-                n = 0
-            embed.add_field(
-                name="\u200b", value=f"<@!{x['user']}> - [{x['name']}](https://politicsandwar.com/nation/id={x['nationid']})", inline=False)
-            n += 1
-        await ctx.send(embed=embed)
+            fields.append({"name": "\u200b", "value": f"<@!{x['user']}> - [{x['name']}](https://politicsandwar.com/nation/id={x['nationid']})"})
+        embeds = utils.embed_pager("Database", fields)
+        message = await ctx.send(embed=embeds[0])
+        await utils.reaction_checker(self, message, embeds)
 
     @commands.command(brief='Display the secondary database with all deleted users', aliases=['removeddb', 'rdb'])
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def removed_db(self, ctx):
         current = list(mongo['leaved_users'].find({}))
-        n = 0
-        embed = discord.Embed(title="Database", description="", color=0x00ff00)
+        fields = []        
         for x in current:
-            if n == 25:
-                await ctx.send(embed=embed)
-                embed.clear_fields()
-                n = 0
-            embed.add_field(
-                name="\u200b", value=f"```{x}```", inline=False)
-            n += 1
-        await ctx.send(embed=embed)
+            fields.append({"name": x['leader'], "value": f"```{x}```"})
+        embeds = utils.embed_pager("Database", fields, inline=False)
+        message = await ctx.send(embed=embeds[0])
+        await utils.reaction_checker(self, message, embeds)
 
     @commands.command(brief='Anyways, who is that guy?', aliases=['whois'])
     async def who(self, ctx, *, arg):
