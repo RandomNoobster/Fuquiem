@@ -204,12 +204,12 @@ class General(commands.Cog):
                 if nation == None:
                     nation = utils.find_user(self, x)
                     if nation == {}:
-                        content += f"I could not find {x}\n"
+                        content += f"I could not find `{x}`\n"
                         return
                     else:
                         nation = await utils.find_nation(nation['nationid'])
                         if nation == None:
-                            content=f"I could not find {x}\n"
+                            content=f"I could not find `{x}`\n"
                             return
 
                 async with session.get(f"http://politicsandwar.com/api/nation/id={nation['nationid']}&key=e5171d527795e8") as temp:
@@ -223,7 +223,8 @@ class General(commands.Cog):
             for x in nations:
                 futures.append(asyncio.ensure_future(prepare_nation(x)))
         
-            to_message = await asyncio.gather(*futures)
+            results = await asyncio.gather(*futures) ## will include instances of None, since None is returned
+            to_message = [i for i in results if i]
 
         api_nation = to_message[0]
         try:
