@@ -18,6 +18,7 @@ from cryptography.fernet import Fernet
 import dload
 from csv import DictReader
 import utils
+from typing import Union
 
 key = os.getenv("encryption_key")
 api_key = os.getenv("api_key")
@@ -53,7 +54,7 @@ class General(commands.Cog):
             for api_nation in nations:
                 if api_nation['allianceposition'] > '2':
                     if message:
-                        content += f"I cannot let you change the perms of {api_nation['leadername']} with such high ranking!\n"
+                        content += f"I cannot let you change the perms of **{api_nation['leadername']} ({api_nation['nationid']})**, they have too high ranking!\n"
                     if len(nations) == 1:
                         await message.edit(content=content)
                         return {}
@@ -68,7 +69,7 @@ class General(commands.Cog):
                     admin = convent_admin
                 else:
                     if message:
-                        content += f"{api_nation['leadername']} is not affiliated with the Church nor the Convent!\n"
+                        content += f"**{api_nation['leadername']} ({api_nation['nationid']})** is not affiliated with the Church nor the Convent!\n"
                     if len(nations) == 1:
                         await message.edit(content=content)
                         return {}
@@ -77,7 +78,7 @@ class General(commands.Cog):
                 
                 if admin['email'] == '' or admin['pwd'] == '':
                     if message:
-                        content += f"{admin['leader']} has not registered their PnW credentials with Fuquiem.\n"
+                        content += f"**{admin['leader']}** has not registered their PnW credentials with Fuquiem.\n"
                     if len(nations) == 1:
                         await message.edit(content=content)
                         return {}
@@ -105,18 +106,18 @@ class General(commands.Cog):
                 if level not in ["-3", "-2", "-1"]:
                     if requests.get(f"http://politicsandwar.com/api/nation/id={api_nation['nationid']}&key=e5171d527795e8").json()['allianceposition'] == level:
                         if message:
-                            content += f"{api_nation['leadername']}'s status was successfully changed.\n"
+                            content += f"{api_nation['leadername']}'s ({api_nation['nationid']}) permissions successfully changed.\n"
                     else:
                         if message:
-                            content += f"I might have failed at changing {api_nation['leadername']}'s status, check their nation page to be sure: https://politicsandwar.com/nation/id={api_nation['nationid']}\n"
+                            content += f"I might have failed at changing **{api_nation['leadername']}'s ({api_nation['nationid']})** permissions. Check their nation page to be sure: https://politicsandwar.com/nation/id={api_nation['nationid']}\n"
                         if len(nations) == 1:
                             await message.edit(content=content)
                             return {}
                 else:
                     if req.status_code == 200:
-                        content += f"{api_nation['leadername']}'s status was successfully changed.\n"
+                        content += f"{api_nation['leadername']}'s ({api_nation['nationid']}) permissions successfully changed.\n"
                     else:
-                        content += f"I might have failed at changing {api_nation['leadername']}'s status, check their nation page to be sure: https://politicsandwar.com/nation/id={api_nation['nationid']}\n"
+                        content += f"I might have failed at changing **{api_nation['leadername']}'s ({api_nation['nationid']})** permissions. Check their nation page to be sure: https://politicsandwar.com/nation/id={api_nation['nationid']}\n"
                 if message:
                     await message.edit(content=content)
 
@@ -198,18 +199,18 @@ class General(commands.Cog):
         content = ""
         n = 0
         async with aiohttp.ClientSession() as session:
-            async def prepare_nation(x):
+            async def prepare_nation(x: str) -> Union[dict, None]:
                 nonlocal content, n
                 nation = await utils.find_nation(x)
                 if nation == None:
                     nation = utils.find_user(self, x)
                     if nation == {}:
-                        content += f"I could not find `{x}`\n"
+                        content += f"I could not find `{x.strip()}`, they will be skipped.\n"
                         return
                     else:
                         nation = await utils.find_nation(nation['nationid'])
                         if nation == None:
-                            content=f"I could not find `{x}`\n"
+                            content=f"I could not find `{x.strip()}`, they will be skipped.\n"
                             return
 
                 async with session.get(f"http://politicsandwar.com/api/nation/id={nation['nationid']}&key=e5171d527795e8") as temp:
