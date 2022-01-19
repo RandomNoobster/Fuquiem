@@ -52,7 +52,8 @@ async def reaction_checker(self, message: discord.Message, embeds: list) -> None
             break
 
 def find_user(self, arg, secondary_database: bool = False):
-    arg = arg.strip()
+    if isinstance(arg, str):
+        arg = arg.strip()
     found = False
 
     if secondary_database:
@@ -125,7 +126,8 @@ def find_user(self, arg, secondary_database: bool = False):
     return {}   
 
 async def find_nation(arg: Union[str, int]) -> Union[dict, None]:
-    arg = arg.strip()
+    if isinstance(arg, str):
+        arg = arg.strip()
     try:
         result = list(mongo.world_nations.find({"nation": arg}).collation(
             {"locale": "en", "strength": 1}))[0]
@@ -143,7 +145,8 @@ async def find_nation(arg: Union[str, int]) -> Union[dict, None]:
     return result
 
 async def find_nation_plus(self, arg: Union[str, int]) -> Union[dict, None]: # only returns a nation if it is at least 1 day old
-    arg = arg.strip()
+    if isinstance(arg, str):
+        arg = arg.strip()
     nation = await find_nation(arg)
     if nation == None:
         nation = find_user(self, arg)
