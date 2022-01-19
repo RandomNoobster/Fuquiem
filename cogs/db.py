@@ -282,7 +282,7 @@ class Database(commands.Cog):
     @commands.command(brief='Anyways, who is that guy?', aliases=['whois'])
     async def who(self, ctx, *, arg):
         person = utils.find_user(self, arg)
-        if person == {} or person == None:
+        if not person:
             try:
                 result = list(mongo.world_nations.find({"nation": arg}).collation(
                     {"locale": "en", "strength": 1}))[0]
