@@ -57,6 +57,8 @@ class General(commands.Cog):
                     if len(nations) == 1:
                         await message.edit(content=content)
                         return {}
+                    else:
+                        continue
 
                 if api_nation['allianceid'] == '4729':
                     admin = church_admin
@@ -66,10 +68,12 @@ class General(commands.Cog):
                     admin = convent_admin
                 else:
                     if message:
-                        content += f"{api_nation['leadername']} are not affiliated with the Church nor the Convent!\n"
+                        content += f"{api_nation['leadername']} is not affiliated with the Church nor the Convent!\n"
                     if len(nations) == 1:
                         await message.edit(content=content)
                         return {}
+                    else:
+                        continue
                 
                 if admin['email'] == '' or admin['pwd'] == '':
                     if message:
@@ -77,6 +81,8 @@ class General(commands.Cog):
                     if len(nations) == 1:
                         await message.edit(content=content)
                         return {}
+                    else:
+                        continue
 
                 if logged_in != admin:
                     login_url = "https://politicsandwar.com/login/"
@@ -161,7 +167,7 @@ class General(commands.Cog):
     async def msg(self, ctx, *, arg):
         message = await ctx.send("Working on it..")
         if "," in arg:
-            nations = re.sub("[^0-9\,]", "", arg).split(",")
+            nations = arg.split(",")
         else:
             nations = [arg]
 
