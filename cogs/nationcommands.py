@@ -473,9 +473,9 @@ class General(commands.Cog):
                     for nation in to_message:
                         res = requests.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': nation['nationid'], 'subject': subject, 'message': nation['text']})
                         if res.status_code == 200:
-                            content += f"Ingame message was sent to {nation['leadername']}!\n"
+                            content += f"Ingame message was sent to {nation['leadername']} ({nation['nationid']})!\n"
                         else:
-                            content += f"Error {res.status_code} Ingame message was not sent to {nation['leadername']}!\n"
+                            content += f"Error {res.status_code}. Ingame message was not sent to **{nation['leadername']} ({nation['nationid']})**!\n"
                         await message.edit(content=content)
                     break
                 elif msg.content.lower() in ['no', 'n']:
@@ -487,15 +487,18 @@ class General(commands.Cog):
             return
         
         if dm:
+            message = await ctx.send("\u200b")
             for nation in to_message:
                 try:
                     dm_chan = await self.bot.fetch_user(nation['user']['user'])
                     await dm_chan.send(nation['text'])
-                    content += f"DM to {nation['leadername']} was successfuly sent!\n"
+                    content += f"DM to {nation['leadername']} ({nation['nationid']}) was successfuly sent!\n"
                 except discord.Forbidden:
-                    content += f"{nation['leadername']} doesn't accept my DMs <:sadcat:787450782747590668>\n"
+                    content += f"**{nation['leadername']} ({nation['nationid']})** doesn't accept my DMs <:sadcat:787450782747590668>\n"
+                except TypeError:
+                    content += f"I could not find their discord account, hence **{nation['leadername']} ({nation['nationid']})** got no DM\n"
                 except Exception as error:
-                    content += f"Some error occured, so I couldn't DM {nation['leadername']} <:sadcat:787450782747590668>\n\n```{error}```\n"
+                    content += f"Some error occured, so I couldn't DM **{nation['leadername']} ({nation['nationid']})**```{error}```"
                 await message.edit(content=content)
         await message.edit(content=content)
         
