@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+    <head>
+        <link rel="icon" href="https://i.ibb.co/2dX2WYW/atomism-ICONSSS.png">
+        <title>Raid targets</title>
+        <style>
+            table {
+                font-family: Verdana, Arial, Monaco;
+                font-size: 80%;
+                border-collapse: collapse;
+                width: 100%;
+            }
+
+            tr {
+                background-color: #e3e3e3
+            }            
+
+            tr:nth-child(even) {
+                background-color: #f2f2f2
+            }
+
+            th, caption {
+                background-color: #383838;
+                color: white;
+                cursor: pointer;
+                text-align: left;
+                padding: 6px;
+            }
+
+            caption {
+                text-align: center;
+                font-size: 120%;
+                font-weight: bold;
+            }
+
+            th:hover {
+                background-color: #008000;
+            }
+
+            td {
+                position: relative;
+                text-align: left;
+                padding: 1px 6px;
+                white-space: nowrap;
+            }
+
+            p {
+                font-family: sans-serif;
+                font-size: small;
+            }
+
+            #grid {
+                display: grid;
+                width: fit-content;
+                margin: 0 auto;
+                overflow-x: auto;
+                column-gap: 20px;
+                row-gap: 20px;
+                justify-content: center;
+                grid-template-areas: 
+                "nation1_attacks_0 nation2_attacks_0"
+                "nation1_attacks_1 nation2_attacks_1";
+            }
+
+        </style>
+    </head>
+    <body>
+        <div id="grid">
+        % for primary, secondary in [("nation1", "nation2"), ("nation2", "nation1")]:
+            <table style="grid-area:${primary}_attacks_0">
+                <caption>If ${results[f'{primary}_nation']['nation_name']} attacks</caption>
+                <tbody>
+                    <tr>
+                        <th>Attack Type</th>
+                        <th>Net Damage</th>
+                        <th>Enemy Gasoline</th>
+                        <th>Enemy Munitions</th>
+                        <th>Enemy Steel</th>
+                        <th>Enemy Aluminum</th>
+                        <th>Enemy Money</th>
+                        <th>Enemy Infra</th>
+                    </tr>
+                % for attack in ["ground", "airvair", "airvinfra", "airvsoldiers", "airvtanks", "airvships", "naval"]:
+                    <tr>
+                        <td>${attack.replace("rva", "r vs A").replace("rvi", "r vs I").replace("rvs", "r vs S").replace("rvt", "r vs T").capitalize()}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_net"]))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{secondary}_gas"]))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{secondary}_mun"]))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{secondary}_steel"]))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{secondary}_alum"]))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{secondary}_money"] - results[f"{primary}_{attack}_{secondary}_lost_infra_avg_value"]))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{secondary}_lost_infra_avg_value"]))}</td>
+                    </tr>
+                % endfor
+                </tbody>
+            </table>
+            <table style="grid-area:${primary}_attacks_1">
+                <caption>If ${results[f'{primary}_nation']['nation_name']} attacks</caption>
+                <tbody>
+                    <tr>
+                        <th>Attack Type</th>
+                        <th>Net Damage</th>
+                        <th>Allied Gasoline</th>
+                        <th>Allied Munitions</th>
+                        <th>Allied Steel</th>
+                        <th>Allied Aluminum</th>
+                        <th>Allied Money</th>
+                        <th>Allied Infra</th>
+                    </tr>
+                % for attack in ["ground", "airvair", "airvinfra", "airvsoldiers", "airvtanks", "airvships", "naval"]:
+                    <tr>
+                        <td>${attack.replace("rva", "r vs A").replace("rvi", "r vs I").replace("rvs", "r vs S").replace("rvt", "r vs T").capitalize()}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_net"]))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{primary}_gas"]))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{primary}_mun"]))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{primary}_steel"]))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{primary}_alum"]))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{primary}_money"]))}</td>
+                        <td>0</td>
+                    </tr>
+                % endfor
+                </tbody>
+            </table>
+        % endfor
+            <p style="color:gray">For net damage, higher is better.<br>Negative net damage means that the opponent would do more damage than you.<br>The amounts of resources being listed, are the amounts that are consumed.<br>Negative money means the nation is earning money.</p>
+            <script>
+                const getCellValue = (tr, idx) => tr.children[idx].textContent.replace(/,/g, '');
+
+                const comparer = (idx, asc) => (a, b) => ((v1, v2) => 
+                    v1 !== '' && v2 !== '' && !isNaN(v1) && !isNaN(v2) ? v1 - v2 : v1.toString().localeCompare(v2)
+                    )(getCellValue(asc ? a : b, idx), getCellValue(asc ? b : a, idx));
+
+                // do the work...
+                document.querySelectorAll('th').forEach(th => th.addEventListener('click', (() => {
+                    const table = th.closest('table');
+                    Array.from(table.querySelectorAll('tr:nth-child(n+2)'))
+                        .sort(comparer(Array.from(th.parentNode.children).indexOf(th), this.asc = !this.asc))
+                        .forEach(tr => table.appendChild(tr) );
+                })));
+            </script>
+        </div>
+    </body>
+</html>
