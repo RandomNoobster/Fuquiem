@@ -1,5 +1,4 @@
 import discord
-from pandas import tseries
 import requests
 import math
 from main import mongo
