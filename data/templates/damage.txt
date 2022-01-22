@@ -1,8 +1,12 @@
 <!DOCTYPE html>
     <head>
         <link rel="icon" href="https://i.ibb.co/2dX2WYW/atomism-ICONSSS.png">
-        <title>Raid targets</title>
+        <title>Damage</title>
         <style>
+            body {
+                background-color: dimgray;
+            }
+
             table {
                 font-family: Verdana, Arial, Monaco;
                 font-size: 80%;
@@ -46,6 +50,7 @@
             p {
                 font-family: sans-serif;
                 font-size: small;
+                color: white;
             }
 
             #grid {
@@ -121,7 +126,7 @@
                 </tbody>
             </table>
         % endfor
-            <p style="color:gray">For net damage, higher is better.<br>Negative net damage means that the opponent would do more damage than you.<br>The amounts of resources being listed, are the amounts that are consumed.<br>Negative money means the nation is earning money.</p>
+            <p>For net damage, higher is better.<br>Negative net damage means that the opponent would do more damage than you.<br>The amounts of resources being listed, are the amounts that are consumed.<br>Negative money means the nation is earning money.</p>
             <script>
                 const getCellValue = (tr, idx) => tr.children[idx].textContent.replace(/,/g, '');
 
