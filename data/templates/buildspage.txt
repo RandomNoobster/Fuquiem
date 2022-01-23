@@ -82,7 +82,7 @@
     <div class="alert">
         <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span> 
         <strong>IMPORTANT!</strong> - This tool only shows builds that are currently being used somewhere in Orbis. This means that you may very well be able to improve upon these builds. It's worth mentioning that even though this shows the best builds for producing every type of resource (except for the ones you can't produce due to continent restrictions), the "best build for net income" is in reality best for every resource. This is because the higher monetary income lets you buy more of a resource than you could get by producing it. Another important thing to mention, is that the monetary net income is dependent on market prices. This means that in times of war, manufactured resources will increase in price, increasing the profitability of builds producing these resources. The "best" build for net income may therefore not always be the same.
-      </div>
+    </div>
     % for rs in rss:
     <div class="template" id="template ${rs}" style="border:4px solid whitesmoke; padding: 0px 5px 5px 5px;">
     <h3 style="text-align:center;">The best build for ${rs}</h3>
