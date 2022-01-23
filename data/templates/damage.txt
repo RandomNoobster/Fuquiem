@@ -5,6 +5,7 @@
         <style>
             body {
                 background-color: dimgray;
+                overflow-x: auto;
             }
 
             table {
@@ -12,6 +13,7 @@
                 font-size: 80%;
                 border-collapse: collapse;
                 width: 100%;
+                outline: 1px solid black;
             }
 
             tr {
@@ -34,6 +36,21 @@
                 text-align: center;
                 font-size: 120%;
                 font-weight: bold;
+                cursor: default;
+            }
+
+            h1 {
+                text-align: center;
+                font-size: 150%;
+                font-weight: bold;
+                font-family: sans-serif;
+                text-shadow: 0px 0px 4px black;
+                margin: 0;
+                color: white;
+            }
+
+            strong {
+                font-family: sans-serif;
             }
 
             th:hover {
@@ -47,47 +64,134 @@
                 white-space: nowrap;
             }
 
-            p {
-                font-family: sans-serif;
-                font-size: small;
-                color: white;
-            }
-
             #grid {
                 display: grid;
                 width: fit-content;
-                margin: 0 auto;
-                overflow-x: auto;
+                margin: 0 auto 20px;
                 column-gap: 20px;
                 row-gap: 20px;
                 justify-content: center;
                 grid-template-areas: 
+                "alert alert"
+                "nation1_title nation2_title"
                 "nation1_attacks_0 nation2_attacks_0"
-                "nation1_attacks_1 nation2_attacks_1";
+                "nation1_attacks_1 nation2_attacks_1"
+                "nation1_attacks_2 nation2_attacks_2"
+                "nation1_attacks_3 nation2_attacks_3";
+            }
+
+            #grid.items {
+                margin: 1px;
+            }
+
+            .alert {
+                padding: 20px;
+                border-radius: 10px;
+                background-color: maroon;
+                color: white;
+                font-size: small;
+                font-family: monospace;
+                outline: 1px solid black;
+            }
+
+            .closebtn {
+                margin-left: 15px;
+                color: white;
+                font-weight: bold;
+                float: right;
+                font-size: 33px;
+                line-height: 10px;
+                cursor: pointer;
+                transition: 0.3s;
+            }
+
+            .closebtn:hover {
+                color: gray;
             }
 
         </style>
     </head>
     <body>
         <div id="grid">
+            <div class="alert" style="grid-area:alert">
+                <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span> 
+                <strong>Disclaimer</strong> - This tool is designed to help you decide what attack to perform in order to burn as many enemy pixels as possible.<br>Please note that you should not blindly do the attacks with the highest net damage, and that targeting enemy military forces is usually a better move.
+                <br><br>
+                <strong>How to use</strong> - There are two columns of tables. One for when each nation performs an attack. The resources listed are the resources consumed by the nation in question.<br>For net damage, higher is better. Negative net damage means that the opponent would do more damage. Negative money means the nation is earning money.
+            </div>
         % for primary, secondary in [("nation1", "nation2"), ("nation2", "nation1")]:
+            <h1 style="grid-area:${primary}_title">If ${results[f'{primary}_nation']['nation_name']} attacks:</h1>
             <table style="grid-area:${primary}_attacks_0">
-                <caption>If ${results[f'{primary}_nation']['nation_name']} attacks</caption>
+                <caption>${results[f'{secondary}_nation']['nation_name']} (defender) stats per MAP</caption>
                 <tbody>
                     <tr>
                         <th>Attack Type</th>
                         <th>Net Damage</th>
-                        <th>Enemy Gasoline</th>
-                        <th>Enemy Munitions</th>
-                        <th>Enemy Steel</th>
-                        <th>Enemy Aluminum</th>
-                        <th>Enemy Money</th>
-                        <th>Enemy Infra</th>
+                        <th>Gasoline</th>
+                        <th>Munitions</th>
+                        <th>Steel</th>
+                        <th>Aluminum</th>
+                        <th>Money</th>
+                        <th>Infra</th>
                     </tr>
-                % for attack in ["ground", "airvair", "airvinfra", "airvsoldiers", "airvtanks", "airvships", "naval"]:
+                % for attack, maps in [("ground", 3), ("airvair", 4), ("airvinfra", 4), ("airvsoldiers", 4), ("airvtanks", 4), ("airvships", 4), ("naval", 4), ("nuke", 12), ("missile", 8)]:
                     <tr>
-                        <td>${attack.replace("rva", "r vs A").replace("rvi", "r vs I").replace("rvs", "r vs S").replace("rvt", "r vs T").capitalize()}</td>
-                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_net"]))}</td>
+                        <td>${attack.replace("rva", "r vs A").replace("rvi", "r vs I").replace("rvs", "r vs S").replace("rvt", "r vs T").title()}</td>
+                        <td>${'{:,}'.format(-round(results[f"{primary}_{attack}_net"]/maps))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{secondary}_gas"]/maps))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{secondary}_mun"]/maps))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{secondary}_steel"]/maps))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{secondary}_alum"]/maps))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{secondary}_money"] - results[f"{primary}_{attack}_{secondary}_lost_infra_avg_value"]/maps))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{secondary}_lost_infra_avg_value"]/maps))}</td>
+                    </tr>
+                % endfor
+                </tbody>
+            </table>
+            <table style="grid-area:${primary}_attacks_1">
+            <caption>${results[f'{primary}_nation']['nation_name']} (attacker) stats per MAP</caption>
+                <tbody>
+                    <tr>
+                        <th>Attack Type</th>
+                        <th>Net Damage</th>
+                        <th>Gasoline</th>
+                        <th>Munitions</th>
+                        <th>Steel</th>
+                        <th>Aluminum</th>
+                        <th>Money</th>
+                        <th>Infra</th>
+                    </tr>
+                % for attack, maps in [("ground", 3), ("airvair", 4), ("airvinfra", 4), ("airvsoldiers", 4), ("airvtanks", 4), ("airvships", 4), ("naval", 4), ("nuke", 12), ("missile", 8)]:
+                    <tr>
+                        <td>${attack.replace("rva", "r vs A").replace("rvi", "r vs I").replace("rvs", "r vs S").replace("rvt", "r vs T").title()}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_net"]/maps))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{primary}_gas"]/maps))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{primary}_mun"]/maps))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{primary}_steel"]/maps))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{primary}_alum"]/maps))}</td>
+                        <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{primary}_money"]/maps))}</td>
+                        <td>0</td>
+                    </tr>
+                % endfor
+                </tbody>
+            </table>
+            <table style="grid-area:${primary}_attacks_2">
+                <caption>${results[f'{secondary}_nation']['nation_name']} (defender) absolute stats</caption>
+                <tbody>
+                    <tr>
+                        <th>Attack Type</th>
+                        <th>Net Damage</th>
+                        <th>Gasoline</th>
+                        <th>Munitions</th>
+                        <th>Steel</th>
+                        <th>Aluminum</th>
+                        <th>Money</th>
+                        <th>Infra</th>
+                    </tr>
+                % for attack in ["ground", "airvair", "airvinfra", "airvsoldiers", "airvtanks", "airvships", "naval", "nuke", "missile"]:
+                    <tr>
+                        <td>${attack.replace("rva", "r vs A").replace("rvi", "r vs I").replace("rvs", "r vs S").replace("rvt", "r vs T").title()}</td>
+                        <td>${'{:,}'.format(-round(results[f"{primary}_{attack}_net"]))}</td>
                         <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{secondary}_gas"]))}</td>
                         <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{secondary}_mun"]))}</td>
                         <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{secondary}_steel"]))}</td>
@@ -98,22 +202,22 @@
                 % endfor
                 </tbody>
             </table>
-            <table style="grid-area:${primary}_attacks_1">
-                <caption>If ${results[f'{primary}_nation']['nation_name']} attacks</caption>
+            <table style="grid-area:${primary}_attacks_3">
+            <caption>${results[f'{primary}_nation']['nation_name']} (attacker) absolute stats</caption>
                 <tbody>
                     <tr>
                         <th>Attack Type</th>
                         <th>Net Damage</th>
-                        <th>Allied Gasoline</th>
-                        <th>Allied Munitions</th>
-                        <th>Allied Steel</th>
-                        <th>Allied Aluminum</th>
-                        <th>Allied Money</th>
-                        <th>Allied Infra</th>
+                        <th>Gasoline</th>
+                        <th>Munitions</th>
+                        <th>Steel</th>
+                        <th>Aluminum</th>
+                        <th>Money</th>
+                        <th>Infra</th>
                     </tr>
-                % for attack in ["ground", "airvair", "airvinfra", "airvsoldiers", "airvtanks", "airvships", "naval"]:
+                % for attack in ["ground", "airvair", "airvinfra", "airvsoldiers", "airvtanks", "airvships", "naval", "nuke", "missile"]:
                     <tr>
-                        <td>${attack.replace("rva", "r vs A").replace("rvi", "r vs I").replace("rvs", "r vs S").replace("rvt", "r vs T").capitalize()}</td>
+                        <td>${attack.replace("rva", "r vs A").replace("rvi", "r vs I").replace("rvs", "r vs S").replace("rvt", "r vs T").title()}</td>
                         <td>${'{:,}'.format(round(results[f"{primary}_{attack}_net"]))}</td>
                         <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{primary}_gas"]))}</td>
                         <td>${'{:,}'.format(round(results[f"{primary}_{attack}_{primary}_mun"]))}</td>
@@ -126,7 +230,6 @@
                 </tbody>
             </table>
         % endfor
-            <p>For net damage, higher is better.<br>Negative net damage means that the opponent would do more damage than you.<br>The amounts of resources being listed, are the amounts that are consumed.<br>Negative money means the nation is earning money.</p>
             <script>
                 const getCellValue = (tr, idx) => tr.children[idx].textContent.replace(/,/g, '');
 
