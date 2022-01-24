@@ -488,6 +488,7 @@ class General(commands.Cog):
         
         if dm:
             message = await ctx.send("\u200b")
+            content = ""
             for nation in to_message:
                 try:
                     dm_chan = await self.bot.fetch_user(nation['user']['user'])
