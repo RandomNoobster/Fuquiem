@@ -1947,9 +1947,9 @@ class Military(commands.Cog):
             for variant in [{"type": "avg", "rate": 0.7}, {"type": "diff", "rate": 0.3}]:
                 for fighter in [{"fighter": "soldiers", "win_cas_rate": 125, "loss_cas_rate": 125}, {"fighter": "tanks", "win_cas_rate": 1650, "loss_cas_rate": 1550}]:
                     if party == "nation1":
-                        results[f"nation1_ground_{party}_{variant['type']}_{fighter['fighter']}"] = round(nation2_army_value * variant['rate'] / fighter[f"{winning}_cas_rate"] * 3 * results['nation1_extra_cas'])
+                        results[f"nation1_ground_{party}_{variant['type']}_{fighter['fighter']}"] = min(round(nation2_army_value * variant['rate'] / fighter[f"{winning}_cas_rate"] * 3 * results['nation1_extra_cas']), results['nation2_nation'][fighter['fighter']])
                     elif party == "nation2":
-                        results[f"nation1_ground_{party}_{variant['type']}_{fighter['fighter']}"] = round(nation1_army_value * variant['rate'] / fighter[f"{losing}_cas_rate"] * 3)
+                        results[f"nation1_ground_{party}_{variant['type']}_{fighter['fighter']}"] = min(round(nation1_army_value * variant['rate'] / fighter[f"{losing}_cas_rate"] * 3), results['nation1_nation'][fighter['fighter']])
 
         nation2_army_value = results['nation2_nation']['soldiers'] * 1.75 + results['nation2_nation']['tanks'] * 40 * results['nation2_tanks']
         nation1_army_value = results['nation1_nation']['soldiers'] * 1.75 + results['nation1_nation']['tanks'] * 40 * results['nation1_tanks'] + results['nation1_nation']['population'] * 0.0025
@@ -1973,43 +1973,43 @@ class Military(commands.Cog):
             for variant in [{"type": "avg", "rate": 0.7}, {"type": "diff", "rate": 0.3}]:
                 for fighter in [{"fighter": "soldiers", "win_cas_rate": 125, "loss_cas_rate": 125}, {"fighter": "tanks", "win_cas_rate": 1650, "loss_cas_rate": 1550}]:
                     if party == "nation2":
-                        results[f"nation2_ground_{party}_{variant['type']}_{fighter['fighter']}"] = round(nation1_army_value * variant['rate'] / fighter[f"{winning}_cas_rate"] * 3 * results['nation2_extra_cas'])
+                        results[f"nation2_ground_{party}_{variant['type']}_{fighter['fighter']}"] = min(round(nation1_army_value * variant['rate'] / fighter[f"{winning}_cas_rate"] * 3 * results['nation2_extra_cas']), results['nation2_nation'][fighter['fighter']])
                     elif party == "nation1":
-                        results[f"nation2_ground_{party}_{variant['type']}_{fighter['fighter']}"] = round(nation2_army_value * variant['rate'] / fighter[f"{losing}_cas_rate"] * 3)
+                        results[f"nation2_ground_{party}_{variant['type']}_{fighter['fighter']}"] = min(round(nation2_army_value * variant['rate'] / fighter[f"{losing}_cas_rate"] * 3), results['nation1_nation'][fighter['fighter']])
 
         results['nation1_air_win_rate'] = self.winrate_calc((results['nation1_nation']['aircraft'] * 3), (results['nation2_nation']['aircraft'] * 3))
 
-        results['nation1_airtoair_nation1_avg'] = round(results['nation2_nation']['aircraft'] * 3 * 0.7 * 0.01 * 3 * results['nation1_extra_cas'])
-        results['nation1_airtoair_nation1_diff'] = round(results['nation2_nation']['aircraft'] * 3 * 0.3 * 0.01 * 3 * results['nation1_extra_cas'])
-        results['nation1_airtoother_nation1_avg'] = round(results['nation2_nation']['aircraft'] * 3 * 0.7 * 0.015385 * 3 * results['nation1_extra_cas'])
-        results['nation1_airtoother_nation1_diff'] = round(results['nation2_nation']['aircraft'] * 3 * 0.3 * 0.015385 * 3 * results['nation1_extra_cas'])
+        results['nation1_airtoair_nation1_avg'] = min(round(results['nation2_nation']['aircraft'] * 3 * 0.7 * 0.01 * 3 * results['nation1_extra_cas']), results['nation1_nation']['aircraft'])
+        results['nation1_airtoair_nation1_diff'] = min(round(results['nation2_nation']['aircraft'] * 3 * 0.3 * 0.01 * 3 * results['nation1_extra_cas']), results['nation1_nation']['aircraft'])
+        results['nation1_airtoother_nation1_avg'] = min(round(results['nation2_nation']['aircraft'] * 3 * 0.7 * 0.015385 * 3 * results['nation1_extra_cas']), results['nation1_nation']['aircraft'])
+        results['nation1_airtoother_nation1_diff'] = min(round(results['nation2_nation']['aircraft'] * 3 * 0.3 * 0.015385 * 3 * results['nation1_extra_cas']), results['nation1_nation']['aircraft'])
 
-        results['nation1_airtoair_nation2_avg'] = round(results['nation1_nation']['aircraft'] * 3 * 0.7 * 0.018337 * 3)
-        results['nation1_airtoair_nation2_diff'] = round(results['nation1_nation']['aircraft'] * 3 * 0.3 * 0.018337 * 3)
-        results['nation1_airtoother_nation2_avg'] = round(results['nation1_nation']['aircraft'] * 3 * 0.7 * 0.009091 * 3)
-        results['nation1_airtoother_nation2_diff'] = round(results['nation1_nation']['aircraft'] * 3 * 0.3 * 0.009091 * 3)
+        results['nation1_airtoair_nation2_avg'] = min(round(results['nation1_nation']['aircraft'] * 3 * 0.7 * 0.018337 * 3), results['nation2_nation']['aircraft'])
+        results['nation1_airtoair_nation2_diff'] = min(round(results['nation1_nation']['aircraft'] * 3 * 0.3 * 0.018337 * 3), results['nation2_nation']['aircraft'])
+        results['nation1_airtoother_nation2_avg'] = min(round(results['nation1_nation']['aircraft'] * 3 * 0.7 * 0.009091 * 3), results['nation2_nation']['aircraft'])
+        results['nation1_airtoother_nation2_diff'] = min(round(results['nation1_nation']['aircraft'] * 3 * 0.3 * 0.009091 * 3), results['nation2_nation']['aircraft'])
 
-        results['nation2_airtoair_nation2_avg'] = round(results['nation1_nation']['aircraft'] * 3 * 0.7 * 0.01 * 3 * results['nation2_extra_cas'])
-        results['nation2_airtoair_nation2_diff'] = round(results['nation1_nation']['aircraft'] * 3 * 0.3 * 0.01 * 3 * results['nation2_extra_cas'])
-        results['nation2_airtoother_nation2_avg'] = round(results['nation1_nation']['aircraft'] * 3 * 0.7 * 0.015385 * 3 * results['nation2_extra_cas'])
-        results['nation2_airtoother_nation2_diff'] = round(results['nation1_nation']['aircraft'] * 3 * 0.3 * 0.015385 * 3 * results['nation2_extra_cas'])
+        results['nation2_airtoair_nation2_avg'] = min(round(results['nation1_nation']['aircraft'] * 3 * 0.7 * 0.01 * 3 * results['nation2_extra_cas']), results['nation2_nation']['aircraft'])
+        results['nation2_airtoair_nation2_diff'] = min(round(results['nation1_nation']['aircraft'] * 3 * 0.3 * 0.01 * 3 * results['nation2_extra_cas']), results['nation2_nation']['aircraft'])
+        results['nation2_airtoother_nation2_avg'] = min(round(results['nation1_nation']['aircraft'] * 3 * 0.7 * 0.015385 * 3 * results['nation2_extra_cas']), results['nation2_nation']['aircraft'])
+        results['nation2_airtoother_nation2_diff'] = min(round(results['nation1_nation']['aircraft'] * 3 * 0.3 * 0.015385 * 3 * results['nation2_extra_cas']), results['nation2_nation']['aircraft'])
 
-        results['nation2_airtoair_nation1_avg'] = round(results['nation2_nation']['aircraft'] * 3 * 0.7 * 0.018337 * 3)
-        results['nation2_airtoair_nation1_diff'] = round(results['nation2_nation']['aircraft'] * 3 * 0.3 * 0.018337 * 3)
-        results['nation2_airtoother_nation1_avg'] = round(results['nation2_nation']['aircraft'] * 3 * 0.7 * 0.009091 * 3)
-        results['nation2_airtoother_nation1_diff'] = round(results['nation2_nation']['aircraft'] * 3 * 0.3 * 0.009091 * 3)
+        results['nation2_airtoair_nation1_avg'] = min(round(results['nation2_nation']['aircraft'] * 3 * 0.7 * 0.018337 * 3), results['nation1_nation']['aircraft'])
+        results['nation2_airtoair_nation1_diff'] = min(round(results['nation2_nation']['aircraft'] * 3 * 0.3 * 0.018337 * 3), results['nation1_nation']['aircraft'])
+        results['nation2_airtoother_nation1_avg'] = min(round(results['nation2_nation']['aircraft'] * 3 * 0.7 * 0.009091 * 3), results['nation1_nation']['aircraft'])
+        results['nation2_airtoother_nation1_diff'] = min(round(results['nation2_nation']['aircraft'] * 3 * 0.3 * 0.009091 * 3), results['nation1_nation']['aircraft'])
 
         results['nation1_naval_win_rate'] = self.winrate_calc((results['nation1_nation']['ships'] * 4), (results['nation2_nation']['ships'] * 4))
 
-        results['nation1_naval_nation2_avg'] = round(results['nation1_nation']['ships'] * 4 * 0.7 * 0.01375 * 3 * results['nation1_extra_cas'])
-        results['nation1_naval_nation2_diff'] = round(results['nation1_nation']['ships'] * 4 * 0.3 * 0.01375 * 3 * results['nation1_extra_cas'])
-        results['nation1_naval_nation1_avg'] = round(results['nation2_nation']['ships'] * 4 * 0.7 * 0.01375 * 3)
-        results['nation1_naval_nation1_diff'] = round(results['nation2_nation']['ships'] * 4 * 0.3 * 0.01375 * 3)
+        results['nation1_naval_nation2_avg'] = min(round(results['nation1_nation']['ships'] * 4 * 0.7 * 0.01375 * 3 * results['nation1_extra_cas']), results['nation2_nation']['aircraft'])
+        results['nation1_naval_nation2_diff'] = min(round(results['nation1_nation']['ships'] * 4 * 0.3 * 0.01375 * 3 * results['nation1_extra_cas']), results['nation2_nation']['aircraft'])
+        results['nation1_naval_nation1_avg'] = min(round(results['nation2_nation']['ships'] * 4 * 0.7 * 0.01375 * 3), results['nation1_nation']['aircraft'])
+        results['nation1_naval_nation1_diff'] = min(round(results['nation2_nation']['ships'] * 4 * 0.3 * 0.01375 * 3), results['nation1_nation']['aircraft'])
 
-        results['nation2_naval_nation2_avg'] = round(results['nation1_nation']['ships'] * 4 * 0.7 * 0.01375 * 3 * results['nation2_extra_cas'])
-        results['nation2_naval_nation2_diff'] = round(results['nation1_nation']['ships'] * 4 * 0.3 * 0.01375 * 3 * results['nation2_extra_cas'])
-        results['nation2_naval_nation1_avg'] = round(results['nation2_nation']['ships'] * 4 * 0.7 * 0.01375 * 3)
-        results['nation2_naval_nation1_diff'] = round(results['nation2_nation']['ships'] * 4 * 0.3 * 0.01375 * 3)
+        results['nation2_naval_nation2_avg'] = min(round(results['nation1_nation']['ships'] * 4 * 0.7 * 0.01375 * 3 * results['nation2_extra_cas']), results['nation2_nation']['aircraft'])
+        results['nation2_naval_nation2_diff'] = min(round(results['nation1_nation']['ships'] * 4 * 0.3 * 0.01375 * 3 * results['nation2_extra_cas']), results['nation2_nation']['aircraft'])
+        results['nation2_naval_nation1_avg'] = min(round(results['nation2_nation']['ships'] * 4 * 0.7 * 0.01375 * 3), results['nation1_nation']['aircraft'])
+        results['nation2_naval_nation1_diff'] = min(round(results['nation2_nation']['ships'] * 4 * 0.3 * 0.01375 * 3), results['nation1_nation']['aircraft'])
 
         results['nation1_ground_it'] = results['nation1_ground_win_rate']**3
         results['nation1_ground_mod'] = results['nation1_ground_win_rate']**2 * (1 - results['nation1_ground_win_rate']) * 3
