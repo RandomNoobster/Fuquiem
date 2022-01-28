@@ -1739,8 +1739,7 @@ class Military(commands.Cog):
 
     @commands.command(aliases=["dmg"])
     async def damage(self, ctx, nation1=None, nation2=None):
-        #check is any wars are active, and if they have air superiority, ground control, fortified etc
-        message = await ctx.send('Alright, give me a sec to calculate the winrates...')
+        message = await ctx.send('Alright, give me a sec to calculate your mom...')
         if nation1 == None:
             nation1 = ctx.author.id
         nation1_nation = utils.find_user(self, nation1)
