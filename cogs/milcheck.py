@@ -1805,8 +1805,7 @@ class Military(commands.Cog):
             nation2_id = str(nation2_nation['nationid'])
         
         results = await self.battle_calc(nation1_id, nation2_id)
-        await message.edit(content="Hang on there partner...")
-        endpoint = datetime.utcnow().strftime('%d%H%M%S')
+        endpoint = datetime.utcnow().strftime('%d%H%M%S%f')
         class webraid(MethodView):
             def get(raidclass):
                 with open('./data/templates/damage.txt', 'r') as file:
@@ -1924,33 +1923,45 @@ class Military(commands.Cog):
                     results['nation1_war_loot_mod'] = 0.25
                     results['nation2_war_loot_mod'] = 0.5
         
-        
         for attacker, defender in [("nation1", "nation2"), ("nation2", "nation1")]:
-            attacker_army_value = results['nation1']['soldiers'] * 1.75 + results['nation1']['tanks'] * 40 * results['nation1_tanks']
-            defender_army_value = results['nation2']['soldiers'] * 1.75 + results['nation2']['tanks'] * 40 * results['nation2_tanks'] + results['nation2']['population'] * 0.0025
+            defender_tanks_value = results[defender]['tanks'] * 40 * results[f'{defender}_tanks']
+            defender_soldiers_value = results[defender]['soldiers'] * 1.75 + results[defender]['population'] * 0.0025
+            defender_army_value = defender_soldiers_value + defender_tanks_value
+
+            attacker_tanks_value = results[attacker]['tanks'] * 40 * results[f'{attacker}_tanks']
+            attacker_soldiers_value = results[attacker]['soldiers'] * 1.75
+            attacker_army_value = attacker_soldiers_value + attacker_tanks_value
 
             results[f'{attacker}_ground_win_rate'] = self.winrate_calc(attacker_army_value, defender_army_value)
+            results[f'{attacker}_ground_it'] = results[f'{attacker}_ground_win_rate']**3
+            results[f'{attacker}_ground_mod'] = results[f'{attacker}_ground_win_rate']**2 * (1 - results[f'{attacker}_ground_win_rate']) * 3
+            results[f'{attacker}_ground_pyr'] = results[f'{attacker}_ground_win_rate'] * (1 - results[f'{attacker}_ground_win_rate'])**2 * 3
+            results[f'{attacker}_ground_fail'] = (1 - results[f'{attacker}_ground_win_rate'])**3
+
+            results[f'{attacker}_air_win_rate'] = self.winrate_calc((results[f'{attacker}']['aircraft'] * 3), (results[f'{defender}']['aircraft'] * 3))
+            results[f'{attacker}_air_it'] = results[f'{attacker}_air_win_rate']**3
+            results[f'{attacker}_air_mod'] = results[f'{attacker}_air_win_rate']**2 * (1 - results[f'{attacker}_air_win_rate']) * 3
+            results[f'{attacker}_air_pyr'] = results[f'{attacker}_air_win_rate'] * (1 - results[f'{attacker}_air_win_rate'])**2 * 3
+            results[f'{attacker}_air_fail'] = (1 - results[f'{attacker}_air_win_rate'])**3
+
+            results[f'{attacker}_naval_win_rate'] = self.winrate_calc((results[f'{attacker}']['ships'] * 4), (results[f'{defender}']['ships'] * 4))
+            results[f'{attacker}_naval_it'] = results[f'{attacker}_naval_win_rate']**3
+            results[f'{attacker}_naval_mod'] = results[f'{attacker}_naval_win_rate']**2 * (1 - results[f'{attacker}_naval_win_rate']) * 3
+            results[f'{attacker}_naval_pyr'] = results[f'{attacker}_naval_win_rate'] * (1 - results[f'{attacker}_naval_win_rate'])**2 * 3
+            results[f'{attacker}_naval_fail'] = (1 - results[f'{attacker}_naval_win_rate'])**3
             
             if results['gc'] == results[attacker]:
-                results[defender]['aircas'] = f"Def. Plane: {round(results[f'{attacker}']['tanks'] * 0.0075 * results[f'{attacker}_ground_win_rate'] ** 3)} ± {round(results[f'{attacker}']['tanks'] * 0.0075 * (1 - results[f'{attacker}_ground_win_rate'] ** 3))}"
-                results[f'{attacker}_ground_{defender}_avg_aircraft'] = results[f'{attacker}']['tanks'] * 0.0075 * results[f'{attacker}_ground_win_rate'] ** 3
+                results[f'{attacker}_ground_{defender}_avg_aircraft'] = avg_air = min(results[f'{attacker}']['tanks'] * 0.0075 * results[f'{attacker}_ground_win_rate'] ** 3, results[defender]['aircraft'])
+                results[defender]['aircas'] = f"Def. Plane: {avg_air} ± {round(results[f'{attacker}']['tanks'] * 0.0075 * (1 - results[f'{attacker}_ground_win_rate'] ** 3))}"
             else:
                 results[defender]['aircas'] = ""
                 results[f'{attacker}_ground_{defender}_avg_aircraft'] = 0
             
-            if attacker_army_value > defender_army_value:
-                winning = "win"
-                losing = "loss"
-            else:
-                winning = "loss"
-                losing = "win"
-            
-            for variant in [{"type": "avg", "rate": 0.7}, {"type": "diff", "rate": 0.3}]:
-                for fighter in [{"fighter": "soldiers", "win_cas_rate": 125, "loss_cas_rate": 125}, {"fighter": "tanks", "win_cas_rate": 1650, "loss_cas_rate": 1550}]:
-                    results[f"{attacker}_ground_{attacker}_{variant['type']}_{fighter['fighter']}"] = min(round(attacker_army_value * variant['rate'] / fighter[f"{winning}_cas_rate"] * 3 * results[f'{attacker}_extra_cas']), results[attacker][fighter['fighter']])
-                    results[f"{attacker}_ground_{defender}_{variant['type']}_{fighter['fighter']}"] = min(round(defender_army_value * variant['rate'] / fighter[f"{losing}_cas_rate"] * 3), results[defender][fighter['fighter']])
-
-            results[f'{attacker}_air_win_rate'] = self.winrate_calc((results[f'{attacker}']['aircraft'] * 3), (results[f'{defender}']['aircraft'] * 3))
+            for type, cas_rate in [("avg", 0.7), ("diff", 0.3)]:
+                results[f'{attacker}_ground_{attacker}_{type}_soldiers'] = min(round(((defender_soldiers_value * 0.0084) + (defender_tanks_value * 0.0092)) * cas_rate * 3), results[attacker]['soldiers'])
+                results[f'{attacker}_ground_{attacker}_{type}_tanks'] = min(round((((defender_soldiers_value * 0.0004060606) + (defender_tanks_value * 0.00066666666)) * results[f'{attacker}_ground_win_rate'] + ((defender_soldiers_value * 0.00043225806) + (defender_tanks_value * 0.00070967741)) * (1 - results[f'{attacker}_ground_win_rate'])) * cas_rate * 3), results[attacker]['tanks'])
+                results[f'{attacker}_ground_{defender}_{type}_soldiers'] = min(round(((attacker_soldiers_value * 0.0084) + (attacker_tanks_value * 0.0092)) * cas_rate * 3), results[defender]['soldiers'])
+                results[f'{attacker}_ground_{defender}_{type}_tanks'] = min(round((((attacker_soldiers_value * 0.00043225806) + (attacker_tanks_value * 0.00070967741)) * results[f'{attacker}_ground_win_rate'] + ((attacker_soldiers_value * 0.0004060606) + (attacker_tanks_value * 0.00066666666)) * (1 - results[f'{attacker}_ground_win_rate'])) * cas_rate * 3), results[defender]['tanks'])
 
             results[f'{attacker}_airtoair_{attacker}_avg'] = min(round(results[f'{defender}']['aircraft'] * 3 * 0.7 * 0.01 * 3 * results[f'{attacker}_extra_cas']), results[f'{attacker}']['aircraft'])
             results[f'{attacker}_airtoair_{attacker}_diff'] = min(round(results[f'{defender}']['aircraft'] * 3 * 0.3 * 0.01 * 3 * results[f'{attacker}_extra_cas']), results[f'{attacker}']['aircraft'])
@@ -1962,27 +1973,10 @@ class Military(commands.Cog):
             results[f'{attacker}_airtoother_{defender}_avg'] = min(round(results[f'{attacker}']['aircraft'] * 3 * 0.7 * 0.009091 * 3), results[f'{defender}']['aircraft'])
             results[f'{attacker}_airtoother_{defender}_diff'] = min(round(results[f'{attacker}']['aircraft'] * 3 * 0.3 * 0.009091 * 3), results[f'{defender}']['aircraft'])
 
-            results[f'{attacker}_naval_win_rate'] = self.winrate_calc((results[f'{attacker}']['ships'] * 4), (results[f'{defender}']['ships'] * 4))
-
             results[f'{attacker}_naval_{defender}_avg'] = min(round(results[f'{attacker}']['ships'] * 4 * 0.7 * 0.01375 * 3 * results[f'{attacker}_extra_cas']), results[f'{defender}']['aircraft'])
             results[f'{attacker}_naval_{defender}_diff'] = min(round(results[f'{attacker}']['ships'] * 4 * 0.3 * 0.01375 * 3 * results[f'{attacker}_extra_cas']), results[f'{defender}']['aircraft'])
             results[f'{attacker}_naval_{attacker}_avg'] = min(round(results[f'{defender}']['ships'] * 4 * 0.7 * 0.01375 * 3), results[f'{attacker}']['aircraft'])
             results[f'{attacker}_naval_{attacker}_diff'] = min(round(results[f'{defender}']['ships'] * 4 * 0.3 * 0.01375 * 3), results[f'{attacker}']['aircraft'])
-
-            results[f'{attacker}_ground_it'] = results[f'{attacker}_ground_win_rate']**3
-            results[f'{attacker}_ground_mod'] = results[f'{attacker}_ground_win_rate']**2 * (1 - results[f'{attacker}_ground_win_rate']) * 3
-            results[f'{attacker}_ground_pyr'] = results[f'{attacker}_ground_win_rate'] * (1 - results[f'{attacker}_ground_win_rate'])**2 * 3
-            results[f'{attacker}_ground_fail'] = (1 - results[f'{attacker}_ground_win_rate'])**3
-
-            results[f'{attacker}_air_it'] = results[f'{attacker}_air_win_rate']**3
-            results[f'{attacker}_air_mod'] = results[f'{attacker}_air_win_rate']**2 * (1 - results[f'{attacker}_air_win_rate']) * 3
-            results[f'{attacker}_air_pyr'] = results[f'{attacker}_air_win_rate'] * (1 - results[f'{attacker}_air_win_rate'])**2 * 3
-            results[f'{attacker}_air_fail'] = (1 - results[f'{attacker}_air_win_rate'])**3
-
-            results[f'{attacker}_naval_it'] = results[f'{attacker}_naval_win_rate']**3
-            results[f'{attacker}_naval_mod'] = results[f'{attacker}_naval_win_rate']**2 * (1 - results[f'{attacker}_naval_win_rate']) * 3
-            results[f'{attacker}_naval_pyr'] = results[f'{attacker}_naval_win_rate'] * (1 - results[f'{attacker}_naval_win_rate'])**2 * 3
-            results[f'{attacker}_naval_fail'] = (1 - results[f'{attacker}_naval_win_rate'])**3
 
         def def_rss_consumption(winrate: Union[int, float]) -> float:
             rate = -0.4624 * winrate**2 + 1.06256 * winrate + 0.3999            
