@@ -11,8 +11,8 @@ from datetime import datetime, timedelta
 from discord.ext import commands
 import os
 from cryptography.fernet import Fernet
-import re
 import utils
+import traceback
 
 api_key = os.getenv("api_key")
 api_key_2 = os.getenv("api_key_2")
@@ -33,7 +33,7 @@ class Update(commands.Cog):
         try:
             await self.nation_check(ctx.channel, aa)
         except Exception as e:
-            await ctx.send(f"I encountered an error whilst performing self.food_check():\n```{e}```")
+            await ctx.send(f"I encountered an error whilst performing self.food_check():\n```{traceback.format_exc()}```")
 
     async def nation_check(self, channel, aa='all'):
         async with aiohttp.ClientSession() as session:
@@ -374,41 +374,41 @@ class Update(commands.Cog):
                 print(datetime.utcnow(), 'hour is 22')
                 try:
                     await Raffle.draw_func()
-                except Exception as e:
-                    await debug_channel.send(f"I encountered an error whilst performing Raffle.draw_func():\n```{e}```")
+                except:
+                    await debug_channel.send(f"I encountered an error whilst performing Raffle.draw_func():\n```{traceback.format_exc()}```")
 
             if now.hour == 0:
                 print(datetime.utcnow(), 'hour is 0')
                 try:
                     await self.nation_check(debug_channel)
-                except Exception as e:
-                    await debug_channel.send(f"I encountered an error whilst performing self.nation_check():\n```{e}```")
+                except:
+                    await debug_channel.send(f"I encountered an error whilst performing self.nation_check():\n```{traceback.format_exc()}```")
 
             if now.hour == 18:
                 try:
                     await Military.spies_msg()
-                except Exception as e:
-                    await debug_channel.send(f"I encountered an error whilst performing Military.spies_msg():\n```{e}```")
+                except:
+                    await debug_channel.send(f"I encountered an error whilst performing Military.spies_msg():\n```{traceback.format_exc()}```")
                 try:
                     await self.raffle_reminder()
-                except Exception as e:
-                    await debug_channel.send(f"I encountered an error whilst performing self.raffle_reminder():\n```{e}```")
+                except:
+                    await debug_channel.send(f"I encountered an error whilst performing self.raffle_reminder():\n```{traceback.format_exc()}```")
             try:
                 await self.alert_scanner()
-            except Exception as e:
-                await debug_channel.send(f"I encountered an error whilst performing self.alert_scanner():\n```{e}```")
+            except:
+                await debug_channel.send(f"I encountered an error whilst performing self.alert_scanner():\n```{traceback.format_exc()}```")
             try:
                 await self.sheet_generator()
-            except Exception as e:
-                await debug_channel.send(f"I encountered an error whilst performing sheet.sheet_generator():\n```{e}```")
+            except:
+                await debug_channel.send(f"I encountered an error whilst performing sheet.sheet_generator():\n```{traceback.format_exc()}```")
             try:
                 await self.city_roles()
-            except Exception as e:
-                await debug_channel.send(f"I encountered an error whilst performing self.city_roles():\n```{e}```")
+            except:
+                await debug_channel.send(f"I encountered an error whilst performing self.city_roles():\n```{traceback.format_exc()}```")
             try:
                 await Military.wars_check()
-            except Exception as e:
-                await debug_channel.send(f"I encountered an error whilst performing Military.wars_check():\n```{e}```")
+            except:
+                await debug_channel.send(f"I encountered an error whilst performing Military.wars_check():\n```{traceback.format_exc()}```")
 
             print(datetime.utcnow(), 'finished, going to sleep')
             await asyncio.sleep(60)
@@ -435,8 +435,8 @@ class Update(commands.Cog):
         Military = self.bot.get_cog('Military')
         try:
             await Military.spies_msg()
-        except Exception as e:
-            await ctx.send(f"I encountered an error whilst performing Military.spies_msg():\n```{e}```")
+        except:
+            await ctx.send(f"I encountered an error whilst performing Military.spies_msg():\n```{traceback.format_exc()}```")
         await ctx.send('Things have been updated from the API.')
 
 

@@ -12,6 +12,7 @@ from flask.views import MethodView
 from flask import request
 import pathlib
 import re
+import traceback
 import asyncio
 import utils
 from typing import Union
@@ -661,8 +662,8 @@ class Military(commands.Cog):
                                 break
                 prev_wars = wars
                 await asyncio.sleep(60)
-            except Exception as e:
-                await debug_channel.send(f"I encountered an error```{e}```")
+            except:
+                await debug_channel.send(f"I encountered an error whilst scanning for wars:```{traceback.format_exc()}```")
 
     @commands.command(brief='Add someone to the military coordination thread.')
     @commands.has_any_role('Pupil', 'Zealot', 'Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
