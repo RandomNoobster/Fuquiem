@@ -227,13 +227,18 @@ class General(commands.Cog):
             results = await asyncio.gather(*futures) ## will include instances of None, since None is returned
             to_message = [i for i in results if i]
 
-        api_nation = to_message[0]
+        try:
+            api_nation = to_message[0]
+        except:
+            api_nation = None
+
         try:
             await message.edit(content=content, embed=None)
         except:
             await message.delete()
         finally:
             if not api_nation:
+                await message.edit(content=content + "\nNobody was found, please try again!", embed=None)
                 return
 
         msg_hist = mongo.message_history.find_one({"nationid": api_nation['nationid']})

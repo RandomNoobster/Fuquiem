@@ -174,6 +174,9 @@ class Update(commands.Cog):
                 print(f"I couldn't assign a city-role to {nation['nation']}")
                 continue
             user = guild.get_member(person['user'])
+            if not user:
+                print(f"I could not find {nation['nation_name']} as a member on discord.")
+                continue
             if nation['cities'] < 10:
                 if zerotoninerole not in user.roles:
                     await user.add_roles(zerotoninerole)
