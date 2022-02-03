@@ -175,7 +175,7 @@ class Update(commands.Cog):
                 continue
             user = guild.get_member(person['user'])
             if not user:
-                print(f"I could not find {nation['nation_name']} as a member on discord.")
+                print(f"I could not find {nation['nation']} as a member on discord.")
                 continue
             if nation['cities'] < 10:
                 if zerotoninerole not in user.roles:
