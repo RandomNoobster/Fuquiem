@@ -31,7 +31,7 @@ class Military(commands.Cog):
         self.bot = bot
         self.bot.bg_task = self.bot.loop.create_task(self.wars())
 
-    @commands.command(brief='Returns military statistics', help='Accepts an optional argument "convent"')
+    @commands.command(brief='Returns military statistics', help='Displays information about rebuys, warchests, mmr and ongoing wars for the Church and Convent.')
     @commands.has_any_role('Deacon', 'Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def milcheck(self, ctx):
         async with aiohttp.ClientSession() as session:
@@ -126,7 +126,7 @@ class Military(commands.Cog):
         message4 = await ctx.send(content="", embed = embeds4[0])
         asyncio.create_task(utils.reaction_checker(self, message4, embeds4))
 
-    @commands.command(brief='Delete all threads in this channel.')
+    @commands.command(brief='Delete all threads in this channel.', help="Deletes any active thread in the channel the command was called.")
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def clear_threads(self, ctx):
         for thread in ctx.channel.threads:
@@ -134,7 +134,11 @@ class Military(commands.Cog):
         print("done")
         return
 
-    @commands.command(brief='May be used in military coordination threads.', aliases=['s'])
+    @commands.command(
+        brief="Status of someone's ongoing wars.",
+        aliases=['s'],
+        help="Can be used without arguments in a war thread, or you can supply an argument to get the warring status of the supplied nation."
+    )
     @commands.has_any_role('Pupil', 'Zealot', 'Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def status(self, ctx, arg=None):
         with open ('./data/attachments/marching.gif', 'rb') as gif:
@@ -334,7 +338,7 @@ class Military(commands.Cog):
         asyncio.create_task(reaction_checker())
 
     @commands.command(brief='Debugging cmd, requires admin perms')
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def war_scanner(self, ctx):
         await self.wars()
 
@@ -665,17 +669,27 @@ class Military(commands.Cog):
             except:
                 await debug_channel.send(f"I encountered an error whilst scanning for wars:```{traceback.format_exc()}```")
 
-    @commands.command(brief='Add someone to the military coordination thread.')
+    @commands.command(
+        brief='Add someone to the military coordination thread.',
+        help="Must be used in a thread. Very wasteful command, since you can also add people by pinging them."
+        )
     @commands.has_any_role('Pupil', 'Zealot', 'Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def add(self, ctx, *, user):
         await self.add_to_thread(ctx.channel, user)
 
-    @commands.command(brief='Reomve someone from the military coordination thread.')
+    @commands.command(
+        brief='Remove someone from the military coordination thread.',
+        help="Must be used in a thread. Supply the user you wish to remove from the thread."
+        )
     @commands.has_any_role('Deacon', 'Advisor', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def remove(self, ctx, *, user):
         await self.remove_from_thread(ctx.channel, user)
 
-    @commands.command(aliases=['counter'], brief='Accepts one argument, gives you a pre-filled link to slotter.', help='Accepted arguments include nation name, leader name, nation id and nation link. When browsing the databse, Fuquiem will use the first match, so it can be wise to double check that it returns a slotter link for the correct person.')
+    @commands.command(
+        aliases=['counter'],
+        brief='Accepts one argument, gives you a pre-filled link to slotter.',
+        help='Accepted arguments include nation name, leader name, nation id and nation link. When browsing the databse, Fuquiem will use the first match, so it can be wise to double check that it returns a slotter link for the correct person.'
+        )
     async def counters(self, ctx, *, arg):
         result = None
         try:
@@ -696,7 +710,11 @@ class Military(commands.Cog):
                               description=f"[Explore counters against {result['nation']} on slotter](https://slotter.bsnk.dev/search?nation={result['nationid']}&alliances=4729,7531&countersMode=true&threatsMode=false&vm=false&grey=true&beige=false)", color=0x00ff00)
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=['spherecounters'], brief='Accepts one argument, gives you a pre-filled link to slotter.', help='Accepted arguments include nation name, leader name, nation id and nation link. When browsing the databse, Fuquiem will use the first match, so it can be wise to double check that it returns a slotter link for the correct person.')
+    @commands.command(
+        aliases=['spherecounters'],
+        brief='Accepts one argument, gives you a pre-filled link to slotter.',
+        help='Accepted arguments include nation name, leader name, nation id and nation link. When browsing the databse, Fuquiem will use the first match, so it can be wise to double check that it returns a slotter link for the correct person.'
+        )
     async def allcounters(self, ctx, *, arg):
         result = None
         try:
@@ -717,7 +735,11 @@ class Military(commands.Cog):
                               description=f"[Explore counters against {result['nation']} on slotter](https://slotter.bsnk.dev/search?nation={result['nationid']}&alliances=4729,7531,790,5012,2358,6877,8804&countersMode=true&threatsMode=false&vm=false&grey=true&beige=false)", color=0x00ff00)
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=['target'], brief='Sends you a pre-filled link to slotter')
+    @commands.command(
+        aliases=['target'],
+        brief='Sends you a pre-filled link to slotter',
+        help="Lets you find the easiest targets during a global war."
+        )
     async def targets(self, ctx):
         await ctx.send('This command has been disabled.')
         return
@@ -726,7 +748,11 @@ class Military(commands.Cog):
                               description=f"[Explore targets on slotter](https://slotter.bsnk.dev/search?nation={person['nationid']}&alliances=7452,8841,8624,9000,7450,6088,7306,4648,9187,8335,5476,8594&countersMode=false&threatsMode=false&vm=false&grey=true&beige=false)", color=0x00ff00)
         await ctx.send(embed=embed)
 
-    @commands.command(brief="Sends a warchest top up to the people in need", help="Requires admin perms, sends people the resources they need in addition to telling people what to deposit.")
+    @commands.command(
+        aliases=['wc'],
+        brief="Sends a warchest top up to the people in need",
+        help="Requires admin perms, sends people the resources they need in addition to telling people what to deposit."
+        )
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def warchest(self, ctx, alliance=None):
         async with aiohttp.ClientSession() as session:
@@ -742,7 +768,10 @@ class Military(commands.Cog):
             await self.top_up(ctx, aa['nations'])
             await ctx.send("Finished!")
                     
-    @commands.command(brief="Sends a warchest top up to the person you specified", help="Requires admin perms. It's basically the $warchest command, but it's limited to the person you specified.")
+    @commands.command(
+        brief="Sends a warchest top up to the specified person",
+        help="Requires admin perms. It's basically the $warchest command, but it's limited to the person you specified."
+        )
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def resupply(self, ctx, *, arg):
         async with aiohttp.ClientSession() as session:
@@ -1032,7 +1061,7 @@ class Military(commands.Cog):
                 await channel.send(content)
             
 
-    @commands.command(brief='something something')
+    @commands.command(brief='Change the global mmr setting')
     @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def mmr(self, ctx, mmr):
         mmr = re.sub("[^0-9]", "", mmr)
@@ -1045,7 +1074,11 @@ class Military(commands.Cog):
         mmr = '/'.join(mmr[i:i+1] for i in range(0, len(mmr), 1))
         await ctx.send(f"I set the mmr to {mmr}")
 
-    @commands.command(brief='Find raid targets', aliases=['raid'], help="When going through the setup wizard, you can choose to get the results on discord or on a webpage. If you decide to get the targets on discord, you will be able to react with the arrows in order to view different targets. You can also type 'page 62' to go nation number 62. This will of course work for any number. By reacting with the clock, you will add a beige reminder for the nation if they are in beige. Fuquiem will then DM you when the nation exits beige. You can use $reminders to view active reminders. If you choose to get the targets on a webpage, you will get a link to a page with a table. The table will include every valid nation, and relevant information about this nation. If you want beige reminders, there is a 'remind me'-button for every nation currently in beige. You can press the table headers to sort by different attributes. By default it's sorted by monetary net income.")
+    @commands.command(
+        brief='Find raid targets',
+        aliases=['raid'],
+        help="When going through the setup wizard, you can choose to get the results on discord or as a webpage. If you decide to get the targets on discord, you will be able to react with the arrows in order to view different targets. You can also type 'page 62' to go nation number 62. This will of course work for any number. By reacting with the clock, you will add a beige reminder for the nation if they are in beige. Fuquiem will then DM you when the nation exits beige. You can use $reminders to view active reminders. If you choose to get the targets on a webpage, you will get a link to a page with a table. The table will include all nations that match the criteria you specified in the wizard. If you want beige reminders, there is a 'remind me'-button for every nation currently in beige. You can press the table headers to sort by different attributes. By default it's sorted by monetary net income."
+        )
     @commands.has_any_role('Pupil', 'Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def raids(self, ctx, *, arg=None):
         invoker = str(ctx.author.id)
@@ -1584,7 +1617,11 @@ class Military(commands.Cog):
             winrate = 1
         return winrate
 
-    @commands.command(aliases=['bsim', 'bs'], brief='Simulate battles between two nations', help="Accepts up to two arguments. The first argument is the attacking nation, whilst the latter is the defending nation. If only one argument is provided, Fuquiem will assume that you are the defender")
+    @commands.command(
+        aliases=['bsim', 'bs'],
+        brief='Simulate battles between two nations',
+        help="Accepts up to two arguments. The first argument is the attacking nation, whilst the latter is the defending nation. If only one argument is provided, Fuquiem will assume that you are the defender. If no arguments are provided, it will assume you are attacking yourself. If it is used in a war thread, it will use the enemy in the thread as the defender if you have not supplied any other defender."
+        )
     @commands.has_any_role('Pupil', 'Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def battlesim(self, ctx, nation1=None, nation2=None):
         #check is any wars are active, and if they have air superiority, ground control, fortified etc
@@ -1689,15 +1726,6 @@ class Military(commands.Cog):
         embed.add_field(name="Casualties", value=f"Att. Ships: {results['nation1_naval_nation1_avg']:,} ± {results['nation1_naval_nation1_diff']:,}\nDef. Ships: {results['nation1_naval_nation2_avg']:,} ± {results['nation1_naval_nation2_diff']:,}")        
         embed1.add_field(name="Casualties", value=f"Att. Ships: {results['nation2_naval_nation2_avg']:,} ± {results['nation2_naval_nation2_diff']:,}\nDef. Ships: {results['nation2_naval_nation1_avg']:,} ± {results['nation2_naval_nation1_diff']:,}")        
 
-        embed.add_field(name="Consumption", value=f"Att. Mun.: {round(results['nation1_ground_nation1_mun'], 2):,}\nAtt. Gas.: {round(results['nation1_ground_nation1_gas'], 2):,}\n\nDef. Mun.: {round(results['nation1_ground_nation2_mun'], 2):,}\nDef. Gas.: {round(results['nation1_ground_nation2_gas'], 2):,}")
-        embed1.add_field(name="Consumption", value=f"Att. Mun.: {round(results['nation2_ground_nation2_mun'], 2):,}\nAtt. Gas.: {round(results['nation2_ground_nation2_gas'], 2):,}\n\nDef. Mun.: {round(results['nation2_ground_nation1_mun'], 2):,}\nDef. Gas.: {round(results['nation2_ground_nation1_gas'], 2):,}")
-        
-        embed.add_field(name="Consumption", value=f"Att. Mun.: {round(results['nation1_air_nation1_mun'], 2):,}\nAtt. Gas.: {round(results['nation1_air_nation1_gas'], 2):,}\n\nDef. Mun.: {round(results['nation1_air_nation2_mun'], 2):,}\nDef. Gas.: {round(results['nation1_air_nation2_gas'], 2):,}")
-        embed1.add_field(name="Consumption", value=f"Att. Mun.: {round(results['nation2_air_nation2_mun'], 2):,}\nAtt. Gas.: {round(results['nation2_air_nation2_gas'], 2):,}\n\nDef. Mun.: {round(results['nation2_air_nation1_mun'], 2):,}\nDef. Gas.: {round(results['nation2_air_nation1_gas'], 2):,}")
-
-        embed.add_field(name="Consumption", value=f"Att. Mun.: {round(results['nation1_naval_nation1_mun']):,}\nAtt. Gas.: {round(results['nation1_naval_nation1_gas']):,}\n\nDef. Mun.: {round(results['nation1_naval_nation2_mun']):,}\nDef. Gas.: {round(results['nation1_naval_nation2_gas']):,}")
-        embed1.add_field(name="Consumption", value=f"Att. Mun.: {round(results['nation2_naval_nation2_mun']):,}\nAtt. Gas.: {round(results['nation2_naval_nation2_gas']):,}\n\nDef. Mun.: {round(results['nation2_naval_nation1_mun']):,}\nDef. Gas.: {round(results['nation2_naval_nation1_gas']):,}")
-
         embed.set_footer(text="_________________________\nIf the attacker gets an Utter Failure *and* consumes less munitions/gasoline than the amount predicted for the defender, the defender will consume the same amount of munitions and/or gasoline as the attacker.")
         embed1.set_footer(text="_________________________\nIf the attacker gets an Utter Failure *and* consumes less munitions/gasoline than the amount predicted for the defender, the defender will consume the same amount of munitions and/or gasoline as the attacker.")
 
@@ -1738,7 +1766,11 @@ class Military(commands.Cog):
 
         await asyncio.gather(reacttask)
 
-    @commands.command(aliases=["dmg"])
+    @commands.command(
+        aliases=["dmg"],
+        brief="Shows you how much damage each war attack would do",
+        help="You can supply arguments just like what you'd do for $battlesim. It links to a page with some tables showing the damage dealt for each kind of attack."
+        )
     async def damage(self, ctx, nation1=None, nation2=None):
         message = await ctx.send('Alright, give me a sec to calculate your mom...')
         if nation1 == None:
