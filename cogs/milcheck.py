@@ -934,36 +934,6 @@ class Military(commands.Cog):
                         await user.send(embed=embed)
                     except:
                         pass
-    
-    async def spy_calc(nation):
-        async with aiohttp.ClientSession() as session:
-            if nation['warpolicy'] == "Arcane":
-                percent = 57.5
-            elif nation['warpolicy'] == "Tactician":
-                percent = 42.5
-            else:
-                percent = 50
-            upper_lim = 60
-            lower_lim = 0
-            while True:
-                spycount = math.floor((upper_lim + lower_lim)/2)
-                async with session.get(f"https://politicsandwar.com/war/espionage_get_odds.php?id1=341326&id2={nation['id']}&id3=0&id4=1&id5={spycount}") as probability:
-                    probability = await probability.text()
-                #print(probability, spycount, upper_lim, lower_lim)
-                if "Greater than 50%" in probability:
-                    upper_lim = spycount
-                else:
-                    lower_lim = spycount
-                if upper_lim - 1 == lower_lim:
-                    break
-            enemyspy = round((((100*int(spycount))/(percent-25))-2)/3)
-            if enemyspy > 60:
-                enemyspy = 60
-            elif enemyspy > 50 and not nation['cia']:
-                enemyspy = 50
-            elif enemyspy < 2:
-                enemyspy = 0
-        return enemyspy
 
     @commands.command(brief='Manually update the #threats channel')
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')

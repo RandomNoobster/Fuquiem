@@ -315,7 +315,7 @@ def expansion_cost(current: int, end: int, infra: int, land: int, *, up: bool = 
 async def pre_revenue_calc(api_key, message: discord.Message, query_for_nation: bool = False, nationid: Union[int, str] = None, parsed_nation: dict = None):
     async with aiohttp.ClientSession() as session:
         if query_for_nation:
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nationid}){{data{{nation_name leader_name id continent color dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date turnsleft attid winner att_gas_used att_mun_used att_steel_used att_alum_used def_infra_destroyed_value def_gas_used def_mun_used def_steel_used def_alum_used att_infra_destroyed_value attacks{{loot_info victor moneystolen}}}} defensive_wars{{date turnsleft attid winner att_gas_used att_mun_used att_steel_used att_alum_used def_infra_destroyed_value def_gas_used def_mun_used def_steel_used def_alum_used att_infra_destroyed_value attacks{{loot_info victor moneystolen}}}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nationid}){{data{{nation_name leader_name id continent color warpolicy cia dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date turnsleft attid winner att_gas_used att_mun_used att_steel_used att_alum_used def_infra_destroyed_value def_gas_used def_mun_used def_steel_used def_alum_used att_infra_destroyed_value attacks{{loot_info victor moneystolen}}}} defensive_wars{{date turnsleft attid winner att_gas_used att_mun_used att_steel_used att_alum_used def_infra_destroyed_value def_gas_used def_mun_used def_steel_used def_alum_used att_infra_destroyed_value attacks{{loot_info victor moneystolen}}}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
                 nation = (await temp.json())['data']['nations']['data']
             if len(nation) == 0:
                 print("That person was not in the API!")
@@ -384,7 +384,7 @@ async def pre_revenue_calc(api_key, message: discord.Message, query_for_nation: 
 
         return nation, colors, prices, treasures, radiation, seasonal_mod
 
-async def revenue_calc(message: discord.Message, nation: dict, radiation: dict, treasures: dict, prices: dict, colors: dict, seasonal_mod: dict, build: str = None, single_city: bool = False) -> dict:
+async def revenue_calc(message: discord.Message, nation: dict, radiation: dict, treasures: dict, prices: dict, colors: dict, seasonal_mod: dict, build: str = None, single_city: bool = False, include_spies: bool = False) -> dict:
     max_commerce = 100
     base_com = 0
     hos_dis_red = 2.5
@@ -663,6 +663,7 @@ async def revenue_calc(message: discord.Message, nation: dict, radiation: dict, 
         for war in nation['defensive_wars']:
             if war['turnsleft'] > 0:
                 at_war = True
+        military_upkeep += await spy_calc(nation) * 2400
         if not at_war:
             military_upkeep += nation['soldiers'] * 1.25
             food -= nation['soldiers'] / 750
@@ -727,8 +728,41 @@ async def revenue_calc(message: discord.Message, nation: dict, radiation: dict, 
     rev_obj['max_infra'] = max_infra
     rev_obj['avg_infra'] = round(total_infra / nation['num_cities'])
     rev_obj['income_txt']=f"National Tax Revenue: ${round(money_income):,}{color_text}{new_player_text}{policy_bonus_text}{treasure_text}"
-    rev_obj['expenses_txt']=f"Power Plant Upkeep: ${round(power_upkeep):,}\n\nResource Prod. Upkeep: ${round(rss_upkeep):,}\n\nMilitary Upkeep (excl. spies): ${round(military_upkeep * mil_cost):,}\n\nCity Improvement Upkeep: ${round(civil_upkeep):,}{starve_exp_text}"
+    rev_obj['expenses_txt']=f"Power Plant Upkeep: ${round(power_upkeep):,}\n\nResource Prod. Upkeep: ${round(rss_upkeep):,}\n\nMilitary Upkeep: ${round(military_upkeep * mil_cost):,}\n\nCity Improvement Upkeep: ${round(civil_upkeep):,}{starve_exp_text}"
     rev_obj['net_rev_txt']=f"Coal: {round(coal):,}\nOil: {round(oil):,}\nUranium: {round(uranium):,}\nLead: {round(lead):,}\nIron: {round(iron):,}\nBauxite: {round(bauxite):,}\nGasoline: {round(gasoline):,}\nMunitions: {round(munitions):,}\nSteel: {round(steel):,}\nAluminum: {round(aluminum):,}\nFood: {round(food):,}\nMoney: ${round(money_income * policy_bonus * new_player_bonus * nation_treasure_bonus + color_bonus - power_upkeep - rss_upkeep - military_upkeep * mil_cost - civil_upkeep):,}{starve_money_text}"
     rev_obj['mon_net_txt']=f"${round(money_income * policy_bonus * new_player_bonus * nation_treasure_bonus + color_bonus - power_upkeep - rss_upkeep - military_upkeep * mil_cost - civil_upkeep + coal * prices['coal'] + oil * prices['oil'] + uranium * prices['uranium'] + lead * prices['lead'] + iron * prices['iron'] + bauxite * prices['bauxite'] + gasoline * prices['gasoline'] + munitions * prices['munitions'] + steel * prices['steel'] + aluminum * prices['aluminum'] + food * prices['food']):,}{starve_net_text}"
     rev_obj['money_txt']=f"${round(money_income * policy_bonus * new_player_bonus * nation_treasure_bonus + color_bonus - power_upkeep - rss_upkeep - military_upkeep * mil_cost - civil_upkeep):,}{starve_money_text}"
     return rev_obj
+
+async def spy_calc(nation: dict) -> int:
+    """
+    Nation must include 'warpolicy', 'cia' and 'id'
+    """
+    async with aiohttp.ClientSession() as session:
+        if nation['warpolicy'] == "Arcane":
+            percent = 57.5
+        elif nation['warpolicy'] == "Tactician":
+            percent = 42.5
+        else:
+            percent = 50
+        upper_lim = 60
+        lower_lim = 0
+        while True:
+            spycount = math.floor((upper_lim + lower_lim)/2)
+            async with session.get(f"https://politicsandwar.com/war/espionage_get_odds.php?id1=341326&id2={nation['id']}&id3=0&id4=1&id5={spycount}") as probability:
+                probability = await probability.text()
+            #print(probability, spycount, upper_lim, lower_lim)
+            if "Greater than 50%" in probability:
+                upper_lim = spycount
+            else:
+                lower_lim = spycount
+            if upper_lim - 1 == lower_lim:
+                break
+        enemyspy = round((((100*int(spycount))/(percent-25))-2)/3)
+        if enemyspy > 60:
+            enemyspy = 60
+        elif enemyspy > 50 and not nation['cia']:
+            enemyspy = 50
+        elif enemyspy < 2:
+            enemyspy = 0
+    return enemyspy
