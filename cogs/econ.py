@@ -909,7 +909,7 @@ class Economic(commands.Cog):
             build_txt = "daily revenue"
             single_city = False
 
-        rev_obj = await utils.revenue_calc(message, nation, radiation, treasures, prices, colors, seasonal_mod, build, single_city)
+        rev_obj = await utils.revenue_calc(message, nation, radiation, treasures, prices, colors, seasonal_mod, build, single_city, True)
 
         embed = discord.Embed(
             title=f"{db_nation['leader']}'s {build_txt}:", url=f"https://politicsandwar.com/nation/id={db_nation['nationid']}", description="", color=0x00ff00)

@@ -325,23 +325,18 @@ async def pre_revenue_calc(api_key, message: discord.Message, query_for_nation: 
         else:
             nation = parsed_nation
 
-        await message.edit(content="Getting color bloc values...")
-        async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{colors{{color turn_bonus}}}}"}) as temp:
+        await message.edit(content="Getting income modifiers...")
+        async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{colors{{color turn_bonus}} tradeprices(limit:1){{coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}} treasures{{bonus nation{{id alliance_id}}}}}}"}) as temp:
             res_colors = (await temp.json())['data']['colors']
         colors = {}
         for color in res_colors:
             colors[color['color']] = color['turn_bonus'] * 12
 
-        await message.edit(content="Getting resource prices...")
-        async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{tradeprices(limit:1){{coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}}}"}) as temp:
-            prices = (await temp.json())['data']['tradeprices'][0]
+        prices = (await temp.json())['data']['tradeprices'][0]
         prices['money'] = 1
 
-        await message.edit(content="Getting treasures...")
-        async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{treasures{{bonus nation{{id alliance_id}}}}}}"}) as temp:
-            treasures = (await temp.json())['data']['treasures']
+        treasures = (await temp.json())['data']['treasures']
 
-        await message.edit(content="Getting food modifiers...")
         banker = mongo.users.find_one({"user": 465463547200012298})
         login_url = "https://politicsandwar.com/login/"
         login_data = {
@@ -663,7 +658,8 @@ async def revenue_calc(message: discord.Message, nation: dict, radiation: dict, 
         for war in nation['defensive_wars']:
             if war['turnsleft'] > 0:
                 at_war = True
-        military_upkeep += await spy_calc(nation) * 2400
+        if include_spies: 
+            military_upkeep += await spy_calc(nation) * 2400
         if not at_war:
             military_upkeep += nation['soldiers'] * 1.25
             food -= nation['soldiers'] / 750

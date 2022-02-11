@@ -654,7 +654,10 @@ class Military(commands.Cog):
                             if attack['id'] not in attack_logs['attacks']:
                                 attacker = await attack_check(attack, done_war)
                                 await smsg(attacker, attack, done_war, atom, non_atom, None)
-                        if done_war['attacks'][-1]['type'] not in ["PEACE", "VICTORY", "ALLIANCELOOT"]:
+                        if len(done_war['attacks']) == 0:
+                            attack = {"type": "EXPIRATION", "id": -1, "date": datetime.strftime(datetime.utcnow(), '%Y-%m-%d %H:%M:%S')}
+                            await smsg(None, attack, done_war, atom, non_atom, None)
+                        elif done_war['attacks'][-1]['type'] not in ["PEACE", "VICTORY", "ALLIANCELOOT"]:
                             attack = {"type": "EXPIRATION", "id": -1, "date": datetime.strftime(datetime.utcnow(), '%Y-%m-%d %H:%M:%S')}
                             await smsg(None, attack, done_war, atom, non_atom, None)
                         for thread in channel.threads:
