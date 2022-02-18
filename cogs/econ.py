@@ -24,7 +24,11 @@ class Economic(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(aliases=['prices'], brief='A chart showing price history', help='You can use the command without supplying any arguments, then it would default to all resources and the average price. If you only wish to see one resource, the first argument will be the name of that resource (although the bot only uses the first two letters, meaning that even though it works just fine to write "aluminum", it works just as well to write "al"). The second argument is the offer-type, if left blank it will default to average price, but you can specify "buy offer" ("bo") or "sell offer" ("so").')
+    @commands.command(
+        aliases=['prices', 'p'],
+        brief='A chart showing price history',
+        help='You can use the command without supplying any arguments, then it would default to all resources and the average price. If you only wish to see one resource, the first argument will be the name of that resource (although the bot only uses the first two letters, meaning that even though it works just fine to write "aluminum", it works just as well to write "al"). The second argument is the offer-type, if left blank it will default to average price, but you can specify "buy offer" ("bo") or "sell offer" ("so").'
+        )
     async def price(self, ctx, input_resource='all', *, type='avg'):
         message = await ctx.send('Doing API calls...')
         f1 = list(mongo.price_history.find({}))
@@ -73,8 +77,7 @@ class Economic(commands.Cog):
             return
         
         if input_resource != 'all':
-            field = f"{label}:"
-            field1 = f"{int(new['prices'][f'{index}']):,}ppu"
+            field = f"{label}: **{int(new['prices'][f'{index}']):,}**ppu"
             for x in f1:
                 t1 = dateutil.parser.parse(x['time'])
                 t2 = t1.replace(tzinfo=pytz.UTC)
@@ -86,10 +89,8 @@ class Economic(commands.Cog):
 
         else:
             field = ""
-            field1 = ""
             for rs in rss:
-                field += f"{rs}{label}:\n"
-                field1 += f"{int(new['prices'][f'{rs.lower()[:2]}{index}']):,}ppu\n"
+                field += f"{rs}{label}: **{int(new['prices'][f'{rs.lower()[:2]}{index}']):,}**ppu\n"
 
             datasets = [{'label': 'Aluminum', 'data': []}, {'label': 'Bauxite', 'data': []}, {'label': 'Coal', 'data': []}, {'label': 'Food', 'data': []}, {'label': 'Gasoline', 'data': []}, {
                 'label': 'Iron', 'data': []}, {'label': 'Lead', 'data': []}, {'label': 'Munitions', 'data': []}, {'label': 'Steel', 'data': []}, {'label': 'Uranium', 'data': []}]
@@ -111,12 +112,13 @@ class Economic(commands.Cog):
         embed = discord.Embed(
             title='Market prices:', description="Here is the price history of the resorces and offer-type you specified:", color=0x00ff00)
         embed.set_image(url=chart_response['url'])
-        field += "\n\n**Price history**"
         embed.add_field(inline=True, name="Current prices", value=field)
-        embed.add_field(inline=True, name="\u200b", value=field1)
+        embed.add_field(inline=False, name="Price history", value="\u200b")
         await message.edit(content='',embed=embed)
 
-    @commands.command(brief='Debugging cmd, requires admin perms')
+    @commands.command(
+        brief='Archive current resource prices'
+        )
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def getprices(self, ctx):
         file = await self.get_prices()
@@ -124,7 +126,10 @@ class Economic(commands.Cog):
         await ctx.send(f'Prices have been gathered!')
         # merely a debugging command
     
-    @commands.command(brief='Debugging cmd, requires admin perms')
+    @commands.command(
+        brief='Print average prices for resources',
+        help='Sends a message on discord and prints average prices to the console. This is the average of all recorded prices.'
+        )
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def avgprices(self, ctx):
         rss = ['Aluminum', 'Bauxite', 'Coal', 'Credits', 'Food', 'Gasoline', 'Iron', 'Lead', 'Munitions', 'Oil', 'Steel', 'Uranium']
@@ -136,6 +141,7 @@ class Economic(commands.Cog):
                 avg[rs] += int(price['prices'][f"{rs[:2].lower()}_avg"])
             avg[rs] = round(avg[rs]/len(resp))
         print(avg)
+        await ctx.send(avg)
         # merely a debugging command
 
     async def get_prices(self):
@@ -150,8 +156,13 @@ class Economic(commands.Cog):
                 prices.update({f"{rs[:2]}_lb": resp['lowestbuy']['price']})
         
         return {"time": pytz.utc.localize(datetime.utcnow()).isoformat(), "prices": prices}
+        # should look into removing pytz
 
-    @commands.command(brief='Withdraw resources from the alliance bank', help='This command may only be used by Cardinals. Usage: "$withdraw <type of resource> - <amount of resource>, <type of resource> - <amount of resource>... <recipient>" Recipient can be nation name, nation id, nation link, leader name, discord id, discord name, or discord mention. Please note that spaces are ignored, so it does not matter if you type "-" and "," or " - " and ", "', aliases=['with', 'wd'])
+    @commands.command(
+        brief='Withdraw resources from the alliance bank',
+        help='This command may only be used by Cardinals. Usage: "$withdraw <recipient> <type of resource> - <amount of resource>, <type of resource> - <amount of resource>... " Recipient can be nation name, nation id, nation link, leader name, discord id, discord name, or discord mention. Please note that spaces are ignored, so it does not matter if you type "-" and "," or " - " and ", "',
+        aliases=['with', 'w']
+        )
     @commands.has_any_role('Pam', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def withdraw(self, ctx, recipient, *, rss):
         async with aiohttp.ClientSession() as session:
@@ -269,7 +280,12 @@ class Economic(commands.Cog):
                 else:
                     await ctx.send(f"This transaction might have failed. Check this page to be sure:\nhttps://politicsandwar.com/nation/id={person['nationid']}&display=bank")
 
-    @commands.command(brief='Deposit your resources to the alliance bank', help='type "$deposit <type of resource> - <amount of resource>, <type of resource> - <amount of resource>..." Please note that spaces are ignored, so it does not matter if you type "-" and "," or " - " and ", "',  aliases=['dep', 'dp'])
+    # send a prefilled link if no credentials are set
+    @commands.command(
+        brief='Deposit your resources to the alliance bank',
+        help='Type "$deposit <type of resource> - <amount of resource>, <type of resource> - <amount of resource>..." Please note that spaces are ignored, so it does not matter if you type "-" and "," or " - " and ", "',
+        aliases=['dep', 'dp']
+        )
     async def deposit(self, ctx, *, rss):
         async with aiohttp.ClientSession() as session:
             person = utils.find_user(self, ctx.author.id)
@@ -384,7 +400,11 @@ class Economic(commands.Cog):
                 else:
                     await ctx.send(f"This transaction might have failed. Check this page to be sure:\nhttps://politicsandwar.com/nation/id={person['nationid']}&display=bank")
 
-    @commands.command(brief='Gives you food', help="Sends 100k food to your nation. The command can only be used by Zealots and has a 48 hour cooldown.", aliases=['fd'])
+    @commands.command(
+        brief='Gives you food',
+        help="Sends 100k food to your nation. The command can only be used by Zealots and has a 48 hour cooldown.",
+        aliases=['fd']
+        )
     @commands.cooldown(1, 172800, commands.BucketType.user)
     @commands.has_any_role('Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def food(self, ctx):
@@ -439,11 +459,15 @@ class Economic(commands.Cog):
                     if x['note'] == 'Hunger Prevention!' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
                         success = True
                 if success:
-                    await ctx.send('Eat well!')
+                    await ctx.send('Once upon a time there was 100k food. Now it resides in your nation.')
                 else:
-                    await ctx.send(f"Oh oh! Things didn't go as planned! Please check this page to see if you got your food:\nhttps://politicsandwar.com/nation/id={person['nationid']}&display=bank")
+                    await ctx.send(f"Bugger me sideways with a hamburger! Things didn't go as planned! Please check this page to see if you got your food:\nhttps://politicsandwar.com/nation/id={person['nationid']}&display=bank")
 
-    @commands.command(brief='Gives you uranium', aliases=['ur', 'uran'], help="Sends you 3k uranium. The command has a 48 hour cooldown, and may only be used by Zealots.")
+    @commands.command(
+        brief='Gives you uranium',
+        aliases=['ur', 'uran'],
+        help="Sends you 3k uranium. The command has a 48 hour cooldown, and may only be used by Zealots."
+        )
     @commands.cooldown(1, 172800, commands.BucketType.user)
     @commands.has_any_role('Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def uranium(self, ctx):
@@ -500,9 +524,13 @@ class Economic(commands.Cog):
                 if success:
                     await ctx.send('Roses are red. Uranium is green. You now have 3k more uranium.')
                 else:
-                    await ctx.send(f"Oh oh! Things didn't go as planned! Please check this page to see if you got your uranium:\nhttps://politicsandwar.com/nation/id={person['nationid']}&display=bank")
+                    await ctx.send(f"Beat me up with an eyebrow! Things didn't go as planned! Please check this page to see if you got your uranium:\nhttps://politicsandwar.com/nation/id={person['nationid']}&display=bank")
 
-    @commands.command(aliases=['bal'], brief="Shows you the person's balance with the alliance bank", help="Accepts 0 to 1 argument. If no arguments are provided, it will display your balance with the bank. If you use leader name, nation name, nation link, nation id, discord id, discord username, discord nickname or a discord mention, you can see the balance of the person you specified. Other arguments include 'top', 'max' and 'min'. These will display the 10 people with the highest or lowest balances.")
+    @commands.command(
+        aliases=['bal'],
+        brief="Shows you the person's balance with the alliance bank",
+        help="Accepts 0 to 1 argument. If no arguments are provided, it will display your balance with the bank. If you use leader name, nation name, nation link, nation id, discord id, discord username, discord nickname or a discord mention, you can see the balance of the person you specified. Other arguments include 'top', 'max' and 'min'. These will display the 10 people with the highest or lowest balances."
+        )
     async def balance(self, ctx, *, person=''):
         message = await ctx.send('Gathering data...')
         bal_embed, user_obj = await self.balance2(ctx, message, person, None)
@@ -515,17 +543,24 @@ class Economic(commands.Cog):
             #print((datetime.utcnow()-jetzt).seconds) 
         bal_embed, user_ob = await self.balance2(ctx, message, person, bal_embed)
         await message.edit(content="Using fresh numbers <:pepoohappy:787399051724980274>", embed=bal_embed)
-
     
     @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
-    @commands.command(aliases=['ba', 'balincrement', 'bi'], brief="Adds value to person's balance", help="")
+    @commands.command(
+        aliases=['ba', 'balincrement', 'bi'],
+        brief="Adds value to person's balance",
+        help="Create an artifical transaction record of a set amount of money"
+        )
     async def baladd(self, ctx, person, diff):
         user = utils.find_user(self, person)
         message = await ctx.send("Fuck Requiem...")
         await self.balmod(diff, message, 1, user)
 
     @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
-    @commands.command(aliases=['balremove', 'br'], brief="Subtracts value to person's balance", help="")
+    @commands.command(
+        aliases=['balremove', 'br'],
+        brief="Subtracts value to person's balance",
+        help="Create an artifical transaction record of a set amount of money"
+        )
     async def balsubtract(self, ctx, person, diff):
         user = utils.find_user(self, person)
         message = await ctx.send("Fuck Requiem...")
@@ -693,7 +728,11 @@ class Economic(commands.Cog):
             await message.edit(content="Using 1 hour old numbers <:peeposad:787399051796283392> updating to newer ones in the background...", embed=bal_embed)
             return bal_embed, person
 
-    @commands.command(aliases=['val'], brief="Calculates the value of the resources you specify", help='usage: "$value <type of resource> - <amount of resource>, <type of resource> - <amount of resource>..." Please note that spaces are ignored, so it does not matter if you type "-" and "," or " - " and ", " It works by calculating the worth of the resources you specify by looking at the price of the cheapest sell offer available.')
+    @commands.command(
+        aliases=['val'],
+        brief="Calculates the value of the resources you specify",
+        help='usage: "$value <type of resource> - <amount of resource>, <type of resource> - <amount of resource>..." Please note that spaces are ignored, so it does not matter if you type "-" and "," or " - " and ", " It works by calculating the worth of the resources you specify by looking at the price of the cheapest sell offer available.'
+        )
     async def value(self,ctx,*,rss=''):
         async with aiohttp.ClientSession() as session:
             message = await ctx.send('Doing API calls...')
@@ -753,7 +792,10 @@ class Economic(commands.Cog):
                                     description=f"The current market value of...\n```{pretty_res}```\n...is ${round(total):,}", color=0x00ff00)
             await message.edit(content='', embed=embed)
     
-    @commands.command(brief='Send people grants', help='This command may only be used by Cardinals. Usage: "$grant <type of resource> - <amount of resource>, <type of resource> - <amount of resource>... <recipient>" Recipient can be nation name, nation id, nation link, leader name, discord id, discord name, or discord mention. Please note that spaces are ignored, so it does not matter if you type "-" and "," or " - " and ", "')
+    @commands.command(
+        brief='Send people grants',
+        help='This command may only be used by Cardinals. Usage: "$grant <type of resource> - <amount of resource>, <type of resource> - <amount of resource>... <recipient>" Recipient can be nation name, nation id, nation link, leader name, discord id, discord name, or discord mention. Please note that spaces are ignored, so it does not matter if you type "-" and "," or " - " and ", "'
+        )
     @commands.has_any_role('Pam', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def grant(self, ctx, recipient, *, rss):
         async with aiohttp.ClientSession() as session:
@@ -871,7 +913,11 @@ class Economic(commands.Cog):
                 else:
                     await ctx.send(f"The sending of this grant might have failed. Check this page to be sure:\nhttps://politicsandwar.com/nation/id={person['nationid']}&display=bank")
 
-    @commands.command(aliases=['rev'], brief='Revenue breakdown of a nation', help="The command takes one argument; a nation. If no argument is provided, it will default to the nation of the person that invoked the command. You can react with ⚔️ to get an overivew of the nation's war incomes.")
+    @commands.command(
+        aliases=['rev'],
+        brief='Revenue breakdown of a nation',
+        help="The command takes one argument; a nation. If no argument is provided, it will default to the nation of the person that invoked the command. You can react with ⚔️ to get an overivew of the nation's war incomes."
+        )
     @commands.has_any_role('Pupil', 'Zealot', 'Deacon', 'Advisor', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def revenue(self, ctx, person: str = None, *, build: str = None):
         message = await ctx.send('Stay with me...')
@@ -890,10 +936,8 @@ class Economic(commands.Cog):
                 except:
                     try:
                         person = int(re.sub("[^0-9]", "", person))
-                        #print(person)
                         db_nation = list(mongo.world_nations.find({"nationid": person}).collation(
                             {"locale": "en", "strength": 1}))[0]
-                        #print(db_nation)
                     except:
                         db_nation = None
             if not db_nation:
