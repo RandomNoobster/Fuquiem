@@ -1070,7 +1070,7 @@ class Military(commands.Cog):
             has_more_pages = True
             n = 1
             while has_more_pages:
-                async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] page:{n} active:true){{paginatorInfo{{hasMorePages}} data{{id att_resistance def_resistance attacker{{nation_name score beigeturns alliance_position alliance{{name}} id num_cities alliance_id wars{{attid defid turnsleft}}}} defender{{nation_name score beigeturns alliance_position alliance{{name}} id num_cities alliance_id wars{{attid defid turnsleft}}}}}}}}}}"}) as temp:
+                async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] page:{n} active:true){{paginatorInfo{{hasMorePages}} data{{id att_resistance def_resistance attacker{{nation_name score beigeturns alliance_position alliance{{name}} id num_cities alliance_id wars{{attid defid def_alliance_id turnsleft}}}} defender{{nation_name score beigeturns alliance_position alliance{{name}} id num_cities alliance_id wars{{attid defid def_alliance_id turnsleft}}}}}}}}}}"}) as temp:
                     n += 1
                     try:
                         wars = (await temp.json())['data']['wars']['data']
@@ -1106,7 +1106,7 @@ class Military(commands.Cog):
                 if not found:
                     def_wars = 0
                     for war in non_atom['wars']:
-                        if war['turnsleft'] > 0 and war['defender']['alliance_id'] in ['4729', '7531']:
+                        if war['turnsleft'] > 0 and war['def_alliance_id'] in ['4729', '7531']:
                             def_wars += 1
                     to_append['def_wars'] = def_wars
                     enemy_list.append(to_append)
