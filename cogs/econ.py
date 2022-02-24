@@ -930,23 +930,11 @@ class Economic(commands.Cog):
         db_nation = utils.find_user(self, person)
 
         if db_nation == {}:
-            try:
-                db_nation = list(mongo.world_nations.find({"nation": person}).collation(
-                    {"locale": "en", "strength": 1}))[0]
-            except:
-                try:
-                    db_nation = list(mongo.world_nations.find({"leader": person}).collation(
-                        {"locale": "en", "strength": 1}))[0]
-                except:
-                    try:
-                        person = int(re.sub("[^0-9]", "", person))
-                        db_nation = list(mongo.world_nations.find({"nationid": person}).collation(
-                            {"locale": "en", "strength": 1}))[0]
-                    except:
-                        db_nation = None
+            db_nation = utils.find_nation(person)
             if not db_nation:
                 await message.edit(content='I could not find that person!')
                 return
+            db_nation['nationid'] = db_nation['id']
 
         nation, colors, prices, treasures, radiation, seasonal_mod = await utils.pre_revenue_calc(api_key, message, query_for_nation=True, nationid=db_nation['nationid'])
 

@@ -126,7 +126,7 @@ def find_user(self, arg, secondary_database: bool = False):
 
     return {}   
 
-async def find_nation(arg: Union[str, int]) -> Union[dict, None]:
+def find_nation(arg: Union[str, int]) -> Union[dict, None]:
     if isinstance(arg, str):
         arg = arg.strip()
     try:
@@ -153,16 +153,16 @@ async def find_nation(arg: Union[str, int]) -> Union[dict, None]:
                         result = None
     return result
 
-async def find_nation_plus(self, arg: Union[str, int]) -> Union[dict, None]: # only returns a nation if it is at least 1 day old
+def find_nation_plus(self, arg: Union[str, int]) -> Union[dict, None]: # only returns a nation if it is at least 1 day old
     if isinstance(arg, str):
         arg = arg.strip()
-    nation = await find_nation(arg)
+    nation = find_nation(arg)
     if nation == None:
         nation = find_user(self, arg)
         if nation == {}:
             return None
         else:
-            nation = await find_nation(nation['nationid'])
+            nation = find_nation(nation['nationid'])
             if nation == None:
                 return None
     return nation

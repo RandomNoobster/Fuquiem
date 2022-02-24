@@ -283,20 +283,7 @@ class Database(commands.Cog):
     async def who(self, ctx, *, arg):
         person = utils.find_user(self, arg)
         if not person:
-            try:
-                result = list(mongo.world_nations.find({"nation": arg}).collation(
-                    {"locale": "en", "strength": 1}))[0]
-            except:
-                try:
-                    result = list(mongo.world_nations.find({"leader": arg}).collation(
-                        {"locale": "en", "strength": 1}))[0]
-                except:
-                    try:
-                        arg = int(re.sub("[^0-9]", "", arg))
-                        result = list(mongo.world_nations.find({"nationid": arg}).collation(
-                            {"locale": "en", "strength": 1}))[0]
-                    except:
-                        result = None
+            result = utils.find_nation(arg)
             if not result:
                 person = utils.find_user(self, arg, True)
                 if person:
@@ -306,7 +293,7 @@ class Database(commands.Cog):
                 return
             else:
                 print(result)
-                embed = discord.Embed(title=result['leader'], description=f"[{result['nation']}](https://politicsandwar.com/nation/id={result['nationid']})")
+                embed = discord.Embed(title=result['leader_name'], description=f"[{result['nation_name']}](https://politicsandwar.com/nation/id={result['id']})")
                 await ctx.send(embed=embed)
                 return
         embed = discord.Embed(title=str(await self.bot.fetch_user(person['user'])), description=f"[{person['name']}](https://politicsandwar.com/nation/id={person['nationid']})")

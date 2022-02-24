@@ -201,17 +201,19 @@ class General(commands.Cog):
         async with aiohttp.ClientSession() as session:
             async def prepare_nation(x: str) -> Union[dict, None]:
                 nonlocal content, n
-                nation = await utils.find_nation(x)
+                nation = utils.find_nation(x)
                 if nation == None:
                     nation = utils.find_user(self, x)
                     if nation == {}:
                         content += f"I could not find `{x.strip()}`, they will be skipped.\n"
                         return
                     else:
-                        nation = await utils.find_nation(nation['nationid'])
+                        nation = utils.find_nation(nation['nationid'])
                         if nation == None:
                             content=f"I could not find `{x.strip()}`, they will be skipped.\n"
                             return
+                else:
+                    nation['id'] = nation['nationid']
 
                 async with session.get(f"http://politicsandwar.com/api/nation/id={nation['id']}&key=e5171d527795e8") as temp:
                     api_nation = await temp.json()
@@ -606,7 +608,7 @@ class General(commands.Cog):
     @commands.command(brief='Add a beige reminder', help='', aliases=['ar', 'remindme', 'addreminder', 'add_reminder'])
     async def remind(self, ctx, arg):
         message = await ctx.send('Fuck requiem...')
-        nation = await utils.find_nation(arg)
+        nation = utils.find_nation(arg)
         if nation == None:
             await message.edit(content='I could not find that nation!')
             return
@@ -759,7 +761,7 @@ class General(commands.Cog):
     @commands.has_any_role('Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def admit(self, ctx, arg):
         message = await ctx.send("<:thonk:787399051582504980>")
-        nation = await utils.find_nation_plus(self, arg)
+        nation = utils.find_nation_plus(self, arg)
         if nation == None:
             await message.edit(content="Run $update or wait until daychange")
             return
@@ -809,8 +811,8 @@ class General(commands.Cog):
         zealot_role = ctx.guild.get_role(434258764221251584)
 
         async with aiohttp.ClientSession() as session:
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{tradeprices(page:1 limit:1){{data{{coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}}}}}"}) as temp:
-                prices = (await temp.json())['data']['tradeprices'][0]
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{tradeprices(page:1 first:1){{data{{coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}}}}}"}) as temp:
+                prices = (await temp.json())['data']['tradeprices']['data'][0]
                 prices['money'] = 1
             async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 alliance_position:{level} first:500 alliance_id:4729){{data{{id leader_name nation_name alliance{{name}} color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium cities{{infrastructure barracks factory airforcebase drydock}}}}}}}}"}) as temp:
                 apps = (await temp.json())['data']['nations']['data']
@@ -880,24 +882,12 @@ class General(commands.Cog):
         db_nation = utils.find_user(self, person)
 
         if db_nation == {}:
-            try:
-                db_nation = list(mongo.world_nations.find({"nation": person}).collation(
-                    {"locale": "en", "strength": 1}))[0]
-            except:
-                try:
-                    db_nation = list(mongo.world_nations.find({"leader": person}).collation(
-                        {"locale": "en", "strength": 1}))[0]
-                except:
-                    try:
-                        person = int(re.sub("[^0-9]", "", person))
-                        db_nation = list(mongo.world_nations.find({"nationid": person}).collation(
-                            {"locale": "en", "strength": 1}))[0]
-                    except:
-                        db_nation = None
+            db_nation = utils.find_nation(person)
             if not db_nation:
                 await message.edit(content='I could not find that person!')
                 return
-        
+            db_nation['nationid'] = db_nation['id']
+
         nation = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{db_nation['nationid']}){{data{{id continent date color dompolicy alliance{{name}} alliance_id num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap}}}}}}"}).json()['data']['nations']['data']
         if len(nation) == 0:
             await message.edit(content="That person was not in the API!")

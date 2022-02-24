@@ -154,7 +154,7 @@ class Military(commands.Cog):
                     await ctx.send("I do not know who to find the status of.")
                     return
         else:
-            person = await utils.find_nation_plus(self, arg)
+            person = utils.find_nation_plus(self, arg)
             nation_id = str(person['id'])
 
         async with aiohttp.ClientSession() as session:
@@ -814,23 +814,9 @@ class Military(commands.Cog):
         help='Accepted arguments include nation name, leader name, nation id and nation link. When browsing the databse, Fuquiem will use the first match, so it can be wise to double check that it returns a slotter link for the correct person.'
         )
     async def counters(self, ctx, *, arg):
-        result = None
-        try:
-            result = list(mongo.world_nations.find({"nation": arg}).collation(
-                {"locale": "en", "strength": 1}))[0]
-        except:
-            try:
-                result = list(mongo.world_nations.find({"leader": arg}).collation(
-                    {"locale": "en", "strength": 1}))[0]
-            except:
-                try:
-                    arg = int(re.sub("[^0-9]", "", arg))
-                    result = list(mongo.world_nations.find({"nationid": arg}).collation(
-                        {"locale": "en", "strength": 1}))[0]
-                except:
-                    pass
+        result = utils.find_nation(arg)
         embed = discord.Embed(title="Counters",
-                              description=f"[Explore counters against {result['nation']} on slotter](https://slotter.bsnk.dev/search?nation={result['nationid']}&alliances=4729,7531&countersMode=true&threatsMode=false&vm=false&grey=true&beige=false)", color=0x00ff00)
+                              description=f"[Explore counters against {result['nation_name']} on slotter](https://slotter.bsnk.dev/search?nation={result['id']}&alliances=4729,7531&countersMode=true&threatsMode=false&vm=false&grey=true&beige=false)", color=0x00ff00)
         await ctx.send(embed=embed)
 
     @commands.command(
@@ -839,23 +825,9 @@ class Military(commands.Cog):
         help='Accepted arguments include nation name, leader name, nation id and nation link. When browsing the databse, Fuquiem will use the first match, so it can be wise to double check that it returns a slotter link for the correct person.'
         )
     async def allcounters(self, ctx, *, arg):
-        result = None
-        try:
-            result = list(mongo.world_nations.find({"nation": arg}).collation(
-                {"locale": "en", "strength": 1}))[0]
-        except:
-            try:
-                result = list(mongo.world_nations.find({"leader": arg}).collation(
-                    {"locale": "en", "strength": 1}))[0]
-            except:
-                try:
-                    arg = int(re.sub("[^0-9]", "", arg))
-                    result = list(mongo.world_nations.find({"nationid": arg}).collation(
-                        {"locale": "en", "strength": 1}))[0]
-                except:
-                    pass
+        result = utils.find_nation(arg)
         embed = discord.Embed(title="Sphere Counters",
-                              description=f"[Explore counters against {result['nation']} on slotter](https://slotter.bsnk.dev/search?nation={result['nationid']}&alliances=4729,7531,790,5012,2358,6877,8804&countersMode=true&threatsMode=false&vm=false&grey=true&beige=false)", color=0x00ff00)
+                              description=f"[Explore counters against {result['nation_name']} on slotter](https://slotter.bsnk.dev/search?nation={result['id']}&alliances=4729,7531,790,5012,2358,6877,8804&countersMode=true&threatsMode=false&vm=false&grey=true&beige=false)", color=0x00ff00)
         await ctx.send(embed=embed)
 
     @commands.command(
@@ -1185,23 +1157,11 @@ class Military(commands.Cog):
                 arg = ctx.author.id
             attacker = utils.find_user(self, arg)
             if attacker == {}:
-                try:
-                    attacker = list(mongo.world_nations.find({"nation": arg}).collation(
-                        {"locale": "en", "strength": 1}))[0]
-                except:
-                    try:
-                        attacker = list(mongo.world_nations.find({"leader": arg}).collation(
-                            {"locale": "en", "strength": 1}))[0]
-                    except:
-                        try:
-                            arg = int(re.sub("[^0-9]", "", arg))
-                            attacker = list(mongo.world_nations.find({"nationid": arg}).collation(
-                                {"locale": "en", "strength": 1}))[0]
-                        except:
-                            attacker = None
+                attacker = utils.find_nation(arg)
                 if not attacker:
                     await message.edit(content='I could not find that person!')
                     return
+                attacker['nationid'] = attacker['id']
             async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{attacker['nationid']}){{data{{nation_name score id population soldiers tanks aircraft ships}}}}}}"}) as temp:
                 atck_ntn = (await temp.json())['data']['nations']['data'][0]
             if atck_ntn == None:
@@ -1727,20 +1687,7 @@ class Military(commands.Cog):
             nation1 = ctx.author.id
         nation1_nation = utils.find_user(self, nation1)
         if nation1_nation == {}:
-            try:
-                nation1_nums = int(re.sub("[^0-9]", "", nation1))
-                nation1_nation = list(mongo.world_nations.find({"nationid": nation1_nums}).collation(
-                    {"locale": "en", "strength": 1}))[0]
-            except:
-                try:
-                    nation1_nation = list(mongo.world_nations.find({"leader": nation1}).collation(
-                        {"locale": "en", "strength": 1}))[0]
-                except:
-                    try:
-                        nation1_nation = list(mongo.world_nations.find({"nation": nation1}).collation(
-                        {"locale": "en", "strength": 1}))[0]
-                    except:
-                        nation1_nation = None
+            nation1_nation = utils.find_nation(nation1)
             if not nation1_nation:
                 if nation2 == None:
                     await message.edit(content='I could not find that nation!')
@@ -1748,7 +1695,8 @@ class Military(commands.Cog):
                 else:
                     await message.edit(content='I could not find nation 1!')
                     return 
-        nation1_id = str(nation1_nation['nationid'])
+            nation1_nation['id'] = nation1_nation['nationid']
+        nation1_id = str(nation1_nation['id'])
 
         done = False
         if isinstance(ctx.channel, discord.Thread) and nation2 == None:
@@ -1764,20 +1712,7 @@ class Military(commands.Cog):
                 nation2 = ctx.author.id
             nation2_nation = utils.find_user(self, nation2)
             if nation2_nation == {}:
-                try:
-                    nation2_nation = list(mongo.world_nations.find({"nation": nation2}).collation(
-                        {"locale": "en", "strength": 1}))[0]
-                except:
-                    try:
-                        nation2_nation = list(mongo.world_nations.find({"leader": nation2}).collation(
-                            {"locale": "en", "strength": 1}))[0]
-                    except:
-                        try:
-                            nation2 = int(re.sub("[^0-9]", "", nation2))
-                            nation2_nation = list(mongo.world_nations.find({"nationid": nation2}).collation(
-                                {"locale": "en", "strength": 1}))[0]
-                        except:
-                            nation2_nation = None
+                nation2_nation = utils.find_nation(nation2)
                 if not nation2_nation:
                     if nation2 == None:
                         await message.edit(content='I was able to find the nation you linked, but I could not find *your* nation!')
@@ -1785,7 +1720,8 @@ class Military(commands.Cog):
                     else:
                         await message.edit(content='I could not find nation 2!')
                         return 
-            nation2_id = str(nation2_nation['nationid'])
+                nation2_nation['id'] = nation2_nation['nationid']
+            nation2_id = str(nation2_nation['id'])
         
         results = await self.battle_calc(nation1_id, nation2_id)
 
@@ -1874,20 +1810,7 @@ class Military(commands.Cog):
             nation1 = ctx.author.id
         nation1_nation = utils.find_user(self, nation1)
         if not nation1_nation:
-            try:
-                nation1_nums = int(re.sub("[^0-9]", "", nation1))
-                nation1_nation = list(mongo.world_nations.find({"nationid": nation1_nums}).collation(
-                    {"locale": "en", "strength": 1}))[0]
-            except:
-                try:
-                    nation1_nation = list(mongo.world_nations.find({"leader": nation1}).collation(
-                        {"locale": "en", "strength": 1}))[0]
-                except:
-                    try:
-                        nation1_nation = list(mongo.world_nations.find({"nation": nation1}).collation(
-                        {"locale": "en", "strength": 1}))[0]
-                    except:
-                        nation1_nation = None
+            nation1_nation = utils.find_nation(nation1)
             if not nation1_nation:
                 if nation2 == None:
                     await message.edit(content='I could not find that nation!')
@@ -1895,7 +1818,8 @@ class Military(commands.Cog):
                 else:
                     await message.edit(content='I could not find nation 1!')
                     return 
-        nation1_id = str(nation1_nation['nationid'])
+            nation1_nation['id'] = nation1_nation['nationid']
+        nation1_id = str(nation1_nation['id'])
 
         done = False
         if isinstance(ctx.channel, discord.Thread) and nation2 == None:
@@ -1911,20 +1835,7 @@ class Military(commands.Cog):
                 nation2 = ctx.author.id
             nation2_nation = utils.find_user(self, nation2)
             if not nation2_nation:
-                try:
-                    nation2_nation = list(mongo.world_nations.find({"nation": nation2}).collation(
-                        {"locale": "en", "strength": 1}))[0]
-                except:
-                    try:
-                        nation2_nation = list(mongo.world_nations.find({"leader": nation2}).collation(
-                            {"locale": "en", "strength": 1}))[0]
-                    except:
-                        try:
-                            nation2 = int(re.sub("[^0-9]", "", nation2))
-                            nation2_nation = list(mongo.world_nations.find({"nationid": nation2}).collation(
-                                {"locale": "en", "strength": 1}))[0]
-                        except:
-                            nation2_nation = None
+                nation2_nation = utils.find_nation(nation2)
                 if not nation2_nation:
                     if nation2 == None:
                         await message.edit(content='I was able to find the nation you linked, but I could not find *your* nation!')
@@ -1932,7 +1843,8 @@ class Military(commands.Cog):
                     else:
                         await message.edit(content='I could not find nation 2!')
                         return 
-            nation2_id = str(nation2_nation['nationid'])
+                nation2_nation['id'] = nation2_nation['nationid']
+            nation2_id = str(nation2_nation['id'])
         
         results = await self.battle_calc(nation1_id, nation2_id)
         endpoint = datetime.utcnow().strftime('%d%H%M%S%f')
