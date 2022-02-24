@@ -188,7 +188,7 @@ class Raffle(commands.Cog):
                     async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={winner['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
                         txids = await txids.json()
                     for x in txids['data']:
-                        if x['note'] == 'Automated raffle prize' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S%z') <= end_time:
+                        if x['note'] == 'Automated raffle prize' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
                             success = True
 
                     if success:
