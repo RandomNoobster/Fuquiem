@@ -17,6 +17,7 @@ client = pymongo.MongoClient(os.getenv("pymongolink"), ssl_cert_reqs=ssl.CERT_NO
 version = os.getenv("version")
 mongo = client[str(version)]
 key = os.getenv("encryption_key")
+api_key = os.getenv("api_key")
 cipher_suite = Fernet(key)
 
 def embed_pager(title: str, fields: list, description: str = "", color: int = 0x00ff00, inline: bool = True) -> list:
@@ -129,19 +130,27 @@ async def find_nation(arg: Union[str, int]) -> Union[dict, None]:
     if isinstance(arg, str):
         arg = arg.strip()
     try:
-        result = list(mongo.world_nations.find({"nation": arg}).collation(
+        arg = int(re.sub("[^0-9]", "", arg))
+        result = list(mongo.world_nations.find({"nationid": arg}).collation(
             {"locale": "en", "strength": 1}))[0]
     except:
         try:
-            result = list(mongo.world_nations.find({"leader": arg}).collation(
+            result = list(mongo.world_nations.find({"nation": arg}).collation(
                 {"locale": "en", "strength": 1}))[0]
         except:
             try:
-                arg = int(re.sub("[^0-9]", "", arg))
-                result = list(mongo.world_nations.find({"nationid": arg}).collation(
+                result = list(mongo.world_nations.find({"leader": arg}).collation(
                     {"locale": "en", "strength": 1}))[0]
             except:
-                result = None
+                try:
+                    result = list(mongo.world_nations.find({"discord": arg}).collation(
+                        {"locale": "en", "strength": 1}))[0]
+                except:
+                    try:
+                        result = list(mongo.world_nations.find({"discord": arg[:-4]}).collation(
+                            {"locale": "en", "strength": 1}))[0]
+                    except:
+                        result = None
     return result
 
 async def find_nation_plus(self, arg: Union[str, int]) -> Union[dict, None]: # only returns a nation if it is at least 1 day old
@@ -326,50 +335,32 @@ async def pre_revenue_calc(api_key, message: discord.Message, query_for_nation: 
             nation = parsed_nation
 
         await message.edit(content="Getting income modifiers...")
-        async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{colors{{color turn_bonus}} tradeprices(limit:1){{coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}} treasures{{bonus nation{{id alliance_id}}}}}}"}) as temp:
+        async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{colors{{color turn_bonus}} game_info{{game_date radiation{{global north_america south_america africa europe asia australia antarctica}}}} tradeprices(page:1 first:1){{data{{coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}}} treasures{{bonus nation{{id alliance_id}}}}}}"}) as temp:
             res_colors = (await temp.json())['data']['colors']
         colors = {}
         for color in res_colors:
             colors[color['color']] = color['turn_bonus'] * 12
 
-        prices = (await temp.json())['data']['tradeprices'][0]
+        prices = (await temp.json())['data']['tradeprices']['data'][0]
         prices['money'] = 1
 
         treasures = (await temp.json())['data']['treasures']
 
-        banker = mongo.users.find_one({"user": 465463547200012298})
-        login_url = "https://politicsandwar.com/login/"
-        login_data = {
-            "email": str(cipher_suite.decrypt(banker['email'].encode()))[2:-1],
-            "password": str(cipher_suite.decrypt(banker['pwd'].encode()))[2:-1],
-            "loginform": "Login"
-        }
-        await session.post(login_url, data=login_data)
+        game_info = (await temp.json())['data']['game_info']
 
-        radiation_page = await session.get(f"https://politicsandwar.com/world/radiation/")
-        tree = html.fromstring(await radiation_page.text())
-        info = tree.xpath("//div[@class='col-md-10']/div[@class='row']/div/p")
-        for x in info.copy():
-            #print(x.text_content())
-            if "Food" not in x.text_content():
-                info.remove(x)
-            else:
-                info.remove(x)
-                x = re.sub(r"[^0-9.]+", "", x.text_content().strip())
-                info.append(x)
-        radiation = {"na": 1 - float(info[0])/100, "sa": 1 - float(info[1])/100, "eu": 1 - float(info[2])/100, "as": 1 - float(info[3])/100, "af": 1 - float(info[4])/100, "au": 1 - float(info[5])/100, "an": 1 - float(info[6])/100}
-
-        info2 = tree.xpath("//div[@class='sidebar'][contains(@style,'padding-left: 20px;')]/text()")
-        date = info2[2].strip()
+        rad = game_info['radiation']
+        radiation = {"na": 1 - (rad['north_america'] + rad['global'])/1000, "sa": 1 - (rad['south_america'] + rad['global'])/1000, "eu": (rad['europe'] + rad['global'])/1000, "as": 1 - (rad['asia'] + rad['global'])/1000, "af": 1 - (rad['africa'] + rad['global'])/1000, "au": 1 - (rad['australia'] + rad['global'])/1000, "an": 1 - (rad['antarctica'] + rad['global'])/1000}
+        
+        month = int(game_info['game_date'][5:7])
         seasonal_mod = {"na": 1, "sa": 1, "eu": 1, "as": 1, "af": 1, "au": 1, "an": 0.5}
-        if "June" in date or "July" in date or "August" in date:
+        if month in [6,7,8]:
             seasonal_mod['na'] = 1.2
             seasonal_mod['as'] = 1.2
             seasonal_mod['eu'] = 1.2
             seasonal_mod['sa'] = 0.8
             seasonal_mod['af'] = 0.8
             seasonal_mod['au'] = 0.8
-        elif "December" in date or "January" in date or "February" in date:
+        elif month in [12,1,2]:
             seasonal_mod['na'] = 0.8
             seasonal_mod['as'] = 0.8
             seasonal_mod['eu'] = 0.8

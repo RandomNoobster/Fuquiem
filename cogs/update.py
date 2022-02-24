@@ -38,9 +38,9 @@ class Update(commands.Cog):
     async def nation_check(self, channel, aa='all'):
         async with aiohttp.ClientSession() as session:
             message = await channel.send("<:thonk:787399051582504980>")
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:500 alliance_id:4729 vmode:false){{data{{nation_name leader_name id alliance_position continent color food last_active spies dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid turnsleft winner}} defensive_wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr cia itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:500 alliance_id:4729 vmode:false){{data{{nation_name leader_name id alliance_position continent color food last_active spies dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr cia itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
                 church = (await temp.json())['data']['nations']['data']
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(first:500 alliance_id:7531 vmode:false){{data{{nation_name leader_name id alliance_position continent color food last_active spies dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes offensive_wars{{date attid turnsleft winner}} defensive_wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr cia itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(first:500 alliance_id:7531 vmode:false){{data{{nation_name leader_name id alliance_position continent color food last_active spies dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr cia itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
                 convent = (await temp.json())['data']['nations']['data']
 
             if aa == 'all':
@@ -108,7 +108,7 @@ class Update(commands.Cog):
                                 await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Spies', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you don't have max spies. To buy spies, please go here: <a href=\"https://politicsandwar.com/nation/military/spies/\">https://politicsandwar.com/nation/military/spies/</a>"})
 
                     ## inactivity_check
-                    minutes_inactive = round((datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%d %H:%M:%S")).total_seconds()/60)
+                    minutes_inactive = round((datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%d %H:%M:%S%z")).total_seconds()/60)
                     if minutes_inactive > 2880:
                         inactivity_fields.append({"name": nation['leader_name'], "value": f"[{nation['leader_name']}](https://politicsandwar.com/nation/id={nation['id']}) has been inactive for {round(minutes_inactive/1440)} days."})
                         try:
@@ -241,12 +241,15 @@ class Update(commands.Cog):
         async with aiohttp.ClientSession() as session:
             with open('./data/templates/sheet.txt', 'r', encoding='UTF-8') as file:
                 template = file.read()
-
-            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_id:4729){data{id alliance_id alliance_position leader_name nation_name color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium espionage_available cities{infrastructure barracks factory airforcebase drydock}}}}"}) as temp:
-                church = (await temp.json())['data']['nations']['data']
-            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{nations(page:1 first:500 alliance_id:7531){data{id alliance_id alliance_position leader_name nation_name color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium espionage_available cities{infrastructure barracks factory airforcebase drydock}}}}"}) as temp:
-                convent = (await temp.json())['data']['nations']['data']
-            sum = church + convent
+            try:
+                async with session.post(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_id:4729){data{id alliance_id alliance_position leader_name nation_name color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium espionage_available cities{infrastructure barracks factory airforcebase drydock}}}}"}) as temp:
+                    church = (await temp.json())['data']['nations']['data']
+                async with session.post(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{nations(page:1 first:500 alliance_id:7531){data{id alliance_id alliance_position leader_name nation_name color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium espionage_available cities{infrastructure barracks factory airforcebase drydock}}}}"}) as temp:
+                    convent = (await temp.json())['data']['nations']['data']
+                sum = church + convent
+            except Exception as e:
+                print(f"I encoutered an error whilst creating a sheet: {e}")
+                return
 
             nations = []
 
@@ -254,7 +257,7 @@ class Update(commands.Cog):
                 if nation['alliance_position'] != "APPLICANT":
                     nations.append(nation)
 
-            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{alliances(first:2 id:[4729,7531]){data{score nations{num_cities alliance_position}}}}"}) as temp:
+            async with session.post(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{alliances(first:2 id:[4729,7531]){data{score nations{num_cities alliance_position}}}}"}) as temp:
                 alliances = (await temp.json())['data']['alliances']['data']
 
             score = alliances[0]['score'] + alliances[1]['score']
@@ -267,10 +270,10 @@ class Update(commands.Cog):
 
             users = list(self.bot.get_all_members())
             rss = ['aluminum', 'bauxite', 'coal', 'food', 'gasoline', 'iron', 'lead', 'munitions', 'money', 'oil', 'steel', 'uranium']
-            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{tradeprices(limit:1){coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}"}) as resp:
-                prices = (await resp.json())['data']['tradeprices'][0]
+            async with session.post(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{tradeprices(page:1 first:1){data{coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}}"}) as resp:
+                prices = (await resp.json())['data']['tradeprices']['data'][0]
                 prices['money'] = 1
-           
+            
             for nation in nations:
                 x = mongo.users.find_one({"nationid": str(nation['id'])})
                 nation['user_object'] = {'discordid': '', 'username': '', "audited": ''}

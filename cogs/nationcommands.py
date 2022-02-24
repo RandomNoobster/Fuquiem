@@ -213,7 +213,7 @@ class General(commands.Cog):
                             content=f"I could not find `{x.strip()}`, they will be skipped.\n"
                             return
 
-                async with session.get(f"http://politicsandwar.com/api/nation/id={nation['nationid']}&key=e5171d527795e8") as temp:
+                async with session.get(f"http://politicsandwar.com/api/nation/id={nation['id']}&key=e5171d527795e8") as temp:
                     api_nation = await temp.json()
                 api_nation['user'] = mongo.users.find_one({"nationid": api_nation['nationid']})
                 n += 1
@@ -611,7 +611,7 @@ class General(commands.Cog):
             await message.edit(content='I could not find that nation!')
             return
         #print(nation)
-        res = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation['nationid']}){{data{{beigeturns}}}}}}"}).json()['data']['nations']['data'][0]
+        res = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation['id']}){{data{{beigeturns}}}}}}"}).json()['data']['nations']['data'][0]
         if res['beigeturns'] == 0:
             await message.edit(content="They are not beige!")
             return
@@ -624,7 +624,7 @@ class General(commands.Cog):
         else:
             time += timedelta(hours=turns*2-1)
         reminder['time'] = datetime(time.year, time.month, time.day, time.hour)
-        reminder['id'] = str(nation['nationid'])
+        reminder['id'] = nation['id']
         mongo.users.find_one_and_update({"user": ctx.author.id}, {"$push": {"beige_alerts": reminder}})
         await message.edit(content=f"A beige reminder for https://politicsandwar.com/nation/id={nation['nationid']} was added.")
 
@@ -764,7 +764,7 @@ class General(commands.Cog):
             await message.edit(content="Run $update or wait until daychange")
             return
         response = requests.get(
-            f"http://politicsandwar.com/api/nation/id={nation['nationid']}&key=e5171d527795e8").json()
+            f"http://politicsandwar.com/api/nation/id={nation['id']}&key=e5171d527795e8").json()
         if response['allianceposition'] > '1':
             await ctx.send('They are already a member!')
             return
@@ -809,7 +809,7 @@ class General(commands.Cog):
         zealot_role = ctx.guild.get_role(434258764221251584)
 
         async with aiohttp.ClientSession() as session:
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{tradeprices(limit:1){{coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{tradeprices(page:1 limit:1){{data{{coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}}}}}"}) as temp:
                 prices = (await temp.json())['data']['tradeprices'][0]
                 prices['money'] = 1
             async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 alliance_position:{level} first:500 alliance_id:4729){{data{{id leader_name nation_name alliance{{name}} color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium cities{{infrastructure barracks factory airforcebase drydock}}}}}}}}"}) as temp:
@@ -818,7 +818,7 @@ class General(commands.Cog):
                 apps += (await temp.json())['data']['nations']['data']
 
         for app in apps:
-            app['last_active'] = f"<t:{round(datetime.strptime(app['last_active'], '%Y-%m-%d %H:%M:%S').timestamp())}:R>"
+            app['last_active'] = f"<t:{round(datetime.strptime(app['last_active'], '%Y-%m-%d %H:%M:%S%z').timestamp())}:R>"
 
         apps = sorted(apps, key=lambda k: k['last_active'], reverse=True)
         fields = []

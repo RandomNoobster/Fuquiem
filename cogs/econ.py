@@ -273,7 +273,7 @@ class Economic(commands.Cog):
                 async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={person['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
                     txids = await txids.json()
                 for x in txids['data']:
-                    if x['note'] == 'Sent through discord.' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
+                    if x['note'] == 'Sent through discord.' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S%z') <= end_time:
                         success = True
                 if success:
                     await ctx.send('I can confirm that the transaction has successfully commenced.')
@@ -393,7 +393,7 @@ class Economic(commands.Cog):
                 async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={person['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
                     txids = await txids.json()
                 for x in txids['data']:
-                    if x['note'] == 'Sent through discord.' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
+                    if x['note'] == 'Sent through discord.' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S%z') <= end_time:
                         success = True
                 if success:
                     await ctx.send('I can confirm that the transaction has successfully commenced.')
@@ -456,7 +456,7 @@ class Economic(commands.Cog):
                 async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={person['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
                     txids = await txids.json()
                 for x in txids['data']:
-                    if x['note'] == 'Hunger Prevention!' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
+                    if x['note'] == 'Hunger Prevention!' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S%z') <= end_time:
                         success = True
                 if success:
                     await ctx.send('Once upon a time there was 100k food. Now it resides in your nation.')
@@ -519,31 +519,13 @@ class Economic(commands.Cog):
                 async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={person['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
                     txids = await txids.json()
                 for x in txids['data']:
-                    if x['note'] == 'Power outage prevention!' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
+                    if x['note'] == 'Power outage prevention!' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S%z') <= end_time:
                         success = True
                 if success:
                     await ctx.send('Roses are red. Uranium is green. You now have 3k more uranium.')
                 else:
                     await ctx.send(f"Beat me up with an eyebrow! Things didn't go as planned! Please check this page to see if you got your uranium:\nhttps://politicsandwar.com/nation/id={person['nationid']}&display=bank")
 
-    @commands.command(
-        aliases=['bal'],
-        brief="Shows you the person's balance with the alliance bank",
-        help="Accepts 0 to 1 argument. If no arguments are provided, it will display your balance with the bank. If you use leader name, nation name, nation link, nation id, discord id, discord username, discord nickname or a discord mention, you can see the balance of the person you specified. Other arguments include 'top', 'max' and 'min'. These will display the 10 people with the highest or lowest balances."
-        )
-    async def balance(self, ctx, *, person=''):
-        message = await ctx.send('Gathering data...')
-        bal_embed, user_obj = await self.balance2(ctx, message, person, None)
-        if bal_embed == None:
-            return
-        now_time = datetime.utcnow()
-        if not (4 < now_time.minute < 7):
-            #jetzt=datetime.utcnow()
-            await asyncio.gather(self.balance1(user_obj))
-            #print((datetime.utcnow()-jetzt).seconds) 
-        bal_embed, user_ob = await self.balance2(ctx, message, person, bal_embed)
-        await message.edit(content="Using fresh numbers <:pepoohappy:787399051724980274>", embed=bal_embed)
-    
     @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     @commands.command(
         aliases=['ba', 'balincrement', 'bi'],
@@ -601,6 +583,24 @@ class Economic(commands.Cog):
 
         await message.edit(content=f"I modified <@{user['user']}>'s balance by {(diff*prefix):,}", allowed_mentions=discord.AllowedMentions(everyone=False, users=False, roles=False))
 
+    @commands.command(
+        aliases=['bal'],
+        brief="Shows you the person's balance with the alliance bank",
+        help="Accepts 0 to 1 argument. If no arguments are provided, it will display your balance with the bank. If you use leader name, nation name, nation link, nation id, discord id, discord username, discord nickname or a discord mention, you can see the balance of the person you specified. Other arguments include 'top', 'max' and 'min'. These will display the 10 people with the highest or lowest balances."
+        )
+    async def balance(self, ctx, *, person=''):
+        message = await ctx.send('Gathering data...')
+        bal_embed, user_obj = await self.balance2(ctx, message, person, None)
+        if bal_embed == None:
+            return
+        now_time = datetime.utcnow()
+        if not (4 < now_time.minute < 7):
+            #jetzt=datetime.utcnow()
+            await asyncio.gather(self.balance1(user_obj))
+            #print((datetime.utcnow()-jetzt).seconds) 
+        bal_embed, user_ob = await self.balance2(ctx, message, person, bal_embed)
+        await message.edit(content="Using fresh numbers <:pepoohappy:787399051724980274>", embed=bal_embed)
+    
     async def balance1(self, user_obj):
         async with aiohttp.ClientSession() as session:
             for aa in [{"id": 4729, "key": api_key, "banker": 465463547200012298}, {"id": 7531, "key": convent_key, "banker": 154886766275461120}]: # IMPORTANT, MUST HAVE UTC +0 AS DISPLAY TIME!!!
@@ -615,7 +615,7 @@ class Economic(commands.Cog):
 
                     for txid in res:
                         if user_obj['nationid'] == txid['rid'] or user_obj['nationid'] == txid['sid']:
-                            tx_obj['time'] = datetime.strptime(txid['date'], "%Y-%m-%d %H:%M:%S")
+                            tx_obj['time'] = datetime.strptime(txid['date'], "%Y-%m-%d %H:%M:%S%z").replace(tzinfo=None)
                             if tx_obj['time'] < datetime(2021, 7, 4, 15):
                                 #print('skipped due to recency')
                                 continue
@@ -676,10 +676,14 @@ class Economic(commands.Cog):
                         name = 'lowest'
                     rss = ['aluminum', 'bauxite', 'coal', 'food', 'gasoline', 'iron', 'lead', 'munitions', 'oil', 'steel', 'uranium']
                     prices = {}
-                    for rs in rss:
-                        async with session.get(f'http://politicsandwar.com/api/tradeprice/?resource={rs}&key={api_key}') as resp:
-                            resp = await resp.json()
-                            prices.update({rs[:2]: int(resp['lowestbuy']['price'])})
+                    async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{tradeprices(page:1){{data{{coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}}}}}"}) as temp:
+                        price_history = (await temp.json())['data']['tradeprices']['data']
+                        for entry in price_history:
+                            for rs in rss:
+                                prices[rs] += entry[rs]
+                        for rs in rss:
+                            prices[rs] = prices[rs]/len(price_history)
+                        prices['money'] = 1
                     people = list(mongo.total_balance.find({}))
                     people = sorted(people, key=lambda k: k['mo'] + k['al'] * prices['al'] + k['ba'] * prices['ba'] + k['co'] * prices['co'] + k['fo'] * prices['fo'] + k['ga'] * prices['ga'] + k['ir'] * prices['ir'] + k['le'] * prices['le'] + k['mu'] * prices['mu'] + k['oi'] * prices['oi'] + k['st'] * prices['st'] + k['ur'] * prices['ur'], reverse=reverse)
                     embed = discord.Embed(title=f"The {name} balances:",
@@ -906,7 +910,7 @@ class Economic(commands.Cog):
                 async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={person['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
                     txids = await txids.json()
                 for x in txids['data']:
-                    if x['note'] == 'Free war aid for countering raiders' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
+                    if x['note'] == 'Free war aid for countering raiders' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S%z') <= end_time:
                         success = True
                 if success:
                     await ctx.send('I can confirm that the grant has been successfully sent.')
@@ -987,7 +991,7 @@ class Economic(commands.Cog):
                 if war['date'] == '-0001-11-30 00:00:00':
                     wars_list.remove(war)
             wars_list = sorted(wars_list, key=lambda k: k['date'], reverse=False)
-            days_since_first_war = (datetime.utcnow() - datetime.strptime(wars_list[0]['date'], "%Y-%m-%d %H:%M:%S")).days
+            days_since_first_war = (datetime.utcnow() - datetime.strptime(wars_list[0]['date'], "%Y-%m-%d %H:%M:%S%z")).days
 
         for war in wars_list:
             if war['attid'] == nation['id']:
