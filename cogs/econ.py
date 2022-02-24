@@ -273,7 +273,7 @@ class Economic(commands.Cog):
                 async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={person['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
                     txids = await txids.json()
                 for x in txids['data']:
-                    if x['note'] == 'Sent through discord.' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S%z') <= end_time:
+                    if x['note'] == 'Sent through discord.' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
                         success = True
                 if success:
                     await ctx.send('I can confirm that the transaction has successfully commenced.')
@@ -393,7 +393,7 @@ class Economic(commands.Cog):
                 async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={person['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
                     txids = await txids.json()
                 for x in txids['data']:
-                    if x['note'] == 'Sent through discord.' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S%z') <= end_time:
+                    if x['note'] == 'Sent through discord.' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
                         success = True
                 if success:
                     await ctx.send('I can confirm that the transaction has successfully commenced.')
@@ -456,7 +456,7 @@ class Economic(commands.Cog):
                 async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={person['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
                     txids = await txids.json()
                 for x in txids['data']:
-                    if x['note'] == 'Hunger Prevention!' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S%z') <= end_time:
+                    if x['note'] == 'Hunger Prevention!' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
                         success = True
                 if success:
                     await ctx.send('Once upon a time there was 100k food. Now it resides in your nation.')
@@ -519,7 +519,7 @@ class Economic(commands.Cog):
                 async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={person['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
                     txids = await txids.json()
                 for x in txids['data']:
-                    if x['note'] == 'Power outage prevention!' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S%z') <= end_time:
+                    if x['note'] == 'Power outage prevention!' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
                         success = True
                 if success:
                     await ctx.send('Roses are red. Uranium is green. You now have 3k more uranium.')
@@ -910,7 +910,7 @@ class Economic(commands.Cog):
                 async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={person['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
                     txids = await txids.json()
                 for x in txids['data']:
-                    if x['note'] == 'Free war aid for countering raiders' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S%z') <= end_time:
+                    if x['note'] == 'Free war aid for countering raiders' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
                         success = True
                 if success:
                     await ctx.send('I can confirm that the grant has been successfully sent.')
