@@ -201,19 +201,10 @@ class General(commands.Cog):
         async with aiohttp.ClientSession() as session:
             async def prepare_nation(x: str) -> Union[dict, None]:
                 nonlocal content, n
-                nation = utils.find_nation(x)
+                nation = utils.find_nation_plus(self, x)
                 if nation == None:
-                    nation = utils.find_user(self, x)
-                    if nation == {}:
-                        content += f"I could not find `{x.strip()}`, they will be skipped.\n"
-                        return
-                    else:
-                        nation = utils.find_nation(nation['nationid'])
-                        if nation == None:
-                            content=f"I could not find `{x.strip()}`, they will be skipped.\n"
-                            return
-                else:
-                    nation['id'] = nation['nationid']
+                    content=f"I could not find `{x.strip()}`, they will be skipped.\n"
+                    return
 
                 async with session.get(f"http://politicsandwar.com/api/nation/id={nation['id']}&key=e5171d527795e8") as temp:
                     api_nation = await temp.json()

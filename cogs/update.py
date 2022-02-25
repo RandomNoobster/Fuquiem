@@ -108,7 +108,7 @@ class Update(commands.Cog):
                                 await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Spies', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you don't have max spies. To buy spies, please go here: <a href=\"https://politicsandwar.com/nation/military/spies/\">https://politicsandwar.com/nation/military/spies/</a>"})
 
                     ## inactivity_check
-                    minutes_inactive = round((datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%d %H:%M:%S%z")).total_seconds()/60)
+                    minutes_inactive = round((datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%d %H:%M:%S%z").replace(tzinfo=None)).total_seconds()/60)
                     if minutes_inactive > 2880:
                         inactivity_fields.append({"name": nation['leader_name'], "value": f"[{nation['leader_name']}](https://politicsandwar.com/nation/id={nation['id']}) has been inactive for {round(minutes_inactive/1440)} days."})
                         try:
@@ -363,6 +363,7 @@ class Update(commands.Cog):
         Raffle = self.bot.get_cog('Raffle')
         Military = self.bot.get_cog('Military')
         debug_channel = self.bot.get_channel(739155202640183377)
+        embed_channel = self.bot.get_channel(677883771810349067)
         await self.soxi()
         while True:
             minute = 0
@@ -386,7 +387,7 @@ class Update(commands.Cog):
             if now.hour == 0:
                 print(datetime.utcnow(), 'hour is 0')
                 try:
-                    await self.nation_check(debug_channel)
+                    await self.nation_check(embed_channel)
                 except:
                     await debug_channel.send(f"I encountered an error whilst performing self.nation_check():\n```{traceback.format_exc()}```")
 
