@@ -147,7 +147,7 @@
                         % if nation['last_active'] == '-0001-11-30 00:00:00':
                         <td>0</td>
                         % else:
-                        <td>${(datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%d %H:%M:%S%z")).days}</td>
+                        <td>${(datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%d %H:%M:%S%z").replace(tzinfo=None)).days}</td>
                         % endif
 
                         <td>${f"{nation['soldiers']:,}"}</td>

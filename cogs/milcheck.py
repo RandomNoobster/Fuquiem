@@ -1310,14 +1310,14 @@ class Military(commands.Cog):
                 for n in range(1, app_pages):
                     #print(n)
                     url = f"https://api.politicsandwar.com/graphql?api_key={api_key}"
-                    json = {'query': f"{{nations(page:{n} first:250 min_score:{minscore} max_score:{maxscore} vmode:false alliance_position:1){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name id}} wars{{date winner turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
+                    json = {'query': f"{{nations(page:{n} first:250 min_score:{minscore} max_score:{maxscore} vmode:false alliance_position:1){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name id}} wars{{date winner defid turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
                     futures.append(asyncio.ensure_future(call_api(url, json)))
                     await asyncio.sleep(0.2)
             
             for n in range(1, any_pages):
                 #print(n)
                 url = f"https://api.politicsandwar.com/graphql?api_key={api_key}"
-                json = {'query': f"{{nations(page:{n} first:250 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name id}} wars{{date winner turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
+                json = {'query': f"{{nations(page:{n} first:250 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name id}} wars{{date winner defid turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
                 futures.append(asyncio.ensure_future(call_api(url, json)))
                 await asyncio.sleep(0.2)
 
@@ -1336,8 +1336,8 @@ class Military(commands.Cog):
                         else: 
                             pass
                     used_slots = 0
-                    for war in x['defensive_wars']:
-                        if war['turnsleft'] > 0:
+                    for war in x['wars']:
+                        if war['turnsleft'] > 0 and war['defid'] == x['id']:
                             used_slots += 1
                         for attack in war['attacks']:
                             if attack['loot_info']:
@@ -1383,17 +1383,18 @@ class Military(commands.Cog):
                 target['def_slots'] = 0
                 target['time_since_war'] = "14+"
                 
-                if target['defensive_wars'] != []:
-                    for war in target['defensive_wars']:
+                if target['wars'] != []:
+                    for war in target['wars']:
                         if war['date'] == '-0001-11-30 00:00:00':
-                            target['defensive_wars'].remove(war)
-                        if war['turnsleft'] > 0:
-                            target['def_slots'] += 1
+                            target['wars'].remove(war)
+                        elif war['defid'] == target['id']:
+                            if war['turnsleft'] > 0:
+                                target['def_slots'] += 1
                             
-                    wars = sorted(target['defensive_wars'], key=lambda k: k['date'], reverse=True)
+                    wars = sorted(target['wars'], key=lambda k: k['date'], reverse=True)
                     war = wars[0]
                     if target['def_slots'] == 0:
-                        target['time_since_war'] = (datetime.utcnow() - datetime.strptime(war['date'], "%Y-%m-%d %H:%M:%S%z")).days
+                        target['time_since_war'] = (datetime.utcnow() - datetime.strptime(war['date'], "%Y-%m-%d %H:%M:%S%z").replace(tzinfo=None)).days
                     else:
                         target['time_since_war'] = "Ongoing"
                     if war['winner'] in [0, target['id']]:
@@ -1469,7 +1470,7 @@ class Military(commands.Cog):
                 if target['last_active'] == '-0001-11-30 00:00:00':
                     days_inactive = 0
                 else:
-                    days_inactive = (datetime.utcnow() - datetime.strptime(target['last_active'], "%Y-%m-%d %H:%M:%S%z")).days
+                    days_inactive = (datetime.utcnow() - datetime.strptime(target['last_active'], "%Y-%m-%d %H:%M:%S%z").replace(tzinfo=None)).days
 
                 for city in target['cities']:
                     target['infrastructure'] += city['infrastructure']

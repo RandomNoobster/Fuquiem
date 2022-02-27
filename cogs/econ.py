@@ -1,3 +1,4 @@
+from collections import defaultdict
 import discord
 import requests
 import dateutil.parser
@@ -675,7 +676,7 @@ class Economic(commands.Cog):
                         reverse = False
                         name = 'lowest'
                     rss = ['aluminum', 'bauxite', 'coal', 'food', 'gasoline', 'iron', 'lead', 'munitions', 'oil', 'steel', 'uranium']
-                    prices = {}
+                    prices = defaultdict(lambda: 0)
                     async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{tradeprices(page:1){{data{{coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}}}}}"}) as temp:
                         price_history = (await temp.json())['data']['tradeprices']['data']
                         for entry in price_history:
@@ -973,7 +974,7 @@ class Economic(commands.Cog):
     async def wars_revenue(self, message, nation, prices, wars_embed):
         days_since_first_war = 14
         raid_earnings = {"aluminum_used": 0, "gasoline_used": 0, "munitions_used": 0, "steel_used": 0, "money_gained": 0, "money_lost": 0, "infra_lost": 0, "gained_beige_loot": 0, "lost_beige_loot": 0, "total": 0, "aluminum": 0, "bauxite": 0, "coal": 0, "food": 0, "gasoline": 0, "iron": 0, "lead": 0, "money": 0, "munitions": 0, "oil": 0, "steel": 0, "uranium": 0}
-        wars_list = nation['offensive_wars'] + nation['defensive_wars']
+        wars_list = nation['wars']
         if wars_list != []:
             for war in wars_list:
                 if war['date'] == '-0001-11-30 00:00:00':
