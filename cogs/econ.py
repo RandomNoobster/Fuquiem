@@ -686,7 +686,15 @@ class Economic(commands.Cog):
                             prices[rs] = prices[rs]/len(price_history)
                         prices['money'] = 1
                     people = list(mongo.total_balance.find({}))
-                    people = sorted(people, key=lambda k: k['mo'] + k['al'] * prices['al'] + k['ba'] * prices['ba'] + k['co'] * prices['co'] + k['fo'] * prices['fo'] + k['ga'] * prices['ga'] + k['ir'] * prices['ir'] + k['le'] * prices['le'] + k['mu'] * prices['mu'] + k['oi'] * prices['oi'] + k['st'] * prices['st'] + k['ur'] * prices['ur'], reverse=reverse)
+
+                    def total_bal(k):
+                        nonlocal prices
+                        x = 0
+                        for rs in rss:
+                            x += k[rs[:2]] * prices[rs]
+                        return x
+
+                    people = sorted(people, key=lambda k: total_bal(k), reverse=reverse)
                     embed = discord.Embed(title=f"The {name} balances:",
                                         description="", color=0x00ff00)
                     n = 0
@@ -697,7 +705,7 @@ class Economic(commands.Cog):
                         if user == None:
                             #print('balance skipped', ind['nationid'])
                             continue
-                        embed.add_field(name=user['leader'],inline=False,value=f"Cumulative balance: ${round(ind['mo'] + ind['al'] * prices['al'] + ind['ba'] * prices['ba'] + ind['co'] * prices['co'] + ind['fo'] * prices['fo'] + ind['ga'] * prices['ga'] + ind['ir'] * prices['ir'] + ind['le'] * prices['le'] + ind['mu'] * prices['mu'] + ind['oi'] * prices['oi'] + ind['st'] * prices['st'] + ind['ur'] * prices['ur']):,}")
+                        embed.add_field(name=user['leader'],inline=False,value=f"Cumulative balance: ${round(total_bal(ind)):,}")
                         n += 1
                     await message.edit(embed=embed,content='')
                     return None, None
