@@ -1143,6 +1143,7 @@ class Military(commands.Cog):
         mmr = '/'.join(mmr[i:i+1] for i in range(0, len(mmr), 1))
         await ctx.send(f"I set the mmr to {mmr}")
 
+
     @commands.command(
         brief='Find raid targets',
         aliases=['raid'],
@@ -1169,111 +1170,112 @@ class Military(commands.Cog):
                 return
             minscore = round(atck_ntn['score'] * 0.75)
             maxscore = round(atck_ntn['score'] * 1.75)
-
-            embed = discord.Embed(title=f"Presentation", description="Do you want to get your targets\n\n:one: - here on discord\n:two: - as a webpage", color=0x00ff00)
-            await message.edit(content="", embed=embed)
-
-            react01 = asyncio.create_task(message.add_reaction("1\N{variation selector-16}\N{combining enclosing keycap}"))
-            react02 = asyncio.create_task(message.add_reaction("2\N{variation selector-16}\N{combining enclosing keycap}"))
-            await asyncio.gather(react01, react02)
-
-            while True:
-                reaction, user = await self.bot.wait_for("reaction_add", timeout=300)
-                if reaction.message != message or user.id != ctx.author.id:
-                    continue
-
-                if str(reaction.emoji) == "1\N{variation selector-16}\N{combining enclosing keycap}":
-                    webpage = False
-                    break
-
-                elif str(reaction.emoji) == "2\N{variation selector-16}\N{combining enclosing keycap}":
-                    webpage = True
-                    break
-
-            await message.clear_reactions()
             
-            embed = discord.Embed(title=f"Filters (1/2)", description="Do you want to include...\n\n:one: - All nations\n:two: - Applicants and nations not in alliances\n:three: - Nations not in alliances", color=0x00ff00)
-            await message.edit(content="", embed=embed)
+            beige = None
+            class stage_four(discord.ui.View):
+                @discord.ui.button(label="Yes", style=discord.ButtonStyle.success)
+                async def primary_callback(self, b: discord.Button, i: discord.Interaction):
+                    nonlocal beige
+                    beige = True
+                    await i.response.pong()
+                    self.stop()
+                
+                @discord.ui.button(label="No", style=discord.ButtonStyle.danger)
+                async def secondary_callback(self, b: discord.Button, i: discord.Interaction):
+                    nonlocal beige
+                    beige = False
+                    await i.response.pong()
+                    self.stop()
 
-            react11 = asyncio.create_task(message.add_reaction("1\N{variation selector-16}\N{combining enclosing keycap}"))
-            react12 = asyncio.create_task(message.add_reaction("2\N{variation selector-16}\N{combining enclosing keycap}"))
-            react13 = asyncio.create_task(message.add_reaction("3\N{variation selector-16}\N{combining enclosing keycap}"))
-            await asyncio.gather(react11, react12, react13)
+            max_wars = None
+            class stage_three(discord.ui.View):
+                @discord.ui.button(label="0", style=discord.ButtonStyle.primary)
+                async def primary_callback(self, b: discord.Button, i: discord.Interaction):
+                    nonlocal max_wars
+                    max_wars = 0
+                    await i.response.pong()
+                    self.stop()
+                
+                @discord.ui.button(label="1 or less", style=discord.ButtonStyle.primary)
+                async def secondary_callback(self, b: discord.Button, i: discord.Interaction):
+                    nonlocal max_wars
+                    max_wars = 1
+                    await i.response.pong()
+                    self.stop()
 
-            while True:
-                reaction, user = await self.bot.wait_for("reaction_add", timeout=300)
-                if reaction.message != message or user.id != ctx.author.id:
-                    continue
-
-                if str(reaction.emoji) == "1\N{variation selector-16}\N{combining enclosing keycap}":
+                @discord.ui.button(label="2 or less", style=discord.ButtonStyle.primary)
+                async def tertiary_callback(self, b: discord.Button, i: discord.Interaction):
+                    nonlocal max_wars
+                    max_wars = 2
+                    await i.response.pong()
+                    self.stop()
+                
+                @discord.ui.button(label="3 or less", style=discord.ButtonStyle.primary)
+                async def quadrary_callback(self, b: discord.Button, i: discord.Interaction):
+                    nonlocal max_wars
+                    max_wars = 3
+                    await i.response.pong()
+                    self.stop()
+                    
+            applicants = None
+            who = None
+            class stage_two(discord.ui.View):
+                @discord.ui.button(label="All nations", style=discord.ButtonStyle.primary)
+                async def primary_callback(self, b: discord.Button, i: discord.Interaction):
+                    nonlocal applicants, who
                     applicants = False
                     who = ""
-                    break
-
-                elif str(reaction.emoji) == "2\N{variation selector-16}\N{combining enclosing keycap}":
+                    await i.response.pong()
+                    self.stop()
+                
+                @discord.ui.button(label="Applicants and nations not in alliances", style=discord.ButtonStyle.primary)
+                async def secondary_callback(self, b: discord.Button, i: discord.Interaction):
+                    nonlocal applicants, who
                     applicants = True
                     who = " alliance_id:0"
-                    break
+                    await i.response.pong()
+                    self.stop()
 
-                elif str(reaction.emoji) == "3\N{variation selector-16}\N{combining enclosing keycap}":
+                @discord.ui.button(label="Nations not affiliated with any alliance", style=discord.ButtonStyle.primary)
+                async def tertiary_callback(self, b: discord.Button, i: discord.Interaction):
+                    nonlocal applicants, who
                     applicants = False
                     who = " alliance_id:0"
-                    break
+                    await i.response.pong()
+                    self.stop()
 
-            embed = discord.Embed(title=f"Filters (2/3)", description="How many active defensive wars should they have?\n\n:zero: - No active wars\n:one: - One or less wars\n:two: - Two or less wars\n:three: - Three or less wars", color=0x00ff00)
-            await message.edit(content="", embed=embed)
-            await message.clear_reactions()
-
-            react01 = asyncio.create_task(message.add_reaction("0\N{variation selector-16}\N{combining enclosing keycap}"))
-            react02 = asyncio.create_task(message.add_reaction("1\N{variation selector-16}\N{combining enclosing keycap}"))
-            react03 = asyncio.create_task(message.add_reaction("2\N{variation selector-16}\N{combining enclosing keycap}"))
-            react04 = asyncio.create_task(message.add_reaction("3\N{variation selector-16}\N{combining enclosing keycap}"))
-            await asyncio.gather(react01, react02, react03, react04)
-
-            while True:
-                reaction, user = await self.bot.wait_for("reaction_add", timeout=300)
-                if reaction.message != message or user.id != ctx.author.id:
-                    continue
+            webpage = None
+            class stage_one(discord.ui.View):
+                @discord.ui.button(label="On discord", style=discord.ButtonStyle.primary)
+                async def callback(self, b: discord.Button, i: discord.Interaction):
+                    nonlocal webpage
+                    webpage = False
+                    await i.response.pong()
+                    self.stop()
                 
-                if str(reaction.emoji) == "0\N{variation selector-16}\N{combining enclosing keycap}":
-                    max_wars = 0
-                    break
+                @discord.ui.button(label="As a webpage", style=discord.ButtonStyle.primary)
+                async def one_two_callback(self, b: discord.Button, i: discord.Interaction):
+                    nonlocal webpage
+                    webpage = True
+                    await i.response.pong()
+                    self.stop()
 
-                elif str(reaction.emoji) == "1\N{variation selector-16}\N{combining enclosing keycap}":
-                    max_wars = 1
-                    break
+            embed0 = discord.Embed(title=f"Presentation", description="How do you want to get your targets?", color=0x00ff00)
+            embed1 = discord.Embed(title=f"Filters (1/2)", description="What nations do you want to include?", color=0x00ff00)
+            embed2 = discord.Embed(title=f"Filters (2/3)", description="How many active defensive wars should they have?", color=0x00ff00)
+            embed3 = discord.Embed(title=f"Filters (3/3)", description="Do you want to include beige nations?", color=0x00ff00)
 
-                elif str(reaction.emoji) == "2\N{variation selector-16}\N{combining enclosing keycap}":
-                    max_wars = 2
-                    break
+            for embed, view in [(embed0, stage_one()), (embed1, stage_two()), (embed2, stage_three()), (embed3, stage_four())]:
+                await message.edit(content="", embed=embed, view=view)
+                await view.wait()
 
-                elif str(reaction.emoji) == "3\N{variation selector-16}\N{combining enclosing keycap}":
-                    max_wars = 3
-                    break
-            
-            embed = discord.Embed(title=f"Filters (3/3)", description="Do you want to include beige nations?", color=0x00ff00)
-            await message.edit(content="", embed=embed)
-            await message.clear_reactions()
-            react21 = asyncio.create_task(message.add_reaction("✅"))
-            react22 = asyncio.create_task(message.add_reaction("<:redcross:862669500977905694>"))
-            await asyncio.gather(react21, react22)
+            await message.edit(content="Getting targets...", embed=None, view=None)
 
             rndm = random.choice(["", "2", "3"])
             with open (pathlib.Path.cwd() / 'data' / 'attachments' / f'waiting{rndm}.gif', 'rb') as gif:
                 gif = discord.File(gif)
 
-            while True:
-                reaction, user = await self.bot.wait_for("reaction_add", timeout=300)
-                if reaction.message != message or user.id != ctx.author.id:
-                    continue
-
-                if str(reaction.emoji) == "✅":
-                    beige = True
-                    break
-
-                elif str(reaction.emoji) == "<:redcross:862669500977905694>":
-                    beige = False
-                    break
+            await message.edit(file=gif)
 
             target_list = []
             futures = []
@@ -1284,42 +1286,35 @@ class Military(commands.Cog):
             
             async def call_api(url, json):
                 nonlocal progress
-                await message.edit(content=f"Getting targets... ({progress}/{tot_pages})")
                 async with session.post(url, json=json) as temp:
                     resp = await temp.json()
-                    print("future recieved")
                     progress += 1
-                    await message.edit(content=f"Getting targets... ({progress}/{tot_pages})")
+                    if random.random() * 2 > 1:
+                        await message.edit(content=f"Getting targets... ({progress}/{tot_pages})")
+                    print(f"Getting targets... ({progress}/{tot_pages})")
+                    #print("future recieved")
                     return resp
-            
-            await message.clear_reactions()
-            await message.edit(content="Getting targets...", embed=None, file=gif)
 
             #start_time = time.time()
 
+            url = f"https://api.politicsandwar.com/graphql?api_key={api_key}"
             if applicants == True:
-                async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 first:250 min_score:{minscore} max_score:{maxscore} vmode:false alliance_position:1){{paginatorInfo{{lastPage}}}}}}"}) as temp:
+                async with session.post(url, json={'query': f"{{nations(page:1 first:50 min_score:{minscore} max_score:{maxscore} vmode:false alliance_position:1){{paginatorInfo{{lastPage}}}}}}"}) as temp:
                     tot_pages += (await temp.json())['data']['nations']['paginatorInfo']['lastPage']
                     app_pages += (await temp.json())['data']['nations']['paginatorInfo']['lastPage']
 
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 first:250 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{paginatorInfo{{lastPage}}}}}}"}) as temp1:
+            async with session.post(url, json={'query': f"{{nations(page:1 first:50 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{paginatorInfo{{lastPage}}}}}}"}) as temp1:
                 tot_pages += (await temp1.json())['data']['nations']['paginatorInfo']['lastPage']
                 any_pages += (await temp1.json())['data']['nations']['paginatorInfo']['lastPage']
 
             if applicants == True:
                 for n in range(1, app_pages):
-                    #print(n)
-                    url = f"https://api.politicsandwar.com/graphql?api_key={api_key}"
-                    json = {'query': f"{{nations(page:{n} first:250 min_score:{minscore} max_score:{maxscore} vmode:false alliance_position:1){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name id}} wars{{date winner defid turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
+                    json = {'query': f"{{nations(page:{n} first:50 min_score:{minscore} max_score:{maxscore} vmode:false alliance_position:1){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name}} wars{{date winner defid turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
                     futures.append(asyncio.ensure_future(call_api(url, json)))
-                    await asyncio.sleep(0.2)
             
             for n in range(1, any_pages):
-                #print(n)
-                url = f"https://api.politicsandwar.com/graphql?api_key={api_key}"
-                json = {'query': f"{{nations(page:{n} first:250 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name id}} wars{{date winner defid turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
+                json = {'query': f"{{nations(page:{n} first:50 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name}} wars{{date winner defid turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
                 futures.append(asyncio.ensure_future(call_api(url, json)))
-                await asyncio.sleep(0.2)
 
             #print("--- %s seconds ---" % (time.time() - start_time))
             done_jobs = await asyncio.gather(*futures)
@@ -1480,7 +1475,7 @@ class Military(commands.Cog):
                 embed.add_field(name="Inactivity", value=f"{days_inactive} days")
 
                 if target['alliance']:
-                    embed.add_field(name="Alliance", value=f"[{target['alliance']['name']}](https://politicsandwar.com/alliance/id={target['alliance']['id']})\n{target['alliance_position'].lower().capitalize()}")
+                    embed.add_field(name="Alliance", value=f"[{target['alliance']['name']}](https://politicsandwar.com/alliance/id={target['alliance_id']})\n{target['alliance_position'].lower().capitalize()}")
                 else:
                     target['alliance'] = {"name": "None", "id": 0}
                     embed.add_field(name="Alliance", value=f"No alliance")
