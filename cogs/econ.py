@@ -668,6 +668,25 @@ class Economic(commands.Cog):
 
     async def balance2(self, ctx, message, person, bal_embed):
         async with aiohttp.ClientSession() as session:
+            rss = ['aluminum', 'bauxite', 'coal', 'food', 'gasoline', 'iron', 'lead', 'money', 'munitions', 'oil', 'steel', 'uranium']
+            prices = defaultdict(lambda: 0)
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{tradeprices(page:1){{data{{coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}}}}}"}) as temp:
+                price_history = (await temp.json())['data']['tradeprices']['data']
+                for entry in price_history:
+                    for rs in rss:
+                        if rs != 'money':
+                            prices[rs] += entry[rs]
+                for rs in rss:
+                    prices[rs] = prices[rs]/len(price_history)
+                prices['money'] = 1
+            people = list(mongo.total_balance.find({}))
+
+            def total_bal(k):
+                nonlocal prices
+                x = 0
+                for rs in rss:
+                    x += k[rs[:2]] * prices[rs]
+                return x
             try:
                 if person.lower() in ['top', 'max', 'min', 'low', 'high']:
                     reverse = True
@@ -675,24 +694,6 @@ class Economic(commands.Cog):
                     if person in ['min', 'low']:
                         reverse = False
                         name = 'lowest'
-                    rss = ['aluminum', 'bauxite', 'coal', 'food', 'gasoline', 'iron', 'lead', 'munitions', 'oil', 'steel', 'uranium']
-                    prices = defaultdict(lambda: 0)
-                    async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{tradeprices(page:1){{data{{coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}}}}}"}) as temp:
-                        price_history = (await temp.json())['data']['tradeprices']['data']
-                        for entry in price_history:
-                            for rs in rss:
-                                prices[rs] += entry[rs]
-                        for rs in rss:
-                            prices[rs] = prices[rs]/len(price_history)
-                        prices['money'] = 1
-                    people = list(mongo.total_balance.find({}))
-
-                    def total_bal(k):
-                        nonlocal prices
-                        x = 0
-                        for rs in rss:
-                            x += k[rs[:2]] * prices[rs]
-                        return x
 
                     people = sorted(people, key=lambda k: total_bal(k), reverse=reverse)
                     embed = discord.Embed(title=f"The {name} balances:",
@@ -723,20 +724,12 @@ class Economic(commands.Cog):
             if bal == None:
                 await message.edit(content='I was not able to find their balance.', embed=bal_embed)
                 return None, None
-            rss = ['Aluminum', 'Bauxite', 'Coal', 'Food', 'Gasoline', 'Iron', 'Lead', 'Money', 'Munitions', 'Oil', 'Steel', 'Uranium']
             bal_embed = discord.Embed(title=f"{person['leader']}'s balance",
                                     description="", color=0x00ff00)
-            con_total = 0
             for rs in rss:
-                amount = bal[rs[:2].lower()]
-                async with session.get(f'http://politicsandwar.com/api/tradeprice/?resource={rs.lower()}&key={api_key}') as resp:
-                    resp = await resp.json()
-                bal_embed.add_field(name=rs, value=f"{round(amount):,}")
-                if rs != 'Money':
-                    con_total += amount * int(resp['lowestbuy']['price'])
-                elif rs == 'Money':
-                    con_total += amount
-            bal_embed.add_field(name="Converted total", value=f"{round(con_total):,}",inline=False)
+                amount = bal[rs[:2]]
+                bal_embed.add_field(name=rs.capitalize(), value=f"{round(amount):,}")
+            bal_embed.add_field(name="Converted total", value=f"{round(total_bal(bal)):,}",inline=False)
             #print(bal_embed)
             await message.edit(content="Using 1 hour old numbers <:peeposad:787399051796283392> updating to newer ones in the background...", embed=bal_embed)
             return bal_embed, person
