@@ -1171,6 +1171,29 @@ class Military(commands.Cog):
             minscore = round(atck_ntn['score'] * 0.75)
             maxscore = round(atck_ntn['score'] * 1.75)
             
+            performace_filter = None
+            class stage_five(discord.ui.View):
+                @discord.ui.button(label="Yes", style=discord.ButtonStyle.success)
+                async def primary_callback(self, b: discord.Button, i: discord.Interaction):
+                    nonlocal performace_filter
+                    performace_filter = True
+                    await i.response.pong()
+                    self.stop()
+                
+                @discord.ui.button(label="No", style=discord.ButtonStyle.danger)
+                async def secondary_callback(self, b: discord.Button, i: discord.Interaction):
+                    nonlocal performace_filter
+                    performace_filter = False
+                    await i.response.pong()
+                    self.stop()
+                
+                async def interaction_check(self, interaction) -> bool:
+                    if interaction.user != ctx.author:
+                        await interaction.response.send_message("These buttons are reserved for someone else!", ephemeral=True)
+                        return False
+                    else:
+                        return True
+
             beige = None
             class stage_four(discord.ui.View):
                 @discord.ui.button(label="Yes", style=discord.ButtonStyle.success)
@@ -1186,6 +1209,13 @@ class Military(commands.Cog):
                     beige = False
                     await i.response.pong()
                     self.stop()
+                
+                async def interaction_check(self, interaction) -> bool:
+                    if interaction.user != ctx.author:
+                        await interaction.response.send_message("These buttons are reserved for someone else!", ephemeral=True)
+                        return False
+                    else:
+                        return True
 
             max_wars = None
             class stage_three(discord.ui.View):
@@ -1216,33 +1246,43 @@ class Military(commands.Cog):
                     max_wars = 3
                     await i.response.pong()
                     self.stop()
+                
+                async def interaction_check(self, interaction) -> bool:
+                    if interaction.user != ctx.author:
+                        await interaction.response.send_message("These buttons are reserved for someone else!", ephemeral=True)
+                        return False
+                    else:
+                        return True
                     
-            applicants = None
             who = None
             class stage_two(discord.ui.View):
                 @discord.ui.button(label="All nations", style=discord.ButtonStyle.primary)
                 async def primary_callback(self, b: discord.Button, i: discord.Interaction):
-                    nonlocal applicants, who
-                    applicants = False
+                    nonlocal who
                     who = ""
                     await i.response.pong()
                     self.stop()
                 
                 @discord.ui.button(label="Applicants and nations not in alliances", style=discord.ButtonStyle.primary)
                 async def secondary_callback(self, b: discord.Button, i: discord.Interaction):
-                    nonlocal applicants, who
-                    applicants = True
-                    who = " alliance_id:0"
+                    nonlocal who
+                    who = " alliance_id:[0,1]"
                     await i.response.pong()
                     self.stop()
 
                 @discord.ui.button(label="Nations not affiliated with any alliance", style=discord.ButtonStyle.primary)
                 async def tertiary_callback(self, b: discord.Button, i: discord.Interaction):
-                    nonlocal applicants, who
-                    applicants = False
+                    nonlocal who
                     who = " alliance_id:0"
                     await i.response.pong()
                     self.stop()
+                
+                async def interaction_check(self, interaction) -> bool:
+                    if interaction.user != ctx.author:
+                        await interaction.response.send_message("These buttons are reserved for someone else!", ephemeral=True)
+                        return False
+                    else:
+                        return True
 
             webpage = None
             class stage_one(discord.ui.View):
@@ -1259,29 +1299,17 @@ class Military(commands.Cog):
                     webpage = True
                     await i.response.pong()
                     self.stop()
-
-            embed0 = discord.Embed(title=f"Presentation", description="How do you want to get your targets?", color=0x00ff00)
-            embed1 = discord.Embed(title=f"Filters (1/2)", description="What nations do you want to include?", color=0x00ff00)
-            embed2 = discord.Embed(title=f"Filters (2/3)", description="How many active defensive wars should they have?", color=0x00ff00)
-            embed3 = discord.Embed(title=f"Filters (3/3)", description="Do you want to include beige nations?", color=0x00ff00)
-
-            for embed, view in [(embed0, stage_one()), (embed1, stage_two()), (embed2, stage_three()), (embed3, stage_four())]:
-                await message.edit(content="", embed=embed, view=view)
-                await view.wait()
-
-            await message.edit(content="Getting targets...", embed=None, view=None)
-
-            rndm = random.choice(["", "2", "3"])
-            with open (pathlib.Path.cwd() / 'data' / 'attachments' / f'waiting{rndm}.gif', 'rb') as gif:
-                gif = discord.File(gif)
-
-            await message.edit(file=gif)
+                
+                async def interaction_check(self, interaction) -> bool:
+                    if interaction.user != ctx.author:
+                        await interaction.response.send_message("These buttons are reserved for someone else!", ephemeral=True)
+                        return False
+                    else:
+                        return True
 
             target_list = []
             futures = []
             tot_pages = 0
-            app_pages = 1
-            any_pages = 1
             progress = 0
             
             async def call_api(url, json):
@@ -1289,34 +1317,46 @@ class Military(commands.Cog):
                 async with session.post(url, json=json) as temp:
                     resp = await temp.json()
                     progress += 1
-                    if random.random() * 2 > 1:
-                        await message.edit(content=f"Getting targets... ({progress}/{tot_pages})")
                     print(f"Getting targets... ({progress}/{tot_pages})")
                     #print("future recieved")
                     return resp
+           
+            async def fetch_targets():
+                nonlocal tot_pages, progress
+                url = f"https://api.politicsandwar.com/graphql?api_key={api_key}"
+                async with session.post(url, json={'query': f"{{nations(page:1 first:50 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{paginatorInfo{{lastPage}}}}}}"}) as temp1:
+                    tot_pages += (await temp1.json())['data']['nations']['paginatorInfo']['lastPage']
+
+                for n in range(1, tot_pages+1):
+                    json = {'query': f"{{nations(page:{n} first:50 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes bounties{{amount war_type}} treasures{{name}} alliance{{name}} wars{{date winner defid turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
+                    futures.append(asyncio.ensure_future(call_api(url, json)))
+                
+            embed0 = discord.Embed(title=f"Presentation", description="How do you want to get your targets?", color=0x00ff00)
+            embed1 = discord.Embed(title=f"Filters (1/4)", description="What nations do you want to include?", color=0x00ff00)
+            embed2 = discord.Embed(title=f"Filters (2/4)", description="How many active defensive wars should they have?", color=0x00ff00)
+            embed3 = discord.Embed(title=f"Filters (3/4)", description="Do you want to include beige nations?", color=0x00ff00)
+            embed4 = discord.Embed(title=f"Filters (4/4)", description='Do you want to improve performance by filtering out "bad" targets?', color=0x00ff00)
+
+            for embed, view in [(embed0, stage_one()), (embed1, stage_two()), (embed2, stage_three()), (embed3, stage_four()), (embed4, stage_five())]:
+                if embed == embed2:
+                    fetching = asyncio.ensure_future(fetch_targets())
+                await message.edit(content="", embed=embed, view=view)
+                await view.wait()
+
+            await message.edit(content="Getting targets...", view=None, embed=None)
+            
+            rndm = random.choice(["", "2", "3"])
+            with open (pathlib.Path.cwd() / 'data' / 'attachments' / f'waiting{rndm}.gif', 'rb') as gif:
+                gif = discord.File(gif)
+
+            await message.edit(file=gif)
+
+            await asyncio.gather(fetching)
+            while progress < tot_pages:
+                await message.edit(content=f"Getting targets... ({progress}/{tot_pages})")
+                await asyncio.sleep(1)
 
             #start_time = time.time()
-
-            url = f"https://api.politicsandwar.com/graphql?api_key={api_key}"
-            if applicants == True:
-                async with session.post(url, json={'query': f"{{nations(page:1 first:50 min_score:{minscore} max_score:{maxscore} vmode:false alliance_position:1){{paginatorInfo{{lastPage}}}}}}"}) as temp:
-                    tot_pages += (await temp.json())['data']['nations']['paginatorInfo']['lastPage']
-                    app_pages += (await temp.json())['data']['nations']['paginatorInfo']['lastPage']
-
-            async with session.post(url, json={'query': f"{{nations(page:1 first:50 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{paginatorInfo{{lastPage}}}}}}"}) as temp1:
-                tot_pages += (await temp1.json())['data']['nations']['paginatorInfo']['lastPage']
-                any_pages += (await temp1.json())['data']['nations']['paginatorInfo']['lastPage']
-
-            if applicants == True:
-                for n in range(1, app_pages):
-                    json = {'query': f"{{nations(page:{n} first:50 min_score:{minscore} max_score:{maxscore} vmode:false alliance_position:1){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name}} wars{{date winner defid turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
-                    futures.append(asyncio.ensure_future(call_api(url, json)))
-            
-            for n in range(1, any_pages):
-                json = {'query': f"{{nations(page:{n} first:50 min_score:{minscore} max_score:{maxscore} vmode:false{who}){{data{{id flag nation_name last_active leader_name continent dompolicy population alliance_id beigeturns score color soldiers tanks aircraft ships missiles nukes alliance{{name}} wars{{date winner defid turnsleft attacks{{loot_info victor moneystolen}}}} alliance_position num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}
-                futures.append(asyncio.ensure_future(call_api(url, json)))
-
-            #print("--- %s seconds ---" % (time.time() - start_time))
             done_jobs = await asyncio.gather(*futures)
             #print("--- %s seconds ---" % (time.time() - start_time))
 
@@ -1349,21 +1389,28 @@ class Military(commands.Cog):
             #await message.edit(content=f'That took {(end - start).seconds} seconds')
 
             filters = "No active filters"
-            if not beige or applicants or who != "" or max_wars != 3:
+            if not beige or who != "" or max_wars != 3 or performace_filter:
                 filters = "Active filters:"
                 if not beige:
                     filters += " hide beige nations"
                 if who != "":
                     if not beige:
                         filters += ","
-                    if applicants:
+                    if "1" not in who:
                         filters += " hide full alliance members"
                     else:
                         filters += " hide full alliance members and applicants"
                 if max_wars != 3:
                     if not beige or who != "":
                         filters += ","
-                    filters += f" {max_wars} or less active wars"
+                    if max_wars == 0:
+                        filters += f" 0 active wars"
+                    else:
+                        filters += f" {max_wars} or less active wars"
+                if performace_filter:
+                    if not beige or who != "" or max_wars != 3:
+                        filters += ","
+                    filters += ' omit "bad" targets'
 
             temp, colors, prices, treasures, radiation, seasonal_mod = await utils.pre_revenue_calc(api_key, message, query_for_nation=False, parsed_nation=atck_ntn)
 
@@ -1392,7 +1439,7 @@ class Military(commands.Cog):
                         target['time_since_war'] = (datetime.utcnow() - datetime.strptime(war['date'], "%Y-%m-%d %H:%M:%S%z").replace(tzinfo=None)).days
                     else:
                         target['time_since_war'] = "Ongoing"
-                    if war['winner'] in [0, target['id']]:
+                    if war['winner'] in ["0", target['id']]:
                         pass
                     else:
                         nation_loot = 0
@@ -1403,9 +1450,6 @@ class Military(commands.Cog):
                         for attack in war['attacks']:
                             if attack['victor'] == target['id']:
                                 continue
-                            #if attack['moneystolen']:
-                            #    nation_loot += attack['moneystolen']
-                            ### probably wont rename everyhing to just "beige loot". this is why everything is called nation loot instead.
                             if attack['loot_info']:
                                 text = attack['loot_info']
                                 if "won the war and looted" in text:
@@ -1477,7 +1521,7 @@ class Military(commands.Cog):
                 if target['alliance']:
                     embed.add_field(name="Alliance", value=f"[{target['alliance']['name']}](https://politicsandwar.com/alliance/id={target['alliance_id']})\n{target['alliance_position'].lower().capitalize()}")
                 else:
-                    target['alliance'] = {"name": "None", "id": 0}
+                    target['alliance'] = {"name": "None"}
                     embed.add_field(name="Alliance", value=f"No alliance")
 
                 embed.add_field(name="Soldiers", value=f"{target['soldiers']:,} soldiers")
@@ -1491,6 +1535,21 @@ class Military(commands.Cog):
                 embed.add_field(name="Nukes", value=f"{target['nukes']:,} nukes")
 
                 embed.add_field(name="Missiles", value=f"{target['missiles']:,} missiles")
+                
+                # works perfectly fine, but the API is broken....
+                # target['bounty_txt'] = "0"
+                # bounty_info = {"ATTRITION": 0, "RAID": 0, "ORDINARY": 0, "NUCLEAR": 0}
+                # for bounty in target['bounties']:
+                #     if bounty['war_type'] == None:
+                #         bounty['war_type'] = "NUCLEAR"
+                #     bounty_info[bounty['war_type']] += bounty['amount']   
+                # temp_list = []
+                # for k, v in bounty_info.items():
+                #     if v != 0:
+                #         temp_list.append(f"{k.capitalize()}: ${v:,}")
+                # target['bounty_txt'] = ", ".join(temp_list)
+
+                target['treasures'] = len(target['treasures'])
 
                 rev_obj = await utils.revenue_calc(message, target, radiation, treasures, prices, colors, seasonal_mod)
 
@@ -1523,6 +1582,14 @@ class Military(commands.Cog):
 
                 if not webpage:
                     target['embed'] = embed
+
+            if performace_filter:
+                def determine(x):
+                    if x['groundwin'] < .4 or x['nation_loot'] == "0" or x['net_cash_num'] < 0:
+                        return False
+                    else:
+                        return True
+                target_list[:] = [target for target in target_list if determine(target)]
                 
         best_targets = sorted(target_list, key=lambda k: k['monetary_net_num'], reverse=True)
 
@@ -1534,7 +1601,7 @@ class Military(commands.Cog):
                     beige_alerts = mongo.users.find_one({"user": int(invoker)})['beige_alerts']
                     with open('./data/templates/raidspage.txt', 'r') as file:
                         template = file.read()
-                    result = Template(template).render(attacker=atck_ntn, targets=best_targets, endpoint=endpoint, invoker=str(invoker), beige_alerts=beige_alerts, datetime=datetime)
+                    result = Template(template).render(attacker=atck_ntn, targets=best_targets, endpoint=endpoint, invoker=str(invoker), beige_alerts=beige_alerts, beige=beige, datetime=datetime)
                     return str(result)
 
                 def post(raidclass):
@@ -1562,15 +1629,99 @@ class Military(commands.Cog):
         pages = len(target_list)
         msg_embd = best_targets[0]['embed']
         msg_embd.set_footer(text=f"Page {1}/{pages}")
-        await message.edit(content="", embed=msg_embd, attachments=[])
-        await message.add_reaction("◀️")
-        await message.add_reaction("▶️")
-        await message.add_reaction("🕰️")
-        
         cur_page = 1
 
+        class embed_paginator(discord.ui.View):
+            def __init__(self):
+                super().__init__(timeout=600)
+
+            def button_check(self, x):
+                beige_button = [x for x in self.children if x.custom_id == "beige"][0]
+                if x['beigeturns'] > 0:
+                    beige_button.disabled = False
+                    print('enabled')
+                else:
+                    beige_button.disabled = True
+                    print('disabled')
+
+            @discord.ui.button(label="<", style=discord.ButtonStyle.primary)
+            async def left_callback(self, b: discord.Button, i: discord.Interaction):
+                nonlocal cur_page
+                if cur_page > 1:
+                    cur_page -= 1
+                    msg_embd = best_targets[cur_page-1]['embed']
+                    msg_embd.set_footer(text=f"Page {cur_page}/{pages}")
+                    self.button_check(best_targets[cur_page-1])
+                    await i.response.edit_message(content="", embed=msg_embd, view=view)
+                else:
+                    cur_page = pages
+                    msg_embd = best_targets[cur_page-1]['embed']
+                    msg_embd.set_footer(text=f"Page {cur_page}/{pages}")
+                    self.button_check(best_targets[cur_page-1])
+                    await i.response.edit_message(content="", embed=msg_embd, view=view)
+            
+            @discord.ui.button(label=">", style=discord.ButtonStyle.primary)
+            async def right_callback(self, b: discord.Button, i: discord.Interaction):
+                nonlocal cur_page
+                if cur_page != pages:
+                    cur_page += 1
+                    msg_embd = best_targets[cur_page-1]['embed']
+                    msg_embd.set_footer(text=f"Page {cur_page}/{pages}")
+                    self.button_check(best_targets[cur_page-1])
+                    await i.response.edit_message(content="", embed=msg_embd, view=view)
+                else:
+                    cur_page = 1
+                    msg_embd = best_targets[cur_page-1]['embed']
+                    msg_embd.set_footer(text=f"Page {cur_page}/{pages}")
+                    self.button_check(best_targets[cur_page-1])
+                    await i.response.edit_message(content="", embed=msg_embd, view=view)
+        
+            if best_targets[0]['beigeturns'] > 0:
+                disabled = False
+            else:
+                disabled = True
+
+            @discord.ui.button(label="Beige reminder", style=discord.ButtonStyle.primary, disabled=disabled, custom_id="beige")
+            async def beige_callback(self, b: discord.Button, i: discord.Interaction):
+                nonlocal cur_page
+                reminder = {}
+                cur_embed = best_targets[cur_page-1]
+                turns = cur_embed['beigeturns']
+                if turns == 0:
+                    await i.response.send_message(content=f"They are not in beige!", ephemeral=True)
+                    return
+                time = datetime.utcnow()
+                if time.hour % 2 == 0:
+                    time += timedelta(hours=turns*2)
+                else:
+                    time += timedelta(hours=turns*2-1)
+                reminder['time'] = datetime(time.year, time.month, time.day, time.hour)
+                reminder['id'] = cur_embed['id']
+                user = mongo.users.find_one({"user": ctx.author.id})
+                if user == None:
+                    await i.response.send_message(content=f"I didn't find you in the database! You better ping Randy I guess.", ephemeral=True)
+                    return
+                for entry in user['beige_alerts']:
+                    if reminder['id'] == entry['id']:
+                        await i.response.send_message(content=f"You already have a beige reminder for this nation!", ephemeral=True)
+                        return
+                mongo.users.find_one_and_update({"user": ctx.author.id}, {"$push": {"beige_alerts": reminder}})
+
+            @discord.ui.button(label='Type "page <number>" to go to that page', style=discord.ButtonStyle.gray, disabled=True)
+            async def info_callback(self, b: discord.Button, i: discord.Interaction):
+                pass
+
+            async def interaction_check(self, interaction) -> bool:
+                if interaction.user != ctx.author:
+                    await interaction.response.send_message("These buttons are reserved for someone else!", ephemeral=True)
+                    return False
+                else:
+                    return True
+
+        view = embed_paginator()
+        await message.edit(content="", embed=msg_embd, attachments=[], view=view)
+
         async def message_checker():
-            print('message')
             while True:
                 try:
                     nonlocal cur_page
@@ -1580,83 +1731,19 @@ class Military(commands.Cog):
                             cur_page = int(re.sub("\D", "", command.content))
                             msg_embd = best_targets[cur_page-1]['embed']
                             msg_embd.set_footer(text=f"Page {cur_page}/{pages}")
-                            await message.edit(content="", embed=msg_embd)
+                            await message.edit(content="", embed=msg_embd, view=view)
                             await command.delete()
                         except:
                             msg_embd = best_targets[0]['embed']
                             msg_embd.set_footer(text=f"Page {1}/{pages}")
-                            await message.edit(content="**Something went wrong with your input!**", embed=msg_embd)
+                            await message.edit(content=f"<@{ctx.author.id}> Something went wrong with your input!", embed=msg_embd, view=view)
                 except asyncio.TimeoutError:
-                    await message.edit(content="**Command timed out!**")
-                    print('message break')
+                    await message.edit(content=f"<@{ctx.author.id}> Command timed out!")
                     break
-                
-        async def reaction_checker():
-            #print('reaction')
-            while True:
-                try:
-                    nonlocal cur_page
-                    reaction, user = await self.bot.wait_for("reaction_add", timeout=600)
-                    if user.id != ctx.author.id or reaction.message != message:
-                        continue
-                    if str(reaction.emoji) == "▶️" and cur_page != pages:
-                        cur_page += 1
-                        msg_embd = best_targets[cur_page-1]['embed']
-                        msg_embd.set_footer(text=f"Page {cur_page}/{pages}")
-                        await message.edit(content="", embed=msg_embd)
-                        await message.remove_reaction(reaction, ctx.author)
-
-                    elif str(reaction.emoji) == "◀️" and cur_page > 1:
-                        cur_page -= 1
-                        msg_embd = best_targets[cur_page-1]['embed']
-                        msg_embd.set_footer(text=f"Page {cur_page}/{pages}")
-                        await message.edit(content="", embed=msg_embd)
-                        await message.remove_reaction(reaction, ctx.author)
-                    
-                    elif str(reaction.emoji) == "▶️" and cur_page == pages:
-                        cur_page = 1
-                        msg_embd = best_targets[cur_page-1]['embed']
-                        msg_embd.set_footer(text=f"Page {cur_page}/{pages}")
-                        await message.edit(content="", embed=msg_embd)
-                        await message.remove_reaction(reaction, ctx.author)
-
-                    elif str(reaction.emoji) == "◀️" and cur_page == 1:
-                        cur_page = pages
-                        msg_embd = best_targets[cur_page-1]['embed']
-                        msg_embd.set_footer(text=f"Page {cur_page}/{pages}")
-                        await message.edit(content="", embed=msg_embd)
-                        await message.remove_reaction(reaction, ctx.author)
-                    
-                    elif str(reaction.emoji) == "🕰️":
-                        reminder = {}
-                        cur_embed = best_targets[cur_page-1]
-                        turns = cur_embed['beigeturns']
-                        if turns == 0:
-                            await message.edit(content="**They are already out of beige!**")
-                            continue
-                        time = datetime.utcnow()
-                        if time.hour % 2 == 0:
-                            time += timedelta(hours=turns*2)
-                        else:
-                            time += timedelta(hours=turns*2-1)
-                        reminder['time'] = datetime(time.year, time.month, time.day, time.hour)
-                        reminder['id'] = cur_embed['id']
-                        mongo.users.find_one_and_update({"user": ctx.author.id}, {"$push": {"beige_alerts": reminder}})
-                        await message.edit(content="**Alert was added!**")
-
-                    else:
-                        await message.remove_reaction(reaction, ctx.author)
-
-                except asyncio.TimeoutError:
-                    await message.edit(content="**Command timed out!**")
-                    #print('reaction break')
-                    break
-
-        msgtask = asyncio.create_task(message_checker())
-        reacttask = asyncio.create_task(reaction_checker())
-
-        await asyncio.gather(msgtask, reacttask)
-    
+        
+        msg_task = asyncio.create_task(message_checker())
+        await asyncio.gather(msg_task)
+        
     def winrate_calc(self, attacker_value, defender_value):
         try:
             x = attacker_value / defender_value
