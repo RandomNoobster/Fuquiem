@@ -54,6 +54,8 @@ async def on_command_error(ctx, error):
     elif isinstance(error, aiohttp.ClientOSError):
         await ctx.send("A really f***ing annoying error occurred, and there's no real way to fix it, so I'm pretty upset. You can just try again and it should work.\n-Randy")
     else:
+        for variable in os.environ:
+            error = str(error).replace(os.getenv(variable), "XXXCENSOREDXXX")
         await ctx.send(f'An error occurred:\n```{error}```')
 
 
