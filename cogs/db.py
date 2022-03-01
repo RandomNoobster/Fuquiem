@@ -82,7 +82,7 @@ class Database(commands.Cog):
                 if utils.find_user(self, arg, True):
                     await ctx.send(f'{arg} is already in the secondary db!')
                     return
-            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': f"{{nations(first:1 id:{nid}){{data{{id leader_name nation_name alliance{{name id}}}}}}}}"}) as temp:
+            async with session.post(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': f"{{nations(first:1 id:{nid}){{data{{id leader_name nation_name alliance{{name id}}}}}}}}"}) as temp:
                 try:
                     nation = (await temp.json())['data']['nations']['data'][0]
                 except:
@@ -223,7 +223,7 @@ class Database(commands.Cog):
                     await message.edit(content=content)
                     return
                 
-                async with session.get(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': f"{{nations(first:1 id:{result['nationid']}){{data{{id leader_name nation_name alliance{{name id}}}}}}}}"}) as temp:
+                async with session.post(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': f"{{nations(first:1 id:{result['nationid']}){{data{{id leader_name nation_name alliance{{name id}}}}}}}}"}) as temp:
                     try:
                         nation = (await temp.json())['data']['nations']['data'][0]
                     except:
