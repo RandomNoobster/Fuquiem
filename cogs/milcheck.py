@@ -1585,7 +1585,7 @@ class Military(commands.Cog):
 
             if performace_filter:
                 def determine(x):
-                    if x['groundwin'] < .4 or x['nation_loot'] == "0" or x['net_cash_num'] < 0:
+                    if x['groundwin'] < .4 or x['nation_loot'] == "0" or x['net_cash_num'] < 10000:
                         return False
                     else:
                         return True
