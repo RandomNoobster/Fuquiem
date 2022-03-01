@@ -618,6 +618,14 @@ class General(commands.Cog):
             time += timedelta(hours=turns*2-1)
         reminder['time'] = datetime(time.year, time.month, time.day, time.hour)
         reminder['id'] = nation['id']
+        user = mongo.users.find_one({"user": ctx.author.id})
+        if user == None:
+            await message.edit(content=f"I didn't find you in the database! You better ping Randy I guess.")
+            return
+        for entry in user['beige_alerts']:
+            if reminder['id'] == entry['id']:
+                await message.edit(content=f"You already have a beige reminder for this nation!")
+                return
         mongo.users.find_one_and_update({"user": ctx.author.id}, {"$push": {"beige_alerts": reminder}})
         await message.edit(content=f"A beige reminder for https://politicsandwar.com/nation/id={nation['nationid']} was added.")
 
