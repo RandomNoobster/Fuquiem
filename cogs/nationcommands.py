@@ -495,7 +495,7 @@ class General(commands.Cog):
                 except discord.Forbidden:
                     content += f"**{nation['leadername']} ({nation['nationid']})** doesn't accept my DMs <:sadcat:787450782747590668>\n"
                 except TypeError:
-                    content += f"I could not find their discord account, hence **{nation['leadername']} ({nation['nationid']})** got no DM\n"
+                    content += f"I found no discord account, hence **{nation['leadername']} ({nation['nationid']})** got no DM\n"
                 except Exception as error:
                     content += f"Some error occured, so I couldn't DM **{nation['leadername']} ({nation['nationid']})**```{error}```"
                 await message.edit(content=content)
