@@ -120,13 +120,13 @@
 
                         % if beige:
                         <th>Turns of beige</th>
-                        <th>Reminder</th>
+                        <th><abbr title="Reminders for when the nation exits beige.">Reminder</abbr></th>
                         % endif
 
                         <th>Days inactive</th>
-                        <th><abbr title="The net value of a nation's daily production/consumption.">Monetary Net Income</abbr></th>
-                        <th><abbr title="The raw money income of a nation.">Net Cash Income</abbr></th>
-                        <th><abbr title="The net value of everything stolen from the nation when the nation was last beiged.">Beige loot</abbr></th>
+                        <th><abbr title="The net value of a nation's daily production/consumption.&#10;Be wary if the nation is in an alliance. Taxes are not considered in these calculations.">Monetary Net Income</abbr></th>
+                        <th><abbr title="The raw money income of a nation. Be wary if the nation is in an alliance.&#10;Taxes are not considered in these calculations.">Net Cash Income</abbr></th>
+                        <th><abbr title="The net value of everything stolen from the nation when the nation was last beiged.&#10;Income is frankly a better metric if the nation is not in an alliance.&#10;Beige loot varies based on policies and war types, so you may get a lot more/less than the previous guy.">Beige loot</abbr></th>
                         <th>Treasures</th>
                         <th><abbr title="The number of defensive slots currently occupied.">Used slots</abbr></th>
                         <th>Days since war</th>
@@ -136,10 +136,10 @@
                         <th>Ships</th>
                         <th>Missiles</th>
                         <th>Nukes</th>
-                        <th><abbr title="Your average chance to win ground battle rolls. Higher is better.&#10;Around 50 means battles will be indecisive and lead to heavy casualties.&#10;100 means you are garuanteed to win, 0 means you are guaranteed to lose.">Ground win%</abbr></th>
-                        <th><abbr title="Your average chance to win air battle rolls. Higher is better.&#10;Around 50 means battles will be indecisive and lead to heavy casualties.&#10;100 means you are garuanteed to win, 0 means you are guaranteed to lose.">Air win%</abbr></th>
-                        <th><abbr title="Your average chance to win naval battle rolls. Higher is better.&#10;Around 50 means battles will be indecisive and lead to heavy casualties.&#10;100 means you are garuanteed to win, 0 means you are guaranteed to lose.">Naval win%</abbr></th>
-                        <th><abbr title="Your average chance to win ground, air and naval battle rolls. Higher is better.&#10;Around 50 means the war might go either way.&#10;100 means you are garuanteed to win, 0 means you are guaranteed to lose.">Total win%</abbr></th>
+                        <th><abbr title="Your average chance to win ground battle rolls. Higher is better.&#10;Around 50 means battles will be indecisive and lead to heavy casualties.&#10;100 means you are guaranteed to win, 0 means you are guaranteed to lose.">Ground win%</abbr></th>
+                        <th><abbr title="Your average chance to win air battle rolls. Higher is better.&#10;Around 50 means battles will be indecisive and lead to heavy casualties.&#10;100 means you are guaranteed to win, 0 means you are guaranteed to lose.">Air win%</abbr></th>
+                        <th><abbr title="Your average chance to win naval battle rolls. Higher is better.&#10;Around 50 means battles will be indecisive and lead to heavy casualties.&#10;100 means you are guaranteed to win, 0 means you are guaranteed to lose.">Naval win%</abbr></th>
+                        <th><abbr title="Your average chance to win ground, air and naval battle rolls. Higher is better.&#10;Around 50 means the war might go either way.&#10;100 means you are guaranteed to win, 0 means you are guaranteed to lose.">Total win%</abbr></th>
                     </tr>
                     % for nation in targets:
                         <td>${nation['id']}</td>
@@ -205,7 +205,7 @@
                     % endfor
                 </tbody>
             </table>
-            <p>Last updated: ${datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC<br><a href="http://www.timezoneconverter.com/cgi-bin/tzc.tzc" target="_blank">Timezone converter</a></p>
+            <p>Time fetched: ${datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC<br><a href="http://www.timezoneconverter.com/cgi-bin/tzc.tzc" target="_blank">Timezone converter</a></p>
             <p style="color:gray">Please report bugs to RandomNoobster#0093<br>Courtesy of Church of Atom</p>
         </div>
         <script>
