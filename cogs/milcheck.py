@@ -1172,7 +1172,7 @@ class Military(commands.Cog):
             maxscore = round(atck_ntn['score'] * 1.75)
             
             performace_filter = None
-            class stage_five(discord.ui.View):
+            class stage_six(discord.ui.View):
                 @discord.ui.button(label="Yes", style=discord.ButtonStyle.success)
                 async def primary_callback(self, b: discord.Button, i: discord.Interaction):
                     nonlocal performace_filter
@@ -1195,7 +1195,7 @@ class Military(commands.Cog):
                         return True
 
             beige = None
-            class stage_four(discord.ui.View):
+            class stage_five(discord.ui.View):
                 @discord.ui.button(label="Yes", style=discord.ButtonStyle.success)
                 async def primary_callback(self, b: discord.Button, i: discord.Interaction):
                     nonlocal beige
@@ -1216,6 +1216,44 @@ class Military(commands.Cog):
                         return False
                     else:
                         return True
+
+            inactive_limit = None
+            class stage_four(discord.ui.View):
+                @discord.ui.button(label="I don't care", style=discord.ButtonStyle.primary)
+                async def primary_callback(self, b: discord.Button, i: discord.Interaction):
+                    nonlocal inactive_limit
+                    inactive_limit = 0
+                    await i.response.pong()
+                    self.stop()
+                
+                @discord.ui.button(label="7+ days inactive", style=discord.ButtonStyle.primary)
+                async def secondary_callback(self, b: discord.Button, i: discord.Interaction):
+                    nonlocal inactive_limit
+                    inactive_limit = 7
+                    await i.response.pong()
+                    self.stop()
+
+                @discord.ui.button(label="14+ days inactive", style=discord.ButtonStyle.primary)
+                async def tertiary_callback(self, b: discord.Button, i: discord.Interaction):
+                    nonlocal inactive_limit
+                    inactive_limit = 14
+                    await i.response.pong()
+                    self.stop()
+                
+                @discord.ui.button(label="30+ days inactive", style=discord.ButtonStyle.primary)
+                async def quadrary_callback(self, b: discord.Button, i: discord.Interaction):
+                    nonlocal inactive_limit
+                    inactive_limit = 30
+                    await i.response.pong()
+                    self.stop()
+                
+                async def interaction_check(self, interaction) -> bool:
+                    if interaction.user != ctx.author:
+                        await interaction.response.send_message("These buttons are reserved for someone else!", ephemeral=True)
+                        return False
+                    else:
+                        return True
+
 
             max_wars = None
             class stage_three(discord.ui.View):
@@ -1332,12 +1370,13 @@ class Military(commands.Cog):
                     futures.append(asyncio.ensure_future(call_api(url, json)))
                 
             embed0 = discord.Embed(title=f"Presentation", description="How do you want to get your targets?", color=0x00ff00)
-            embed1 = discord.Embed(title=f"Filters (1/4)", description="What nations do you want to include?", color=0x00ff00)
-            embed2 = discord.Embed(title=f"Filters (2/4)", description="How many active defensive wars should they have?", color=0x00ff00)
-            embed3 = discord.Embed(title=f"Filters (3/4)", description="Do you want to include beige nations?", color=0x00ff00)
-            embed4 = discord.Embed(title=f"Filters (4/4)", description='Do you want to improve performance by filtering out "bad" targets?', color=0x00ff00)
+            embed1 = discord.Embed(title=f"Filters (1/5)", description="What nations do you want to include?", color=0x00ff00)
+            embed2 = discord.Embed(title=f"Filters (2/5)", description="How many active defensive wars should they have?", color=0x00ff00)
+            embed3 = discord.Embed(title=f"Filters (3/5)", description="How inactive should they be?", color=0x00ff00)
+            embed4 = discord.Embed(title=f"Filters (4/5)", description="Do you want to include beige nations?", color=0x00ff00)
+            embed5 = discord.Embed(title=f"Filters (5/5)", description='Do you want to improve performance by filtering out "bad" targets?\n\nMore specifically, this will omit nations with negative income, nations that have a stronger ground force than you, and nations that were previously beiged for $0.', color=0x00ff00)
 
-            for embed, view in [(embed0, stage_one()), (embed1, stage_two()), (embed2, stage_three()), (embed3, stage_four()), (embed4, stage_five())]:
+            for embed, view in [(embed0, stage_one()), (embed1, stage_two()), (embed2, stage_three()), (embed3, stage_four()), (embed4, stage_five()), (embed5, stage_six())]:
                 if embed == embed2:
                     fetching = asyncio.ensure_future(fetch_targets())
                 await message.edit(content="", embed=embed, view=view)
@@ -1345,20 +1384,18 @@ class Military(commands.Cog):
 
             await message.edit(content="Getting targets...", view=None, embed=None)
             
-            rndm = random.choice(["", "2", "3"])
-            with open (pathlib.Path.cwd() / 'data' / 'attachments' / f'waiting{rndm}.gif', 'rb') as gif:
-                gif = discord.File(gif)
-
-            await message.edit(file=gif)
+            if progress < tot_pages - 5:
+                rndm = random.choice(["", "2", "3"])
+                with open (pathlib.Path.cwd() / 'data' / 'attachments' / f'waiting{rndm}.gif', 'rb') as gif:
+                    gif = discord.File(gif)
+                await message.edit(file=gif)
 
             await asyncio.gather(fetching)
             while progress < tot_pages:
                 await message.edit(content=f"Getting targets... ({progress}/{tot_pages})")
                 await asyncio.sleep(1)
 
-            #start_time = time.time()
             done_jobs = await asyncio.gather(*futures)
-            #print("--- %s seconds ---" % (time.time() - start_time))
 
             await message.edit(content="Caching targets...")
             for done_job in done_jobs:
@@ -1381,46 +1418,43 @@ class Military(commands.Cog):
                         continue
                     if used_slots > max_wars:
                         continue
+                    if (datetime.utcnow() - datetime.strptime(x['last_active'], "%Y-%m-%d %H:%M:%S%z").replace(tzinfo=None)).days < inactive_limit:
+                        continue
                     target_list.append(x)
                     
             if len(target_list) == 0:
                 await message.edit(content="No targets matched your criteria!", attachments=[])
                 return
-            #await message.edit(content=f'That took {(end - start).seconds} seconds')
 
             filters = "No active filters"
-            if not beige or who != "" or max_wars != 3 or performace_filter:
-                filters = "Active filters:"
+            filter_list = []
+            if not beige or who != "" or max_wars != 3 or performace_filter or inactive_limit != 0:
+                filters = "Active filters: "
                 if not beige:
-                    filters += " hide beige nations"
+                    filter_list.append("hide beige nations")
                 if who != "":
-                    if not beige:
-                        filters += ","
                     if "1" not in who:
-                        filters += " hide full alliance members"
+                        filter_list.append("hide full alliance members")
                     else:
-                        filters += " hide full alliance members and applicants"
+                        filter_list.append("hide full alliance members and applicants")
                 if max_wars != 3:
-                    if not beige or who != "":
-                        filters += ","
                     if max_wars == 0:
-                        filters += f" 0 active wars"
+                        filter_list.append("0 active wars")
                     else:
-                        filters += f" {max_wars} or less active wars"
+                        filter_list.append(f"{max_wars} or less active wars")
                 if performace_filter:
-                    if not beige or who != "" or max_wars != 3:
-                        filters += ","
-                    filters += ' omit "bad" targets'
+                    filter_list.append('omit "bad" targets')
+                if inactive_limit != 0:
+                    filter_list.append(f"hide nations that logged in within the last {inactive_limit} days")
+                filters = filters + ", ".join(filter_list)
 
             temp, colors, prices, treasures, radiation, seasonal_mod = await utils.pre_revenue_calc(api_key, message, query_for_nation=False, parsed_nation=atck_ntn)
 
             await message.edit(content='Calculating best targets...')
 
             for target in target_list:
-                embed = discord.Embed(title=f"{target['nation_name']}", url=f"https://politicsandwar.com/nation/id={target['id']}", description=f"{filters}", color=0x00ff00)
-                embed.set_thumbnail(url=target['flag'])
+                embed = discord.Embed(title=f"{target['nation_name']}", url=f"https://politicsandwar.com/nation/id={target['id']}", description=f"{filters}\n\u200b", color=0x00ff00)
                 prev_nat_loot = False
-                prev_aa_loot = False
                 target['infrastructure'] = 0
                 target['def_slots'] = 0
                 target['time_since_war'] = "14+"
@@ -1443,10 +1477,7 @@ class Military(commands.Cog):
                         pass
                     else:
                         nation_loot = 0
-                        aa_loot = 0
-                        prev_aa_loot = True
                         prev_nat_loot = True
-                        same_aa = False
                         for attack in war['attacks']:
                             if attack['victor'] == target['id']:
                                 continue
@@ -1465,44 +1496,26 @@ class Military(commands.Cog):
                                         amount = loot[rs]
                                         price = int(prices[rs])
                                         nation_loot += amount * price
-                                elif "alliance bank, taking:" in text:
-                                    if target['alliance']:
-                                        if target['alliance']['name'] in text:
-                                            same_aa = True
-                                    text = text[text.index('taking:') + 8 :text.index(' Food.')]
-                                    text = re.sub(r"[^0-9-]+", "", text.replace(", ", "-"))
-                                    rss = ['money', 'coal', 'oil', 'uranium', 'iron', 'bauxite', 'lead', 'gasoline', 'munitions', 'steel', 'aluminum', 'food']
-                                    n = 0
-                                    loot = {}
-                                    for sub in text.split("-"):
-                                        loot[rss[n]] = int(sub)
-                                        n += 1
-                                    for rs in rss:
-                                        amount = loot[rs]
-                                        price = int(prices[rs])
-                                        aa_loot += amount * price
                                 else:
                                     continue
                         target['nation_loot'] = f"{round(nation_loot):,}"
-                        target['aa_loot'] = f"{round(aa_loot):,}"
-                        target['same_aa'] = same_aa
                         embed.add_field(name="Previous nation loot", value=f"${round(nation_loot):,}")
-
-                        if same_aa or target['aa_loot'] == 0:
-                            embed.add_field(name="Previous aa loot", value=f"${round(aa_loot):,}")
-                        else:
-                            embed.add_field(name="Previous aa loot", value=f"${round(aa_loot):,}\nNOTE: Different aa!")
 
                 if prev_nat_loot == False:
                     embed.add_field(name="Previous nation loot", value="NaN")
                     target['nation_loot'] = "NaN"
-                if prev_aa_loot in [False, 0]:
-                    embed.add_field(name="Previous aa loot", value="NaN")
-                    if prev_aa_loot == False:
-                        target['aa_loot'] = "NaN"
-                    else:
-                        target['aa_loot'] = 0
-                    target['same_aa'] = "Irrelevant"
+
+                rev_obj = await utils.revenue_calc(message, target, radiation, treasures, prices, colors, seasonal_mod)
+
+                target['monetary_net_num'] = rev_obj['monetary_net_num']
+                embed.add_field(name="Monetary Net Income", value=rev_obj['mon_net_txt'])
+                
+                target['net_cash_num'] = rev_obj['net_cash_num']
+                target['money_txt'] = rev_obj['money_txt']
+                embed.add_field(name="Net Cash Income", value=rev_obj['money_txt'])
+
+                target['treasures'] = len(target['treasures'])
+                embed.add_field(name="Treasures", value=target['treasures'])
 
                 embed.add_field(name="Slots", value=f"{target['def_slots']}/3 used slots") 
 
@@ -1523,6 +1536,10 @@ class Military(commands.Cog):
                 else:
                     target['alliance'] = {"name": "None"}
                     embed.add_field(name="Alliance", value=f"No alliance")
+
+                target['max_infra'] = rev_obj['max_infra']
+                target['avg_infra'] = rev_obj['avg_infra']
+                embed.add_field(name="Infra", value=f"Max: {rev_obj['max_infra']}\nAvg: {rev_obj['avg_infra']}")
 
                 embed.add_field(name="Soldiers", value=f"{target['soldiers']:,} soldiers")
 
@@ -1549,34 +1566,20 @@ class Military(commands.Cog):
                 #         temp_list.append(f"{k.capitalize()}: ${v:,}")
                 # target['bounty_txt'] = ", ".join(temp_list)
 
-                target['treasures'] = len(target['treasures'])
-
-                rev_obj = await utils.revenue_calc(message, target, radiation, treasures, prices, colors, seasonal_mod)
-
-                target['monetary_net_num'] = rev_obj['monetary_net_num']
-                embed.add_field(name="Monetary Net Income", value=rev_obj['mon_net_txt'])
-                
-                target['net_cash_num'] = rev_obj['net_cash_num']
-                embed.add_field(name="Net Cash Income", value=rev_obj['money_txt'])
-
-                target['max_infra'] = rev_obj['max_infra']
-                target['avg_infra'] = rev_obj['avg_infra']
-                embed.add_field(name="Infra", value=f"Max: {rev_obj['max_infra']}\nAvg: {rev_obj['avg_infra']}")
-
                 ground_win_rate = self.winrate_calc((atck_ntn['soldiers'] * 1.75 + atck_ntn['tanks'] * 40), (target['soldiers'] * 1.75 + target['tanks'] * 40 + target['population'] * 0.0025))
 
                 target['groundwin'] = ground_win_rate
-                embed.add_field(name="Chance to win ground rolls", value=str(round(100*ground_win_rate)) + "%")
+                embed.add_field(name="Chance to get ground IT", value=str(round(100*ground_win_rate**3)) + "%")
 
                 air_win_rate = self.winrate_calc((atck_ntn['aircraft'] * 3), (target['aircraft'] * 3))
                 
                 target['airwin'] = air_win_rate
-                embed.add_field(name="Chance to win air rolls", value=str(round(100*air_win_rate)) + "%")
+                embed.add_field(name="Chance to get air IT", value=str(round(100*air_win_rate**3)) + "%")
 
                 naval_win_rate = self.winrate_calc((atck_ntn['ships'] * 4), (target['ships'] * 4))
                 
                 target['navalwin'] = naval_win_rate
-                embed.add_field(name="Chance to win naval rolls", value=str(round(100*naval_win_rate)) + "%")
+                embed.add_field(name="Chance to get naval IT", value=str(round(100*naval_win_rate**3)) + "%\n\u200b")
 
                 target['winchance'] = round((ground_win_rate+air_win_rate+naval_win_rate)*100/3)
 
@@ -1590,6 +1593,9 @@ class Military(commands.Cog):
                     else:
                         return True
                 target_list[:] = [target for target in target_list if determine(target)]
+                if len(target_list) == 0:
+                    await message.edit(content="No targets matched your criteria!", attachments=[])
+                    return
                 
         best_targets = sorted(target_list, key=lambda k: k['monetary_net_num'], reverse=True)
 
@@ -1627,36 +1633,41 @@ class Military(commands.Cog):
             return
         
         pages = len(target_list)
-        msg_embd = best_targets[0]['embed']
-        msg_embd.set_footer(text=f"Page {1}/{pages}")
         cur_page = 1
+
+        def get_embed(nation):
+            nonlocal tot_pages, cur_page
+            embed = nation['embed']
+            if "*" in nation['money_txt']:
+                embed.set_footer(text=f"Page {cur_page}/{pages}  |  * the income if the nation is out of food.")
+            else:
+                embed.set_footer(text=f"Page {cur_page}/{pages}")
+            return embed
+
+        msg_embd = get_embed(best_targets[0])
 
         class embed_paginator(discord.ui.View):
             def __init__(self):
-                super().__init__(timeout=600)
+                super().__init__(timeout=900)
 
             def button_check(self, x):
                 beige_button = [x for x in self.children if x.custom_id == "beige"][0]
                 if x['beigeturns'] > 0:
                     beige_button.disabled = False
-                    print('enabled')
                 else:
                     beige_button.disabled = True
-                    print('disabled')
 
             @discord.ui.button(label="<", style=discord.ButtonStyle.primary)
             async def left_callback(self, b: discord.Button, i: discord.Interaction):
                 nonlocal cur_page
                 if cur_page > 1:
                     cur_page -= 1
-                    msg_embd = best_targets[cur_page-1]['embed']
-                    msg_embd.set_footer(text=f"Page {cur_page}/{pages}")
+                    msg_embd = get_embed(best_targets[cur_page-1])
                     self.button_check(best_targets[cur_page-1])
                     await i.response.edit_message(content="", embed=msg_embd, view=view)
                 else:
                     cur_page = pages
-                    msg_embd = best_targets[cur_page-1]['embed']
-                    msg_embd.set_footer(text=f"Page {cur_page}/{pages}")
+                    msg_embd = get_embed(best_targets[cur_page-1])
                     self.button_check(best_targets[cur_page-1])
                     await i.response.edit_message(content="", embed=msg_embd, view=view)
             
@@ -1665,14 +1676,12 @@ class Military(commands.Cog):
                 nonlocal cur_page
                 if cur_page != pages:
                     cur_page += 1
-                    msg_embd = best_targets[cur_page-1]['embed']
-                    msg_embd.set_footer(text=f"Page {cur_page}/{pages}")
+                    msg_embd = get_embed(best_targets[cur_page-1])
                     self.button_check(best_targets[cur_page-1])
                     await i.response.edit_message(content="", embed=msg_embd, view=view)
                 else:
                     cur_page = 1
-                    msg_embd = best_targets[cur_page-1]['embed']
-                    msg_embd.set_footer(text=f"Page {cur_page}/{pages}")
+                    msg_embd = get_embed(best_targets[cur_page-1])
                     self.button_check(best_targets[cur_page-1])
                     await i.response.edit_message(content="", embed=msg_embd, view=view)
         
@@ -1725,7 +1734,7 @@ class Military(commands.Cog):
             while True:
                 try:
                     nonlocal cur_page
-                    command = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=600)
+                    command = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=900)
                     if "page" in command.content.lower():
                         try:
                             cur_page = int(re.sub("\D", "", command.content))
