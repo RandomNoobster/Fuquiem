@@ -259,6 +259,7 @@ class Military(commands.Cog):
                         date
                         id
                         attid
+                        defid
                         winner
                         att_resistance
                         def_resistance
@@ -416,42 +417,30 @@ class Military(commands.Cog):
 
             embed.add_field(name=f"\{war_emoji} {x['nation_name']} ({x['id']})", value=f"{vmstart}[War timeline](https://politicsandwar.com/nation/war/timeline/war={war['id']}) | [Message](https://politicsandwar.com/inbox/message/receiver={x['leader_name'].replace(' ', '+')})\n{alliance}\n\n**[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']})**{result['nation1_append']}\n{main_enemy_bar}\n**{main_enemy_res}/100** | MAPs: **{main_enemy_points}/12**\n\n**[{x['nation_name']}](https://politicsandwar.com/nation/id={x['id']})**{result['nation2_append']}\n{their_enemy_bar}\n**{their_enemy_res}/100** | MAPs: **{their_enemy_points}/12**\n\nExpiration (turns): {war['turnsleft']}\nLast login: <t:{round(datetime.strptime(x['last_active'], '%Y-%m-%d %H:%M:%S%z').timestamp())}:R>\nOngoing wars: {len(x['offensive_wars'] + x['defensive_wars'])}\n\nGround winrate: **{round(100 * result['nation2_ground_win_rate'])}%**\nAir winrate: **{round(100 * (1 - result['nation1_air_win_rate']))}%**\nNaval winrate: **{round(100 * (1 - result['nation1_naval_win_rate']))}%**{vmend}", inline=True)
             embed1.add_field(name=f"\{war_emoji} {x['nation_name']} ({x['id']})", value=f"{vmstart}[War timeline](https://politicsandwar.com/nation/war/timeline/war={war['id']}) | [Message](https://politicsandwar.com/inbox/message/receiver={x['leader_name'].replace(' ', '+')})\n{alliance}\n\n**[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']})**{result['nation1_append']}\n**[{x['nation_name']}](https://politicsandwar.com/nation/id={x['id']})**{result['nation2_append']}\n\nOffensive wars: {len(x['offensive_wars'])}/{max_offense}\nDefensive wars: {len(x['defensive_wars'])}/3{beige}\n\n Soldiers: **{x['soldiers']:,}** / {max_sol:,}\nTanks: **{x['tanks']:,}** / {max_tnk:,}\nPlanes: **{x['aircraft']:,}** / {max_pln:,}\nShips: **{x['ships']:,}** / {max_shp:,}\n\nGround winrate: **{round(100 * result['nation2_ground_win_rate'])}%**\nAir winrate: **{round(100 * (1 - result['nation1_air_win_rate']))}%**\nNaval winrate: **{round(100 * (1 - result['nation1_naval_win_rate']))}%**{vmend}", inline=True)
+
+        class status_view(discord.ui.View):
+            def __init__(self):
+                super().__init__(timeout=None)
+
+            @discord.ui.button(label="General", style=discord.ButtonStyle.primary, custom_id="status_general", disabled=True)
+            async def general_callback(self, b: discord.Button, i: discord.Interaction):
+                general_button = [x for x in self.children if x.custom_id == "status_general"][0]
+                military_button = [x for x in self.children if x.custom_id == "status_military"][0]
+                general_button.disabled = True
+                military_button.disabled = False
+                await i.response.edit_message(content="", embed=embed, view=view)
+            
+            @discord.ui.button(label="Military", style=discord.ButtonStyle.primary, custom_id="status_military")
+            async def right_callback(self, b: discord.Button, i: discord.Interaction):
+                general_button = [x for x in self.children if x.custom_id == "status_general"][0]
+                military_button = [x for x in self.children if x.custom_id == "status_military"][0]
+                military_button.disabled = True
+                general_button.disabled = False
+                await i.response.edit_message(content="", embed=embed1, view=view)
         
-        await message.edit(content="", attachments=[], embed=embed)
-        react01 = asyncio.create_task(message.add_reaction("1\N{variation selector-16}\N{combining enclosing keycap}"))
-        react02 = asyncio.create_task(message.add_reaction("2\N{variation selector-16}\N{combining enclosing keycap}"))
-        await asyncio.gather(react01, react02)
-        cur_page = 1
+        view = status_view()
+        await message.edit(content="", attachments=[], embed=embed, view=view)
                 
-        async def reaction_checker():
-            while True:
-                try:
-                    nonlocal cur_page
-                    reaction, user = await self.bot.wait_for("reaction_add", timeout=600)
-                    if user.id != ctx.author.id or reaction.message != message:
-                        continue
-                    
-                    elif str(reaction.emoji) == "1\N{variation selector-16}\N{combining enclosing keycap}" and cur_page == 2:
-                        cur_page = 1
-                        msg_embd = [embed, embed1][cur_page-1]
-                        await message.edit(content="", embed=msg_embd)
-                        await message.remove_reaction(reaction, ctx.author)
-
-                    elif str(reaction.emoji) == "2\N{variation selector-16}\N{combining enclosing keycap}" and cur_page == 1:
-                        cur_page = 2
-                        msg_embd = [embed, embed1][cur_page-1]
-                        await message.edit(content="", embed=msg_embd)
-                        await message.remove_reaction(reaction, ctx.author)
-
-                    else:
-                        await message.remove_reaction(reaction, ctx.author)
-
-                except asyncio.TimeoutError:
-                    await message.edit(content="**Command timed out!**")
-                    break
-
-        asyncio.create_task(reaction_checker())
-
     @commands.command(brief='Debugging cmd, requires admin perms')
     @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def war_scanner(self, ctx):
@@ -465,7 +454,7 @@ class Military(commands.Cog):
             if atom:
                 await thread.send(f"I was unable to add {atom['leader_name']} of {atom['nation_name']} to the thread. Have they not linked their nation with their discord account?")
             else:
-                await thread.send(f"I was unable to add nation {atom_id} from the thread. Have they not linked their nation with their discord account?")
+                await thread.send(f"I was unable to add nation {atom_id} to the thread. Have they not linked their nation with their discord account?")
             return
         user = await self.bot.fetch_user(person['user'])
         try:
