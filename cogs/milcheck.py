@@ -203,6 +203,11 @@ class Military(commands.Cog):
                                 airforcebase
                                 drydock
                             }}
+                            wars{{
+                                attid
+                                defid
+                                turnsleft
+                            }}
                             id
                             pirate_economy
                             score
@@ -1193,6 +1198,9 @@ class Military(commands.Cog):
                         return False
                     else:
                         return True
+                
+                async def on_timeout(self):
+                    await message.edit(content=f"<@{ctx.author.id}> The command timed out!")
 
             beige = None
             class stage_five(discord.ui.View):
@@ -1216,6 +1224,9 @@ class Military(commands.Cog):
                         return False
                     else:
                         return True
+                
+                async def on_timeout(self):
+                    await message.edit(content=f"<@{ctx.author.id}> The command timed out!")
 
             inactive_limit = None
             class stage_four(discord.ui.View):
@@ -1253,7 +1264,9 @@ class Military(commands.Cog):
                         return False
                     else:
                         return True
-
+                
+                async def on_timeout(self):
+                    await message.edit(content=f"<@{ctx.author.id}> The command timed out!")
 
             max_wars = None
             class stage_three(discord.ui.View):
@@ -1291,6 +1304,9 @@ class Military(commands.Cog):
                         return False
                     else:
                         return True
+                
+                async def on_timeout(self):
+                    await message.edit(content=f"<@{ctx.author.id}> The command timed out!")
                     
             who = None
             class stage_two(discord.ui.View):
@@ -1321,6 +1337,9 @@ class Military(commands.Cog):
                         return False
                     else:
                         return True
+                
+                async def on_timeout(self):
+                    await message.edit(content=f"<@{ctx.author.id}> The command timed out!")
 
             webpage = None
             class stage_one(discord.ui.View):
@@ -1344,6 +1363,9 @@ class Military(commands.Cog):
                         return False
                     else:
                         return True
+                
+                async def on_timeout(self):
+                    await message.edit(content=f"<@{ctx.author.id}> The command timed out!")
 
             target_list = []
             futures = []
