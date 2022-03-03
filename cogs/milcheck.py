@@ -1777,17 +1777,14 @@ class Military(commands.Cog):
         message = await ctx.send('Alright, give me a sec to calculate the winrates...')
         if nation1 == None:
             nation1 = ctx.author.id
-        nation1_nation = utils.find_user(self, nation1)
-        if nation1_nation == {}:
-            nation1_nation = utils.find_nation(nation1)
-            if not nation1_nation:
-                if nation2 == None:
-                    await message.edit(content='I could not find that nation!')
-                    return
-                else:
-                    await message.edit(content='I could not find nation 1!')
-                    return 
-            nation1_nation['id'] = nation1_nation['nationid']
+        nation1_nation = utils.find_nation_plus(self, nation1)
+        if not nation1_nation:
+            if nation2 == None:
+                await message.edit(content='I could not find that nation!')
+                return
+            else:
+                await message.edit(content='I could not find nation 1!')
+                return 
         nation1_id = str(nation1_nation['id'])
 
         done = False
@@ -1802,17 +1799,14 @@ class Military(commands.Cog):
         if not done:
             if nation2 == None:
                 nation2 = ctx.author.id
-            nation2_nation = utils.find_user(self, nation2)
-            if nation2_nation == {}:
-                nation2_nation = utils.find_nation(nation2)
-                if not nation2_nation:
-                    if nation2 == None:
-                        await message.edit(content='I was able to find the nation you linked, but I could not find *your* nation!')
-                        return
-                    else:
-                        await message.edit(content='I could not find nation 2!')
-                        return 
-                nation2_nation['id'] = nation2_nation['nationid']
+            nation2_nation = utils.find_nation_plus(self, nation2)
+            if not nation2_nation:
+                if nation2 == None:
+                    await message.edit(content='I was able to find the nation you linked, but I could not find *your* nation!')
+                    return
+                else:
+                    await message.edit(content='I could not find nation 2!')
+                    return 
             nation2_id = str(nation2_nation['id'])
         
         results = await self.battle_calc(nation1_id, nation2_id)
@@ -1851,45 +1845,30 @@ class Military(commands.Cog):
         embed.add_field(name="Casualties", value=f"Att. Ships: {results['nation1_naval_nation1_avg']:,} ± {results['nation1_naval_nation1_diff']:,}\nDef. Ships: {results['nation1_naval_nation2_avg']:,} ± {results['nation1_naval_nation2_diff']:,}")        
         embed1.add_field(name="Casualties", value=f"Att. Ships: {results['nation2_naval_nation2_avg']:,} ± {results['nation2_naval_nation2_diff']:,}\nDef. Ships: {results['nation2_naval_nation1_avg']:,} ± {results['nation2_naval_nation1_diff']:,}")        
 
-        embed.set_footer(text="_________________________\nIf the attacker gets an Utter Failure *and* consumes less munitions/gasoline than the amount predicted for the defender, the defender will consume the same amount of munitions and/or gasoline as the attacker.")
-        embed1.set_footer(text="_________________________\nIf the attacker gets an Utter Failure *and* consumes less munitions/gasoline than the amount predicted for the defender, the defender will consume the same amount of munitions and/or gasoline as the attacker.")
-
-        await message.edit(embed=embed, content="")
-        await message.add_reaction("↔️")
         cur_page = 1
+
+        class switch(discord.ui.View):
+            @discord.ui.button(label="Switch attacker/defender", style=discord.ButtonStyle.primary)
+            async def callback(self, b: discord.Button, i: discord.Interaction):
+                nonlocal cur_page
+                if cur_page == 1:
+                    cur_page = 2
+                    await i.response.edit_message(embed=embed1)
+                else:
+                    cur_page = 1
+                    await i.response.edit_message(embed=embed)
+            
+            async def interaction_check(self, interaction) -> bool:
+                if interaction.user != ctx.author:
+                    await interaction.response.send_message("These buttons are reserved for someone else!", ephemeral=True)
+                    return False
+                else:
+                    return True
+            
+            async def on_timeout(self):
+                await message.edit(content=f"<@{ctx.author.id}> The command timed out!")
                 
-        async def reaction_checker():
-            #print('reaction')
-            while True:
-                try:
-                    nonlocal cur_page
-                    reaction, user = await self.bot.wait_for("reaction_add", timeout=600)
-                    if user.id != ctx.author.id or reaction.message != message:
-                        continue
-                    
-                    elif str(reaction.emoji) == "↔️" and cur_page == 2:
-                        cur_page = 1
-                        msg_embd = [embed, embed1][cur_page-1]
-                        await message.edit(content="", embed=msg_embd)
-                        await message.remove_reaction(reaction, ctx.author)
-
-                    elif str(reaction.emoji) == "↔️" and cur_page == 1:
-                        cur_page = 2
-                        msg_embd = [embed, embed1][cur_page-1]
-                        await message.edit(content="", embed=msg_embd)
-                        await message.remove_reaction(reaction, ctx.author)
-
-                    else:
-                        await message.remove_reaction(reaction, ctx.author)
-
-                except asyncio.TimeoutError:
-                    await message.edit(content="**Command timed out!**")
-                    #print('reaction break')
-                    break
-
-        reacttask = asyncio.create_task(reaction_checker())
-
-        await asyncio.gather(reacttask)
+        await message.edit(embed=embed, content="", view=switch())
 
     @commands.command(
         aliases=["dmg"],
