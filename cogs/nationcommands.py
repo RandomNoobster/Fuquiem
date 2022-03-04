@@ -44,7 +44,7 @@ class General(commands.Cog):
         await ctx.send(embed=embed)
 
     async def change_perm(self, nations: list, level: str, message: discord.Message = None):
-        convent_admin = utils.find_user(self, 154886766275461120)
+        convent_admin = utils.find_user(self, 745313141184921712)
         church_admin = utils.find_user(self, 465463547200012298)
         cipher_suite = Fernet(key)
         logged_in = {}
