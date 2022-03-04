@@ -380,7 +380,7 @@ class Military(commands.Cog):
                     matching_thread = thread
                     break
             if not found:
-                for thread in channel.archived_threads:
+                async for thread in channel.archived_threads():
                     if f"({non_atom['id']})" in thread.name:
                         found = True
                         matching_thread = thread
@@ -417,174 +417,186 @@ class Military(commands.Cog):
         async def smsg(attacker_id, attack, war, atom, non_atom, peace):
             embed = discord.Embed(title=f"New {war['war_type'].lower().capitalize()} War", description=f"[{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) declared a{'n'[:(len(war['war_type'])-5)^1]} {war['war_type'].lower()} war on [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']})", color=0x2F3136)
             
+            found = False
             for thread in channel.threads:
                 if f"({non_atom['id']})" in thread.name:
-                    url = f"https://politicsandwar.com/nation/war/timeline/war={war['id']}"
-                    if peace != None:
-                        embed = discord.Embed(title="Peace offering", url=url, description=f"[{peace['offerer']['nation_name']}](https://politicsandwar.com/nation/id={peace['offerer']['id']}) is offering peace to [{peace['reciever']['nation_name']}](https://politicsandwar.com/nation/id={peace['reciever']['id']}). The peace offering will be canceled if either side performs an act of aggression.", color=0xffffff)
-                        await thread.send(embed=embed)
+                    matching_thread = thread
+                    found = True
+                    break
+            
+            if not found:
+                async for thread in channel.archived_threads():
+                    if f"({non_atom['id']})" in thread.name:
+                        matching_thread = thread
+                        found = True
                         break
-                    footer = f"<t:{round(datetime.strptime(attack['date'], '%Y-%m-%d %H:%M:%S%z').timestamp())}:R> <t:{round(datetime.strptime(attack['date'], '%Y-%m-%d %H:%M:%S%z').timestamp())}>"
-                    if attack['type'] != "FORTIFY":
-                        if attack['type'] in ["GROUND", "NAVAL", "AIRVINFRA", "AIRVSOLDIERS", "AIRVTANKS", "AIRVMONEY", "AIRVSHIPS", "AIRVAIR"]:
-                            for nation in [war['attacker'], war['defender']]:
-                                if nation['id'] == attacker_id:
-                                    attacker_nation = nation
-                                elif nation['id'] != attacker_id:
-                                    defender_nation = nation
 
-                            colors = [0xff0000, 0xffff00, 0xffff00, 0x00ff00]
-                            if attacker_nation['id'] == non_atom['id']:
-                                colors.reverse()
+            if found:
+                thread = matching_thread
+                url = f"https://politicsandwar.com/nation/war/timeline/war={war['id']}"
+                if peace != None:
+                    embed = discord.Embed(title="Peace offering", url=url, description=f"[{peace['offerer']['nation_name']}](https://politicsandwar.com/nation/id={peace['offerer']['id']}) is offering peace to [{peace['reciever']['nation_name']}](https://politicsandwar.com/nation/id={peace['reciever']['id']}). The peace offering will be canceled if either side performs an act of aggression.", color=0xffffff)
+                    await thread.send(embed=embed)
+                    return
+                footer = f"<t:{round(datetime.strptime(attack['date'], '%Y-%m-%d %H:%M:%S%z').timestamp())}:R> <t:{round(datetime.strptime(attack['date'], '%Y-%m-%d %H:%M:%S%z').timestamp())}>"
+                if attack['type'] != "FORTIFY":
+                    if attack['type'] in ["GROUND", "NAVAL", "AIRVINFRA", "AIRVSOLDIERS", "AIRVTANKS", "AIRVMONEY", "AIRVSHIPS", "AIRVAIR"]:
+                        for nation in [war['attacker'], war['defender']]:
+                            if nation['id'] == attacker_id:
+                                attacker_nation = nation
+                            elif nation['id'] != attacker_id:
+                                defender_nation = nation
 
-                            if attack['success'] == 3:
-                                success = "Immense Triumph"
-                            elif attack['success'] == 2:
-                                success = "Moderate Success"
-                            elif attack['success'] == 1:
-                                success = "Pyrrhic Victory"
-                            elif attack['success'] == 0:
-                                success = "Utter Failure"
+                        colors = [0xff0000, 0xffff00, 0xffff00, 0x00ff00]
+                        if attacker_nation['id'] == non_atom['id']:
+                            colors.reverse()
 
-                            description = f"Success: {success}"
+                        if attack['success'] == 3:
+                            success = "Immense Triumph"
+                        elif attack['success'] == 2:
+                            success = "Moderate Success"
+                        elif attack['success'] == 1:
+                            success = "Pyrrhic Victory"
+                        elif attack['success'] == 0:
+                            success = "Utter Failure"
 
-                            if attack['type'] == "GROUND":
-                                if attack['aircraft_killed_by_tanks']:
-                                    aircraft = f"\n{attack['aircraft_killed_by_tanks']:,} aircraft"
-                                else:
-                                    aircraft = ""
-                                title = "Ground battle"
-                                att_casualties = f"{attack['attcas1']:,} soldiers\n{attack['attcas2']:,} tanks"
-                                def_casualties = f"{attack['defcas1']:,} soldiers\n{attack['defcas2']:,} tanks{aircraft}"
-                            elif attack['type'] == "NAVAL":
-                                title = "Naval Battle"
-                                att_casualties = f"{attack['attcas1']:,} ships"
-                                def_casualties = f"{attack['defcas1']:,} ships"
-                            elif attack['type'] == "AIRVINFRA":
-                                title = "Airstrike targeting infrastructure"
-                                att_casualties = f"{attack['attcas1']:,} planes"
-                                def_casualties = f"{attack['defcas1']:,} planes\n{attack['infradestroyed']} infra (${attack['infra_destroyed_value']:,})"
-                            elif attack['type'] == "AIRVSOLDIERS":
-                                title = "Airstrike targeting soldiers"
-                                att_casualties = f"{attack['attcas1']:,} planes"
-                                def_casualties = f"{attack['defcas1']:,} planes\n{attack['defcas2']} soldiers"
-                            elif attack['type'] == "AIRVTANKS":
-                                title = "Airstrike targeting tanks"
-                                att_casualties = f"{attack['attcas1']:,} planes"
-                                def_casualties = f"{attack['defcas1']:,} planes\n{attack['defcas2']} tanks"
-                            elif attack['type'] == "AIRVMONEY":
-                                title = "Airstrike targeting money"
-                                att_casualties = f"{attack['attcas1']:,} planes"
-                                def_casualties = f"{attack['defcas1']:,} planes\n{attack['defcas2']} money"
-                            elif attack['type'] == "AIRVSHIPS":
-                                title = "Airstrike targeting ships"
-                                att_casualties = f"{attack['attcas1']:,} planes"
-                                def_casualties = f"{attack['defcas1']:,} planes\n{attack['defcas2']} ships"
-                            elif attack['type'] == "AIRVAIR":
-                                title = "Airstrike targeting aircraft"
-                                att_casualties = f"{attack['attcas1']:,} planes"
-                                def_casualties = f"{attack['defcas1']:,} planes"
-                            try:
-                                aaa_link = f"[{attacker_nation['alliance']['name']}](https://politicsandwar.com/alliance/id={attacker_nation['alliance_id']})"
-                            except:
-                                aaa_link = "No alliance"
-                            try:
-                                daa_link = f"[{defender_nation['alliance']['name']}](https://politicsandwar.com/alliance/id={defender_nation['alliance_id']})"
-                            except:
-                                daa_link = "No alliance"
+                        description = f"Success: {success}"
 
-                            embed = discord.Embed(title=title, description=description, color=colors[attack['success']], url=url)
-                            embed.add_field(name=f"Attacker", value=f"[{attacker_nation['nation_name']}](https://politicsandwar.com/nation/id={attacker_nation['id']})\n{aaa_link}\n\n**Casualties**:\n{att_casualties}")
-                            embed.add_field(name=f"Defender", value=f"[{defender_nation['nation_name']}](https://politicsandwar.com/nation/id={defender_nation['id']})\n{daa_link}\n\n**Casualties**:\n{def_casualties}")
-                            embed.add_field(name="\u200b", value=footer, inline=False)
-                            await thread.send(embed=embed)
-                            mongo.war_logs.find_one_and_update({"id": war['id']}, {"$push": {"attacks": attack['id']}})
-                            break
-                        elif attack['type'] in ["PEACE", "VICTORY", "ALLIANCELOOT", "EXPIRATION"]:
-                            if attack['type'] == "PEACE":
-                                title = "White peace"
-                                color = 0xffFFff
-                                content = f"The peace offer was accepted, and [{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) is no longer fighting an offensive war against [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']})."
-                            elif attack['type'] == "VICTORY":
-                                if attack['victor'] == atom['id']:
-                                    title = "Victory"
-                                    color = 0x00ff00
-                                else:
-                                    title = "Defeat"
-                                    color = 0xff0000
-                                loot = attack['loot_info'].replace('\r\n                            ', '')
-                                content = f"[{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) is no longer fighting an offensive war against [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']}).\n\n{loot}"
-                            elif attack['type'] == "ALLIANCELOOT":
-                                if atom['nation_name'] in attack['loot_info']:
-                                    color = 0x00ff00
-                                else:
-                                    color = 0xff0000
-                                title = "Alliance loot"
-                                loot = attack['loot_info'].replace('\r\n                            ', '')
-                                content = f"{loot}"
-                            elif attack['type'] == "EXPIRATION":
-                                title = "War expiration"
-                                color = 0xffFFff
-                                content = f"The war has lasted 5 days, and has consequently expired. [{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) is no longer fighting an offensive war against [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']})."
-                            embed = discord.Embed(title=title, url=url, description=content, color=color)
-                            embed.add_field(name="\u200b", value=footer, inline=False)
-                            await thread.send(embed=embed)
-                            mongo.war_logs.find_one_and_update({"id": war['id']}, {"$push": {"attacks": attack['id']}})
-                            break
-                        else:
-                            for nation in [war['attacker'], war['defender']]:
-                                if nation['id'] == attacker_id:
-                                    attacker_nation = nation
-                                elif nation['id'] != attacker_id:
-                                    defender_nation = nation
-
-                            colors = [0xff0000, 0x00ff00]
-                            if attacker_nation['id'] == non_atom['id']:
-                                colors.reverse()
-
-                            if attack['type'] == "MISSILE":
-                                title = "Missile"
-                                content = f"[{attacker_nation['nation_name']}](https://politicsandwar.com/nation/id={attacker_nation['id']}) launched a missile upon [{defender_nation['nation_name']}](https://politicsandwar.com/nation/id={defender_nation['id']}), destroying {attack['infradestroyed']} infra (${attack['infra_destroyed_value']:,}) and {attack['improvementslost']} improvement{'s'[:attack['improvementslost']^1]}."
-                            elif attack ['type'] == "MISSILEFAIL":
-                                title = "Failed missile"
-                                content = f"[{attacker_nation['nation_name']}](https://politicsandwar.com/nation/id={attacker_nation['id']}) launched a missile upon [{defender_nation['nation_name']}](https://politicsandwar.com/nation/id={defender_nation['id']}), but the missile was shot down."
-                            elif attack['type'] == "NUKE":
-                                title = "Nuke"
-                                content = f"[{attacker_nation['nation_name']}](https://politicsandwar.com/nation/id={attacker_nation['id']}) launched a nuclear weapon upon [{defender_nation['nation_name']}](https://politicsandwar.com/nation/id={defender_nation['id']}), destroying {attack['infradestroyed']} infra (${attack['infra_destroyed_value']:,}) and {attack['improvementslost']} improvement{'s'[:attack['improvementslost']^1]}."
-                            elif attack['type'] == "NUKEFAIL":
-                                title = "Failed nuke"
-                                content = f"[{attacker_nation['nation_name']}](https://politicsandwar.com/nation/id={attacker_nation['id']}) launched a nuclear weapon upon [{defender_nation['nation_name']}](https://politicsandwar.com/nation/id={defender_nation['id']}), but the nuke was shot down."
-                        
-                            embed = discord.Embed(title=title, url=url, description=content, color=colors[attack['success']])
-                            embed.add_field(name="\u200b", value=footer, inline=False)
-                            await thread.send(embed=embed)
-                            mongo.war_logs.find_one_and_update({"id": war['id']}, {"$push": {"attacks": attack['id']}})
-                            break
-                    else:
-                        if war['att_fortify'] and war['def_fortify']:
-                            content = f"{war['attacker']['nation_name']} and {war['defender']['nation_name']} are now fortified."
-                            color = 0xffff00
-                        elif war['att_fortify']:
-                            content = f"{war['attacker']['nation_name']} is now fortified."
-                            if war['attacker'] == atom:
-                                color = 0x00ff00
+                        if attack['type'] == "GROUND":
+                            if attack['aircraft_killed_by_tanks']:
+                                aircraft = f"\n{attack['aircraft_killed_by_tanks']:,} aircraft"
                             else:
-                                color = 0xff0000
-                        elif war['def_fortify']:
-                            content = f"{war['defender']['nation_name']} is now fortified."
-                            if war['defender'] == atom:
-                                color = 0x00ff00
-                            else:
-                                color = 0xff0000
-                        else:
-                            content = f"{war['attacker']['nation_name']} or {war['defender']['nation_name']} fortified (idk who due to api limitations), then subsequently attacked, losing the fortified effect."
-                            color = 0xffffff
-                        
-                        embed = discord.Embed(title="Fortification", url=url, description=content, color=color)
+                                aircraft = ""
+                            title = "Ground battle"
+                            att_casualties = f"{attack['attcas1']:,} soldiers\n{attack['attcas2']:,} tanks"
+                            def_casualties = f"{attack['defcas1']:,} soldiers\n{attack['defcas2']:,} tanks{aircraft}"
+                        elif attack['type'] == "NAVAL":
+                            title = "Naval Battle"
+                            att_casualties = f"{attack['attcas1']:,} ships"
+                            def_casualties = f"{attack['defcas1']:,} ships"
+                        elif attack['type'] == "AIRVINFRA":
+                            title = "Airstrike targeting infrastructure"
+                            att_casualties = f"{attack['attcas1']:,} planes"
+                            def_casualties = f"{attack['defcas1']:,} planes\n{attack['infradestroyed']} infra (${attack['infra_destroyed_value']:,})"
+                        elif attack['type'] == "AIRVSOLDIERS":
+                            title = "Airstrike targeting soldiers"
+                            att_casualties = f"{attack['attcas1']:,} planes"
+                            def_casualties = f"{attack['defcas1']:,} planes\n{attack['defcas2']} soldiers"
+                        elif attack['type'] == "AIRVTANKS":
+                            title = "Airstrike targeting tanks"
+                            att_casualties = f"{attack['attcas1']:,} planes"
+                            def_casualties = f"{attack['defcas1']:,} planes\n{attack['defcas2']} tanks"
+                        elif attack['type'] == "AIRVMONEY":
+                            title = "Airstrike targeting money"
+                            att_casualties = f"{attack['attcas1']:,} planes"
+                            def_casualties = f"{attack['defcas1']:,} planes\n{attack['defcas2']} money"
+                        elif attack['type'] == "AIRVSHIPS":
+                            title = "Airstrike targeting ships"
+                            att_casualties = f"{attack['attcas1']:,} planes"
+                            def_casualties = f"{attack['defcas1']:,} planes\n{attack['defcas2']} ships"
+                        elif attack['type'] == "AIRVAIR":
+                            title = "Airstrike targeting aircraft"
+                            att_casualties = f"{attack['attcas1']:,} planes"
+                            def_casualties = f"{attack['defcas1']:,} planes"
+                        try:
+                            aaa_link = f"[{attacker_nation['alliance']['name']}](https://politicsandwar.com/alliance/id={attacker_nation['alliance_id']})"
+                        except:
+                            aaa_link = "No alliance"
+                        try:
+                            daa_link = f"[{defender_nation['alliance']['name']}](https://politicsandwar.com/alliance/id={defender_nation['alliance_id']})"
+                        except:
+                            daa_link = "No alliance"
+
+                        embed = discord.Embed(title=title, description=description, color=colors[attack['success']], url=url)
+                        embed.add_field(name=f"Attacker", value=f"[{attacker_nation['nation_name']}](https://politicsandwar.com/nation/id={attacker_nation['id']})\n{aaa_link}\n\n**Casualties**:\n{att_casualties}")
+                        embed.add_field(name=f"Defender", value=f"[{defender_nation['nation_name']}](https://politicsandwar.com/nation/id={defender_nation['id']})\n{daa_link}\n\n**Casualties**:\n{def_casualties}")
                         embed.add_field(name="\u200b", value=footer, inline=False)
                         await thread.send(embed=embed)
                         mongo.war_logs.find_one_and_update({"id": war['id']}, {"$push": {"attacks": attack['id']}})
-                        break
+                    elif attack['type'] in ["PEACE", "VICTORY", "ALLIANCELOOT", "EXPIRATION"]:
+                        if attack['type'] == "PEACE":
+                            title = "White peace"
+                            color = 0xffFFff
+                            content = f"The peace offer was accepted, and [{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) is no longer fighting an offensive war against [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']})."
+                        elif attack['type'] == "VICTORY":
+                            if attack['victor'] == atom['id']:
+                                title = "Victory"
+                                color = 0x00ff00
+                            else:
+                                title = "Defeat"
+                                color = 0xff0000
+                            loot = attack['loot_info'].replace('\r\n                            ', '')
+                            content = f"[{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) is no longer fighting an offensive war against [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']}).\n\n{loot}"
+                        elif attack['type'] == "ALLIANCELOOT":
+                            if atom['nation_name'] in attack['loot_info']:
+                                color = 0x00ff00
+                            else:
+                                color = 0xff0000
+                            title = "Alliance loot"
+                            loot = attack['loot_info'].replace('\r\n                            ', '')
+                            content = f"{loot}"
+                        elif attack['type'] == "EXPIRATION":
+                            title = "War expiration"
+                            color = 0xffFFff
+                            content = f"The war has lasted 5 days, and has consequently expired. [{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) is no longer fighting an offensive war against [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']})."
+                        embed = discord.Embed(title=title, url=url, description=content, color=color)
+                        embed.add_field(name="\u200b", value=footer, inline=False)
+                        await thread.send(embed=embed)
+                        mongo.war_logs.find_one_and_update({"id": war['id']}, {"$push": {"attacks": attack['id']}})
+                    else:
+                        for nation in [war['attacker'], war['defender']]:
+                            if nation['id'] == attacker_id:
+                                attacker_nation = nation
+                            elif nation['id'] != attacker_id:
+                                defender_nation = nation
+
+                        colors = [0xff0000, 0x00ff00]
+                        if attacker_nation['id'] == non_atom['id']:
+                            colors.reverse()
+
+                        if attack['type'] == "MISSILE":
+                            title = "Missile"
+                            content = f"[{attacker_nation['nation_name']}](https://politicsandwar.com/nation/id={attacker_nation['id']}) launched a missile upon [{defender_nation['nation_name']}](https://politicsandwar.com/nation/id={defender_nation['id']}), destroying {attack['infradestroyed']} infra (${attack['infra_destroyed_value']:,}) and {attack['improvementslost']} improvement{'s'[:attack['improvementslost']^1]}."
+                        elif attack ['type'] == "MISSILEFAIL":
+                            title = "Failed missile"
+                            content = f"[{attacker_nation['nation_name']}](https://politicsandwar.com/nation/id={attacker_nation['id']}) launched a missile upon [{defender_nation['nation_name']}](https://politicsandwar.com/nation/id={defender_nation['id']}), but the missile was shot down."
+                        elif attack['type'] == "NUKE":
+                            title = "Nuke"
+                            content = f"[{attacker_nation['nation_name']}](https://politicsandwar.com/nation/id={attacker_nation['id']}) launched a nuclear weapon upon [{defender_nation['nation_name']}](https://politicsandwar.com/nation/id={defender_nation['id']}), destroying {attack['infradestroyed']} infra (${attack['infra_destroyed_value']:,}) and {attack['improvementslost']} improvement{'s'[:attack['improvementslost']^1]}."
+                        elif attack['type'] == "NUKEFAIL":
+                            title = "Failed nuke"
+                            content = f"[{attacker_nation['nation_name']}](https://politicsandwar.com/nation/id={attacker_nation['id']}) launched a nuclear weapon upon [{defender_nation['nation_name']}](https://politicsandwar.com/nation/id={defender_nation['id']}), but the nuke was shot down."
+                    
+                        embed = discord.Embed(title=title, url=url, description=content, color=colors[attack['success']])
+                        embed.add_field(name="\u200b", value=footer, inline=False)
+                        await thread.send(embed=embed)
+                        mongo.war_logs.find_one_and_update({"id": war['id']}, {"$push": {"attacks": attack['id']}})
+                else:
+                    if war['att_fortify'] and war['def_fortify']:
+                        content = f"{war['attacker']['nation_name']} and {war['defender']['nation_name']} are now fortified."
+                        color = 0xffff00
+                    elif war['att_fortify']:
+                        content = f"{war['attacker']['nation_name']} is now fortified."
+                        if war['attacker'] == atom:
+                            color = 0x00ff00
+                        else:
+                            color = 0xff0000
+                    elif war['def_fortify']:
+                        content = f"{war['defender']['nation_name']} is now fortified."
+                        if war['defender'] == atom:
+                            color = 0x00ff00
+                        else:
+                            color = 0xff0000
+                    else:
+                        content = f"{war['attacker']['nation_name']} or {war['defender']['nation_name']} fortified (idk who due to api limitations), then subsequently attacked, losing the fortified effect."
+                        color = 0xffffff
+                    
+                    embed = discord.Embed(title="Fortification", url=url, description=content, color=color)
+                    embed.add_field(name="\u200b", value=footer, inline=False)
+                    await thread.send(embed=embed)
+                    mongo.war_logs.find_one_and_update({"id": war['id']}, {"$push": {"attacks": attack['id']}})
+            else:
+                print("could not find thread", war, peace)
 
         while True:
             try:
