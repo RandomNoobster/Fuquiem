@@ -443,7 +443,7 @@ class Military(commands.Cog):
                             description = f"Success: {success}"
 
                             if attack['type'] == "GROUND":
-                                if int(attack['aircraft_killed_by_tanks']):
+                                if attack['aircraft_killed_by_tanks']:
                                     aircraft = f"\n{attack['aircraft_killed_by_tanks']:,} aircraft"
                                 else:
                                     aircraft = ""
