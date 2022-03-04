@@ -380,6 +380,12 @@ class Military(commands.Cog):
                     matching_thread = thread
                     break
             if not found:
+                for thread in channel.archived_threads:
+                    if f"({non_atom['id']})" in thread.name:
+                        found = True
+                        matching_thread = thread
+                        break
+            if not found:
                 message = await channel.send(embed=embed)
                 try:
                     thread = await channel.create_thread(name=name, message=message, auto_archive_duration=4320, type=discord.ChannelType.private_thread, reason="War declaration")
