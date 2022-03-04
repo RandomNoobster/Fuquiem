@@ -121,8 +121,11 @@ class General(commands.Cog):
                 if message:
                     await message.edit(content=content)
 
-    @commands.command(brief="Change the status of nations")
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.command(
+        brief="Change the status of nations",
+        help="2: Member, 1: Applicant, 0: Remove, -1: Ban, -2: Unban, -3: Invite/uninvite"
+        )
+    @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def move(self, ctx, level: int, *, arg):
         message = await ctx.send("Be patient, young padawan...")
         async with aiohttp.ClientSession() as session:
