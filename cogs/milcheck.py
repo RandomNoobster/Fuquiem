@@ -443,9 +443,13 @@ class Military(commands.Cog):
                             description = f"Success: {success}"
 
                             if attack['type'] == "GROUND":
+                                if attack['aircraft_killed_by_tanks'] > 0:
+                                    aircraft = f"\n{attack['aircraft_killed_by_tanks']:,} aircraft"
+                                else:
+                                    aircraft = ""
                                 title = "Ground battle"
                                 att_casualties = f"{attack['attcas1']:,} soldiers\n{attack['attcas2']:,} tanks"
-                                def_casualties = f"{attack['defcas1']:,} soldiers\n{attack['defcas2']:,} tanks"
+                                def_casualties = f"{attack['defcas1']:,} soldiers\n{attack['defcas2']:,} tanks{aircraft}"
                             elif attack['type'] == "NAVAL":
                                 title = "Naval Battle"
                                 att_casualties = f"{attack['attcas1']:,} ships"
@@ -582,7 +586,7 @@ class Military(commands.Cog):
                     has_more_pages = True
                     n = 1
                     while has_more_pages:
-                        async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] page:{n} active:true){{paginatorInfo{{hasMorePages}} data{{id att_fortify war_type def_fortify attpeace defpeace turnsleft attacker{{nation_name leader_name alliance{{name}} id num_cities alliance_id cities{{id}}}} defender{{nation_name leader_name alliance{{name}} id num_cities alliance_id cities{{id}}}} attacks{{type id date loot_info victor moneystolen success cityid resistance_eliminated infradestroyed infra_destroyed_value improvementslost attcas1 attcas2 defcas1 defcas2}}}}}}}}"}) as temp:
+                        async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] page:{n} active:true){{paginatorInfo{{hasMorePages}} data{{id att_fortify war_type def_fortify attpeace defpeace turnsleft attacker{{nation_name leader_name alliance{{name}} id num_cities alliance_id cities{{id}}}} defender{{nation_name leader_name alliance{{name}} id num_cities alliance_id cities{{id}}}} attacks{{type id date loot_info victor moneystolen success cityid resistance_eliminated infradestroyed infra_destroyed_value improvementslost aircraft_killed_by_tanks attcas1 attcas2 defcas1 defcas2}}}}}}}}"}) as temp:
                             n += 1
                             try:
                                 wars = (await temp.json())['data']['wars']['data']
@@ -598,7 +602,7 @@ class Military(commands.Cog):
                     n = 1
                     done_wars = []
                     while has_more_pages:
-                        async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] page:{n} active:true){{paginatorInfo{{hasMorePages}} data{{id att_fortify war_type def_fortify attpeace defpeace turnsleft attacker{{nation_name leader_name alliance{{name}} id num_cities alliance_id cities{{id}}}} defender{{nation_name leader_name alliance{{name}} id num_cities alliance_id cities{{id}}}} attacks{{type id date loot_info victor moneystolen success cityid resistance_eliminated infradestroyed infra_destroyed_value improvementslost attcas1 attcas2 defcas1 defcas2}}}}}}}}"}) as temp1:
+                        async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] page:{n} active:true){{paginatorInfo{{hasMorePages}} data{{id att_fortify war_type def_fortify attpeace defpeace turnsleft attacker{{nation_name leader_name alliance{{name}} id num_cities alliance_id cities{{id}}}} defender{{nation_name leader_name alliance{{name}} id num_cities alliance_id cities{{id}}}} attacks{{type id date loot_info victor moneystolen success cityid resistance_eliminated infradestroyed infra_destroyed_value improvementslost aircraft_killed_by_tanks attcas1 attcas2 defcas1 defcas2}}}}}}}}"}) as temp1:
                             n += 1
                             try:
                                 temp1 = (await temp.json())['data']['wars']['data']
