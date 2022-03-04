@@ -429,6 +429,9 @@ class Military(commands.Cog):
                     if f"({non_atom['id']})" in thread.name:
                         matching_thread = thread
                         found = True
+                        person = utils.find_user(self, atom['id'])
+                        user = await self.bot.fetch_user(person['user'])
+                        await thread.add_user(user)
                         break
 
             if found:
