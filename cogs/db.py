@@ -90,6 +90,25 @@ class Database(commands.Cog):
                     return
             mongo.users.insert_one({"user": disc.id, "nationid": nid, "name": nation['nation_name'], "leader": nation['leader_name'], "signups": 0, "wins": 0, "raids": [], "email": '', 'pwd': '', 'signedup': False, "audited": False, "beige_alerts": []})
             await ctx.send(content=f"I added <@{disc.id}> with the nation {nid}.", allowed_mentions=discord.AllowedMentions(everyone=False, users=False, roles=False))
+    
+    @commands.command(breif='Link your nation with your discord account.')
+    async def verify(ctx, nation_id):
+        user = mongo.users.find_one({"user": ctx.author.id})
+        if user != None:
+            await ctx.send("You are already verified!")
+            return
+        nation_id = re.sub("[^0-9]", "", nation_id)
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f'{{nations(first:1 id:{nation_id}){{data{{id nation_name leader_name discord}}}}}}'}) as temp:
+                res = await temp.json()
+                if len(res['data']['nations']['data']) == 0:
+                    await ctx.send(f"I could not find the nation with an id of `{nation_id}`")
+                    return
+                if res['data']['nations']['data'][0]['discord'] == str(ctx.author):
+                    mongo.users.insert_one({"user": ctx.author.id, "nationid": nation_id, "name": res['data']['nations']['data'][0]['nation_name'], "leader": res['data']['nations']['data'][0]['leader_name'], "signups": 0, "wins": 0, "raids": [], "email": '', 'pwd': '', 'signedup': False, "audited": False, "beige_alerts": []})
+                    await ctx.send("You have successfully verified your nation!")
+                else:
+                    await ctx.send(f'1. Got to https://politicsandwar.com/nation/edit/\n2. Scroll down to where it says "Discord Username"\n3. Type `{ctx.author}` in the adjacent field.\n4. Write `$verify {nation_id}` again.')
 
     @commands.command(breif='Can only be used in DMs with the bot, accepts two arguments', help='This command can only be used in direct messages (DMs) with Fuquiem. It accepts two arguments, the first being your email and the second being your password. You can update the credentials anytime, and they can be reset by not including any arguments (simply saying "$setcredentials").', aliases=['setcred', 'sc'])
     @commands.dm_only()
