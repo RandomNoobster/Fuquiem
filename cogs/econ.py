@@ -281,7 +281,6 @@ class Economic(commands.Cog):
                 else:
                     await ctx.send(f"This transaction might have failed. Check this page to be sure:\nhttps://politicsandwar.com/nation/id={person['nationid']}&display=bank")
 
-    # send a prefilled link if no credentials are set
     @commands.command(
         brief='Deposit your resources to the alliance bank',
         help='Type "$deposit <type of resource> - <amount of resource>, <type of resource> - <amount of resource>..." Please note that spaces are ignored, so it does not matter if you type "-" and "," or " - " and ", "',
@@ -290,8 +289,13 @@ class Economic(commands.Cog):
     async def deposit(self, ctx, *, rss):
         async with aiohttp.ClientSession() as session:
             person = utils.find_user(self, ctx.author.id)
-            if person['email'] == '' or person['pwd'] == '':
-                await ctx.send('You have not registered your PnW credentials with Fuquiem.')
+            if person == None:
+                await ctx.send("I can't find you in the database!")
+                return
+            elif person['email'] == '' or person['pwd'] == '':
+                use_link = True
+            else:
+                use_link = False
 
             cipher_suite = Fernet(key)
 
@@ -340,66 +344,77 @@ class Economic(commands.Cog):
 
                 req = requests.get(
                     f"http://politicsandwar.com/api/nation/id={person['nationid']}&key={api_key}").json()
-
-                deposit_url = f'https://politicsandwar.com/alliance/id={req["allianceid"]}&display=bank'
-                deposit_data = {
-                    "depmoney": '0',
-                    "depfood": '0',
-                    "depcoal": '0',
-                    "depoil": '0',
-                    "depuranium": '0',
-                    "deplead": '0',
-                    "depiron": '0',
-                    "depbauxite": '0',
-                    "depgasoline": '0',
-                    "depmunitions": '0',
-                    "depsteel": '0',
-                    "depaluminum": '0',
-                    "depnote": 'Sent through discord.',
-                    "depsubmit": 'Deposit'
-                }
-
-                for x in deposit_data:
-                    for y in res:
-                        if y in x:
-                            deposit_data[x] = res[y]
-
-                pretty_data = deposit_data.copy()
-                for k in pretty_data.copy():
-                    try:
-                        int(pretty_data[k])
-                        pretty_data[k.replace('dep', '')] = f"{pretty_data[k]:_}".replace("_", " ")
-                        pretty_data.pop(k)
-                    except:
-                        pretty_data[k.replace('dep', '')] = f'{pretty_data.pop(k)}'
-
-                try:
-                    await ctx.send(f'Are you sure you want to continue with this transaction? (yes/no)\n```json\n{pretty_data}```')
-                    msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=40)
-
-                    if msg.content.lower() in ['yes', 'y']:
-                        start_time = (datetime.utcnow() - timedelta(seconds=5))
-                        end_time = (datetime.utcnow() + timedelta(seconds=5))
-                        p = s.post(deposit_url, data=deposit_data)
-                        print(f'Response: {p}')
-                    elif msg.content.lower() in ['no', 'n']:
-                        await ctx.send('Transaction was canceled')
-                        return
-                except asyncio.TimeoutError:
-                    await ctx.send('Command timed out, you were too slow to respond.')
+                
+                rss = ['aluminum', 'bauxite', 'coal', 'food', 'gasoline', 'iron', 'lead', 'money', 'munitions', 'oil', 'steel', 'uranium']
+                excess = ""
+                if use_link:
+                    for k, v in res.items():
+                        for rs in rss:
+                            if k in rs:
+                                excess += f"&d_{rs}={v}"
+                                break
+                    await ctx.send(f"Use this pre-filed link to deposit the resources: <https://politicsandwar.com/alliance/id={req['allianceid']}&display=bank{excess}>")
                     return
-
-                success = False
-                await asyncio.sleep(1)
-                async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={person['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
-                    txids = await txids.json()
-                for x in txids['data']:
-                    if x['note'] == 'Sent through discord.' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
-                        success = True
-                if success:
-                    await ctx.send('I can confirm that the transaction has successfully commenced.')
                 else:
-                    await ctx.send(f"This transaction might have failed. Check this page to be sure:\nhttps://politicsandwar.com/nation/id={person['nationid']}&display=bank")
+                    deposit_url = f'https://politicsandwar.com/alliance/id={req["allianceid"]}&display=bank'
+                    deposit_data = {
+                        "depmoney": '0',
+                        "depfood": '0',
+                        "depcoal": '0',
+                        "depoil": '0',
+                        "depuranium": '0',
+                        "deplead": '0',
+                        "depiron": '0',
+                        "depbauxite": '0',
+                        "depgasoline": '0',
+                        "depmunitions": '0',
+                        "depsteel": '0',
+                        "depaluminum": '0',
+                        "depnote": 'Sent through discord.',
+                        "depsubmit": 'Deposit'
+                    }
+
+                    for x in deposit_data:
+                        for y in res:
+                            if y in x:
+                                deposit_data[x] = res[y]
+
+                    pretty_data = deposit_data.copy()
+                    for k in pretty_data.copy():
+                        try:
+                            int(pretty_data[k])
+                            pretty_data[k.replace('dep', '')] = f"{pretty_data[k]:_}".replace("_", " ")
+                            pretty_data.pop(k)
+                        except:
+                            pretty_data[k.replace('dep', '')] = f'{pretty_data.pop(k)}'
+
+                    try:
+                        await ctx.send(f'Are you sure you want to continue with this transaction? (yes/no)\n```json\n{pretty_data}```')
+                        msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=40)
+
+                        if msg.content.lower() in ['yes', 'y']:
+                            start_time = (datetime.utcnow() - timedelta(seconds=5))
+                            end_time = (datetime.utcnow() + timedelta(seconds=5))
+                            p = s.post(deposit_url, data=deposit_data)
+                            print(f'Response: {p}')
+                        elif msg.content.lower() in ['no', 'n']:
+                            await ctx.send('Transaction was canceled')
+                            return
+                    except asyncio.TimeoutError:
+                        await ctx.send('Command timed out, you were too slow to respond.')
+                        return
+
+                    success = False
+                    await asyncio.sleep(1)
+                    async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={person['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
+                        txids = await txids.json()
+                    for x in txids['data']:
+                        if x['note'] == 'Sent through discord.' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
+                            success = True
+                    if success:
+                        await ctx.send('I can confirm that the transaction has successfully commenced.')
+                    else:
+                        await ctx.send(f"This transaction might have failed. Check this page to be sure:\nhttps://politicsandwar.com/nation/id={person['nationid']}&display=bank")
 
     @commands.command(
         brief='Gives you food',
