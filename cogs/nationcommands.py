@@ -856,7 +856,7 @@ class General(commands.Cog):
 
             militarization = utils.militarization_checker(app)
 
-            fields.append({"name": app['leader_name'], "value": f"[{app['nation_name']}](https://politicsandwar.com/nation/id={app['id']})\n{app['alliance']['name'][:app['alliance']['name'].find(' ')]}\n{db} {disc}\nLast active: {app['last_active']}\nCities: {app['num_cities']}\nValue of rss: ${round(on_hand):,}\nMoney: ${round(app['money']):,}\nMilitarization: {round(militarization, 2)}"})
+            fields.append({"name": app['leader_name'] + f" ({app['id']})", "value": f"[{app['nation_name']}](https://politicsandwar.com/nation/id={app['id']})\n{app['alliance']['name'][:app['alliance']['name'].find(' ')]}\n{db} {disc}\nLast active: {app['last_active']}\nCities: {app['num_cities']}\nValue of rss: ${round(on_hand):,}\nMoney: ${round(app['money']):,}\nMilitarization: {round(militarization, 2)}"})
 
         embeds = utils.embed_pager(embed_title, fields)
 
