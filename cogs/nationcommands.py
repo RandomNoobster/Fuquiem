@@ -798,14 +798,14 @@ class General(commands.Cog):
     @commands.command(brief='Shows information about applicants', aliases=['apps'])
     @commands.has_any_role('Internal Affairs')
     async def applicants(self, ctx):
-        await self.member_analysis(ctx, 1, "Applicants")
+        await self.member_analysis(ctx, [1], "Applicants")
 
     @commands.command(brief='Shows information about members', aliases=['mems'])
     @commands.has_any_role('Internal Affairs')
     async def members(self, ctx):
-        await self.member_analysis(ctx, 2, "Members")
+        await self.member_analysis(ctx, [2,3,4,5], "Members")
     
-    async def member_analysis(self, ctx, level: int, embed_title: str):
+    async def member_analysis(self, ctx, level: list, embed_title: str):
         message = await ctx.send("Finding plebs...")
 
         heathen_role = ctx.guild.get_role(584676265932488705)
@@ -859,7 +859,12 @@ class General(commands.Cog):
 
             militarization = utils.militarization_checker(app)
 
-            fields.append({"name": app['leader_name'] + f" ({app['id']})", "value": f"[{app['nation_name']}](https://politicsandwar.com/nation/id={app['id']})\n{app['alliance']['name'][:app['alliance']['name'].find(' ')]}\n{db} {disc}\nLast active: {app['last_active']}\nCities: {app['num_cities']}\nValue of rss: ${round(on_hand):,}\nMoney: ${round(app['money']):,}\nMilitarization: {round(militarization, 2)}"})
+            if app['vmode'] > 0:
+                vm = "~~"
+            else:
+                vm = ""
+
+            fields.append({"name": vm + app['leader_name'] + f" ({app['id']})" + vm, "value": f"{vm}[{app['nation_name']}](https://politicsandwar.com/nation/id={app['id']})\n{app['alliance']['name'][:app['alliance']['name'].find(' ')]}\n{db} {disc}\nLast active: {app['last_active']}\nCities: {app['num_cities']}\nResources: ${round(on_hand):,}\nMoney: ${round(app['money']):,}\nMilitarization: {round(militarization, 2)}{vm}"})
 
         embeds = utils.embed_pager(embed_title, fields)
 
