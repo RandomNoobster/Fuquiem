@@ -361,11 +361,12 @@ class Military(commands.Cog):
 
     async def wars(self):
         await self.bot.wait_until_ready()
-        channel = self.bot.get_channel(923249186500116560) ## 923249186500116560
+        channel = self.bot.get_channel(842115066424852510) ## 923249186500116560
         debug_channel = self.bot.get_channel(739155202640183377)
         prev_wars = None
 
         async def cthread(war, non_atom, atom):
+            await asyncio.sleep(1)
             attack_logs = {"id": war['id'], "attacks": [], "detected": datetime.utcnow(), "finished": False}
             mongo.war_logs.insert_one(attack_logs)
 
@@ -415,6 +416,7 @@ class Military(commands.Cog):
             return attacker
 
         async def smsg(attacker_id, attack, war, atom, non_atom, peace):
+            await asyncio.sleep(1)
             embed = discord.Embed(title=f"New {war['war_type'].lower().capitalize()} War", description=f"[{war['attacker']['nation_name']}](https://politicsandwar.com/nation/id={war['attacker']['id']}) declared a{'n'[:(len(war['war_type'])-5)^1]} {war['war_type'].lower()} war on [{war['defender']['nation_name']}](https://politicsandwar.com/nation/id={war['defender']['id']})", color=0x2F3136)
             
             found = False
@@ -430,9 +432,21 @@ class Military(commands.Cog):
                         matching_thread = thread
                         found = True
                         person = utils.find_user(self, atom['id'])
+                        if not person:
+                            print("tried to add to archived thread, but could not find", atom['id'])
+                            await thread.send(f"I was unable to add nation {atom['id']} to the thread. Have they not linked their nation with their discord account?")
+                            break
                         user = await self.bot.fetch_user(person['user'])
                         await thread.add_user(user)
                         break
+            
+            if not found:
+                await cthread(war, non_atom, atom)
+
+            for thread in channel.threads:
+                if f"({non_atom['id']})" in thread.name:
+                    matching_thread = thread
+                    break
 
             if found:
                 thread = matching_thread
@@ -599,7 +613,7 @@ class Military(commands.Cog):
                     await thread.send(embed=embed)
                     mongo.war_logs.find_one_and_update({"id": war['id']}, {"$push": {"attacks": attack['id']}})
             else:
-                print("could not find thread", war, peace)
+                print("could not find or create thread", war, peace)
 
         while True:
             try:
