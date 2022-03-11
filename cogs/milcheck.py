@@ -440,14 +440,6 @@ class Military(commands.Cog):
                         await thread.add_user(user)
                         break
             
-            if not found:
-                await cthread(war, non_atom, atom)
-
-            for thread in channel.threads:
-                if f"({non_atom['id']})" in thread.name:
-                    matching_thread = thread
-                    break
-
             if found:
                 thread = matching_thread
                 url = f"https://politicsandwar.com/nation/war/timeline/war={war['id']}"
