@@ -3,4 +3,14 @@ run = "git pull; pip install py-cord==2.0.0b3; python main.py"
 onBoot = "git pull; pip install py-cord==2.0.0b3"
 
 [packager]
-ignoredPackages=["discord"]
+language = "python3"
+ignoredPackages = ["discord"]
+
+  [packager.features]
+  enabledForHosting = false
+
+  # Enable searching packages from the sidebar.
+  packageSearch = true
+  
+  # Enable guessing what packages are needed from the code.
+  guessImports = true

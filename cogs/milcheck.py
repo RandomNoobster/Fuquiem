@@ -12,7 +12,6 @@ from flask.views import MethodView
 from flask import request
 import pathlib
 import re
-import traceback
 import asyncio
 import utils
 from typing import Union

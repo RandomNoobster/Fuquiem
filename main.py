@@ -1,20 +1,18 @@
 from dotenv import load_dotenv
 from datetime import datetime
 import dateutil.parser
-from pymongo.mongo_client import MongoClient
 import keep_alive
 import pymongo
 import aiohttp
 import pytz
 import os
-import ssl
 import discord
 from discord.ext import commands
 intents = discord.Intents.default()
 intents.members = True
 load_dotenv()
 
-client = pymongo.MongoClient(os.getenv("pymongolink"), ssl_cert_reqs=ssl.CERT_NONE)
+client = pymongo.MongoClient(os.getenv("pymongolink"))
 version = os.getenv("version")
 mongo = client[str(version)]
 

@@ -5,9 +5,7 @@ import json
 from datetime import datetime
 from typing import Union, Tuple
 import aiohttp
-from lxml import html
 import re
-from pymongo.mongo_client import MongoClient
 import pymongo
 import ssl
 import os
