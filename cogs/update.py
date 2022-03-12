@@ -346,6 +346,26 @@ class Update(commands.Cog):
                     disc = await self.bot.fetch_user(person['user'])
                     await disc.send("Hey, there's 4 hours left until the winners of today's raffle is drawn! Remember to sign up for the raffle in <#850302301838114826>!")
 
+    async def nuke_reminder(self):
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_id:4729 vmode:false){data{id leader_name nation_name score warpolicy spies cia spy_satellite espionage_available nukes missiles mlp nrf}}}"}) as temp:
+                church = (await temp.json())['data']['nations']['data']
+            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{nations(page:1 first:500 alliance_id:7531 vmode:false){data{id leader_name nation_name score warpolicy spies cia spy_satellite espionage_available nukes missiles mlp nrf}}}"}) as temp:
+                convent = (await temp.json())['data']['nations']['data']
+            sum = church + convent
+            for member in sum:
+                content = "Remember to buy:\n\n"
+                if member['vds']:
+                    content += "Nukes: https://politicsandwar.com/nation/military/nukes/\n"
+                if member['mlp']: 
+                    content += "Missiles: https://politicsandwar.com/nation/military/missiles/\n"
+                try:
+                    person = utils.find_user(self, member['id'])
+                    user = await self.bot.fetch_user(person['user'])
+                    await user.send(content=content)
+                except:
+                    print(f"no nuke/missile dm to {member['nation_name']}")
+
     async def soxi(self):
         users = list(mongo.users.find({}))
         user_list = []
@@ -400,6 +420,10 @@ class Update(commands.Cog):
                     await self.raffle_reminder()
                 except:
                     await debug_channel.send(f"I encountered an error whilst performing self.raffle_reminder():\n```{traceback.format_exc()}```")
+                try:
+                    await self.nuke_reminder()
+                except:
+                    await debug_channel.send(f"I encountered an error whilst performing self.nuke_reminder():\n```{traceback.format_exc()}```")
             try:
                 await self.alert_scanner()
             except:
