@@ -92,7 +92,11 @@ class General(commands.Cog):
                         "password": str(cipher_suite.decrypt(admin['pwd'].encode()))[2:-1],
                         "loginform": "Login"
                     }
-                    s.post(login_url, data=login_data)
+                    login_req = s.post(login_url, data=login_data)
+                    if "You entered an incorrect email/password combination." in login_req.text:
+                        content += f"**{admin['leader']} has registered incorrect credentials with Fuquiem**"
+                        await message.edit(content=content)
+                        return {}
                     logged_in = admin
 
                 withdraw_url = f"https://politicsandwar.com/alliance/id={api_nation['allianceid']}"
