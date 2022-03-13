@@ -129,6 +129,38 @@ class Military(commands.Cog):
             await thread.delete()
         print("done")
         return
+    
+    async def add_to_thread(self, thread, atom_id: Union[str, int], atom: dict = None):
+        await asyncio.sleep(1.1)
+        person = utils.find_user(self, atom_id)
+        if person == {}:
+            print("tried to add, but could not find", atom_id)
+            if atom:
+                await thread.send(f"I was unable to add {atom['leader_name']} of {atom['nation_name']} to the thread. Have they not linked their nation with their discord account?")
+            else:
+                await thread.send(f"I was unable to add nation {atom_id} to the thread. Have they not linked their nation with their discord account?")
+            return
+        user = await self.bot.fetch_user(person['user'])
+        try:
+            await thread.add_user(user)
+        except Exception as e:
+            await thread.send(f"I was unable to add {user} to the thread.\n```{e}```")
+    
+    async def remove_from_thread(self, thread, atom_id: Union[str, int], atom: dict = None):
+        await asyncio.sleep(1.1)
+        person = utils.find_user(self, atom_id)
+        if person == {}:
+            print("tried to remove, but could not find", atom_id)
+            if atom:
+                await thread.send(f"I was unable to remove {atom['leader_name']} of {atom['nation_name']} from the thread. Have they not linked their nation with their discord account?")
+            else:
+                await thread.send(f"I was unable to remove nation {atom_id} from the thread. Have they not linked their nation with their discord account?")
+            return
+        user = await self.bot.fetch_user(person['user'])
+        try:
+            await thread.remove_user(user)
+        except:
+            await thread.send(f"I was unable to remove {user} from the thread.")
 
     @commands.command(
         brief="Status of someone's ongoing wars.",
