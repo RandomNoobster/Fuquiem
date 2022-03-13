@@ -1,5 +1,6 @@
 from collections import defaultdict
 import discord
+from matplotlib.style import use
 import requests
 import dateutil.parser
 import aiohttp
@@ -300,13 +301,14 @@ class Economic(commands.Cog):
             cipher_suite = Fernet(key)
 
             with requests.Session() as s:
-                login_url = "https://politicsandwar.com/login/"
-                login_data = {
-                    "email": str(cipher_suite.decrypt(person['email'].encode()))[2:-1],
-                    "password": str(cipher_suite.decrypt(person['pwd'].encode()))[2:-1],
-                    "loginform": "Login"
-                }
-                s.post(login_url, data=login_data)
+                if not use_link:
+                    login_url = "https://politicsandwar.com/login/"
+                    login_data = {
+                        "email": str(cipher_suite.decrypt(person['email'].encode()))[2:-1],
+                        "password": str(cipher_suite.decrypt(person['pwd'].encode()))[2:-1],
+                        "loginform": "Login"
+                    }
+                    s.post(login_url, data=login_data)
 
                 res = []
                 for sub in rss.split(','):
