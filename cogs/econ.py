@@ -621,7 +621,7 @@ class Economic(commands.Cog):
     
     async def balance1(self, user_obj):
         async with aiohttp.ClientSession() as session:
-            for aa in [{"id": 4729, "key": api_key, "banker": 465463547200012298}, {"id": 7531, "key": convent_key, "banker": 745313141184921712}]: # IMPORTANT, MUST HAVE UTC +0 AS DISPLAY TIME!!!
+            for aa in [{"id": 4729, "key": api_key, "banker": 465463547200012298}, {"id": 7531, "key": convent_key, "banker": 716986772944322635}]: # IMPORTANT, MUST HAVE UTC +0 AS DISPLAY TIME!!!
                 for type in ['tax', 'bank']:
                     api_query = f"{{alliances(id:{aa['id']} first:1){{data{{{type}recs{{date sid stype rid rtype pid note money coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}}}}}}}"
 
