@@ -359,7 +359,7 @@ class Update(commands.Cog):
                     content += "> Nukes: <https://politicsandwar.com/nation/military/nukes/>\n"
                 if member['mlp']: 
                     content += "> Missiles: <https://politicsandwar.com/nation/military/missiles/>\n"
-                if content != "Remember to buy:\n\n":
+                if content != "Remember to buy:\n":
                     try:
                         person = utils.find_user(self, member['id'])
                         user = await self.bot.fetch_user(person['user'])
