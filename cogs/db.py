@@ -214,6 +214,42 @@ class Database(commands.Cog):
         await ctx.send(f'I am deleting this from the db:\n{to_delete}')
         mongo.users.delete_one({"user": person['user']})
         await ctx.send('It was sucessfully deleted')
+    
+
+    @commands.command(brief='Demask someone')
+    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    async def demask(self, ctx, *, arg):
+        content = "Thinking...\n"
+        message = await ctx.send(content)
+        person = utils.find_user(self, arg)
+        if person == {}:
+            content = 'I do not know who that is.'
+            await message.edit(content)
+            return
+        to_delete = mongo.users.find_one({"user": person['user']})
+        if to_delete == None:
+            content = 'I do not know who that is.'
+            await message.edit(content)
+            return
+
+        content += "Adding/removing roles..\n"
+        await message.edit(content)
+        member = ctx.guild.get_member(person['user'])
+        heathen_role = ctx.guild.get_role(434248817005690880)
+        if heathen_role not in member.roles():
+            await member.add_roles(heathen_role)
+        for role_id in [837789914846330922, 837790885512347690, 837791502272561202, 837791514788495397, 747179040720289842, 796057460502298684, 711385354929700905, 434258764221251584]:
+            role = ctx.guild.get_role(role_id)
+            if role in member.roles:
+                await member.remove_roles(role)
+
+        mongo.leaved_users.insert_one(to_delete)
+        content += f'I am deleting this from the db:\n```{to_delete}```\n'
+        await message.edit(content)
+        mongo.users.delete_one({"user": person['user']})
+        content += 'It was sucessfully deleted.'
+        await message.edit(content)
+
 
     @commands.command(brief='Move someone back from the secondary db', help='')
     @commands.has_any_role('Internal Affairs', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
