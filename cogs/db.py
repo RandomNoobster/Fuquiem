@@ -236,15 +236,15 @@ class Database(commands.Cog):
         await message.edit(content)
         member = ctx.guild.get_member(person['user'])
         heathen_role = ctx.guild.get_role(434248817005690880)
-        if heathen_role not in member.roles():
+        if heathen_role not in member.roles:
             await member.add_roles(heathen_role)
-        for role_id in [837789914846330922, 837790885512347690, 837791502272561202, 837791514788495397, 747179040720289842, 796057460502298684, 711385354929700905, 434258764221251584]:
+        for role_id in [804880073483092060, 875380908100816907, 875380984202285086, 875380653951185016, 837789914846330922, 775428212342652938, 837790885512347690, 837791502272561202, 837791514788495397, 747179040720289842, 796057460502298684, 711385354929700905, 434258764221251584]:
             role = ctx.guild.get_role(role_id)
             if role in member.roles:
                 await member.remove_roles(role)
 
-        mongo.leaved_users.insert_one(to_delete)
-        content += f'I am deleting this from the db:\n```{to_delete}```\n'
+        mongo.leaved_users.find_one_and_replace({"_id": to_delete['_id']}, to_delete, upsert=True)
+        content += f'I am deleting this from the db:\n```{to_delete}```'
         await message.edit(content)
         mongo.users.delete_one({"user": person['user']})
         content += 'It was sucessfully deleted.'
