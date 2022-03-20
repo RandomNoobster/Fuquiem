@@ -9,4 +9,4 @@ Flask
 lxml
 Mako
 dload
-dateutil
+python-dateutil
