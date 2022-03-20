@@ -1,0 +1,12 @@
+pymongo
+dnspython
+python-dotenv
+pytz
+aiohttp
+requests
+cryptography
+Flask
+lxml
+Mako
+dload
+py-cord

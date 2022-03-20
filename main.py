@@ -75,7 +75,7 @@ async def time(ctx):
     embed_time = temp_time.replace(tzinfo=pytz.UTC)
     await ctx.send(embed_time)
 
-keep_alive.keep_alive()
+keep_alive.run()
 
 @keep_alive.app.route('/sheet')
 def sheet():
