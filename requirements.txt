@@ -10,3 +10,4 @@ lxml
 Mako
 dload
 python-dateutil
+matplotlib
