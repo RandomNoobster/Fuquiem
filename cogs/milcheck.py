@@ -512,7 +512,7 @@ class Military(commands.Cog):
                         for thread in channel.threads:
                             if f"({non_atom['id']})" in thread.name:
                                 await self.remove_from_thread(thread, atom['id'], atom)
-                                members = thread.fetch_members()
+                                members = await thread.fetch_members()
                                 member_count = 0
                                 for member in members:
                                     user = await self.bot.fetch_user(member['id'])
