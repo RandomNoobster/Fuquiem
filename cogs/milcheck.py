@@ -515,7 +515,7 @@ class Military(commands.Cog):
                                 members = await thread.fetch_members()
                                 member_count = 0
                                 for member in members:
-                                    user = await self.bot.fetch_user(member['id'])
+                                    user = await self.bot.fetch_user(member.id)
                                     if user.bot:
                                         continue
                                     else:
