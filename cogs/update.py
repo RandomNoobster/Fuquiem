@@ -108,7 +108,7 @@ class Update(commands.Cog):
                                 await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Spies', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you don't have max spies. To buy spies, please go here: <a href=\"https://politicsandwar.com/nation/military/spies/\">https://politicsandwar.com/nation/military/spies/</a>"})
 
                     ## inactivity_check
-                    minutes_inactive = round((datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%d %H:%M:%S%z").replace(tzinfo=None)).total_seconds()/60)
+                    minutes_inactive = round((datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%dT%H:%M:%S%z").replace(tzinfo=None)).total_seconds()/60)
                     if minutes_inactive > 2880:
                         inactivity_fields.append({"name": nation['leader_name'], "value": f"[{nation['leader_name']}](https://politicsandwar.com/nation/id={nation['id']}) has been inactive for {round(minutes_inactive/1440)} days."})
                         try:

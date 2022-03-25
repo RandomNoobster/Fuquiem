@@ -633,7 +633,7 @@ class Economic(commands.Cog):
 
                     for txid in res:
                         if user_obj['nationid'] == txid['rid'] or user_obj['nationid'] == txid['sid']:
-                            tx_obj['time'] = datetime.strptime(txid['date'], "%Y-%m-%d %H:%M:%S%z").replace(tzinfo=None)
+                            tx_obj['time'] = datetime.strptime(txid['date'], "%Y-%m-%dT%H:%M:%S%z").replace(tzinfo=None)
                             if tx_obj['time'] < datetime(2021, 7, 4, 15):
                                 #print('skipped due to recency')
                                 continue
@@ -998,7 +998,7 @@ class Economic(commands.Cog):
                 if war['date'] == '-0001-11-30 00:00:00':
                     wars_list.remove(war)
             wars_list = sorted(wars_list, key=lambda k: k['date'], reverse=False)
-            days_since_first_war = (datetime.utcnow() - datetime.strptime(wars_list[0]['date'], "%Y-%m-%d %H:%M:%S%z")).days
+            days_since_first_war = (datetime.utcnow() - datetime.strptime(wars_list[0]['date'], "%Y-%m-%dT%H:%M:%S%z")).days
 
         for war in wars_list:
             if war['attid'] == nation['id']:

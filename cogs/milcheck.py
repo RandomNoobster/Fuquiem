@@ -266,7 +266,7 @@ class Military(commands.Cog):
                     embed = discord.Embed(title="Peace offering", url=url, description=f"[{peace['offerer']['nation_name']}](https://politicsandwar.com/nation/id={peace['offerer']['id']}) is offering peace to [{peace['reciever']['nation_name']}](https://politicsandwar.com/nation/id={peace['reciever']['id']}). The peace offering will be canceled if either side performs an act of aggression.", color=0xffffff)
                     await thread.send(embed=embed)
                     return
-                footer = f"<t:{round(datetime.strptime(attack['date'], '%Y-%m-%d %H:%M:%S%z').timestamp())}:R> <t:{round(datetime.strptime(attack['date'], '%Y-%m-%d %H:%M:%S%z').timestamp())}>"
+                footer = f"<t:{round(datetime.strptime(attack['date'], '%Y-%m-%dT%H:%M:%S%z').timestamp())}:R> <t:{round(datetime.strptime(attack['date'], '%Y-%m-%dT%H:%M:%S%z').timestamp())}>"
                 if attack['type'] != "FORTIFY":
                     if attack['type'] in ["GROUND", "NAVAL", "AIRVINFRA", "AIRVSOLDIERS", "AIRVTANKS", "AIRVMONEY", "AIRVSHIPS", "AIRVAIR"]:
                         for nation in [war['attacker'], war['defender']]:
@@ -456,7 +456,7 @@ class Military(commands.Cog):
                                 has_more_pages = (await temp1.json())['data']['wars']['paginatorInfo']['hasMorePages']
                                 for war in all_wars:
                                     if war['turnsleft'] <= 0:
-                                        declaration = datetime.strptime(war['date'], '%Y-%m-%d %H:%M:%S%z').replace(tzinfo=None)
+                                        declaration = datetime.strptime(war['date'], '%Y-%m-%dT%H:%M:%S%z').replace(tzinfo=None)
                                         if (datetime.utcnow() - declaration).days <= 5:
                                             done_wars.append(war)
                             except:
@@ -504,10 +504,10 @@ class Military(commands.Cog):
                                 attacker = await attack_check(attack, done_war)
                                 await smsg(attacker, attack, done_war, atom, non_atom, None)
                         if len(done_war['attacks']) == 0:
-                            attack = {"type": "EXPIRATION", "id": -1, "date": datetime.strftime(datetime.utcnow().replace(tzinfo=timezone.utc), '%Y-%m-%d %H:%M:%S%z')}
+                            attack = {"type": "EXPIRATION", "id": -1, "date": datetime.strftime(datetime.utcnow().replace(tzinfo=timezone.utc), '%Y-%m-%dT%H:%M:%S%z')}
                             await smsg(None, attack, done_war, atom, non_atom, None)
                         elif done_war['attacks'][-1]['type'] not in ["PEACE", "VICTORY", "ALLIANCELOOT"]:
-                            attack = {"type": "EXPIRATION", "id": -1, "date": datetime.strftime(datetime.utcnow().replace(tzinfo=timezone.utc), '%Y-%m-%d %H:%M:%S%z')}
+                            attack = {"type": "EXPIRATION", "id": -1, "date": datetime.strftime(datetime.utcnow().replace(tzinfo=timezone.utc), '%Y-%m-%dT%H:%M:%S%z')}
                             await smsg(None, attack, done_war, atom, non_atom, None)
                         for thread in channel.threads:
                             if f"({non_atom['id']})" in thread.name:
@@ -605,7 +605,7 @@ class Military(commands.Cog):
         else:
             alliance = "No alliance"
 
-        desc = f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) | {alliance}\n\nLast login: <t:{round(datetime.strptime(nation['last_active'], '%Y-%m-%d %H:%M:%S%z').timestamp())}:R>\nOffensive wars: {len(nation['offensive_wars'])}/{max_offense}\nDefensive wars: {len(nation['defensive_wars'])}/3\nDefensive range: {round(nation['score'] / 1.75)} - {round(nation['score'] / 0.75)}{beige}\n\nSoldiers: **{nation['soldiers']:,}** / {max_sol:,}\nTanks: **{nation['tanks']:,}** / {max_tnk:,}\nPlanes: **{nation['aircraft']:,}** / {max_pln:,}\nShips: **{nation['ships']:,}** / {max_shp:,}"
+        desc = f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) | {alliance}\n\nLast login: <t:{round(datetime.strptime(nation['last_active'], '%Y-%m-%dT%H:%M:%S%z').timestamp())}:R>\nOffensive wars: {len(nation['offensive_wars'])}/{max_offense}\nDefensive wars: {len(nation['defensive_wars'])}/3\nDefensive range: {round(nation['score'] / 1.75)} - {round(nation['score'] / 0.75)}{beige}\n\nSoldiers: **{nation['soldiers']:,}** / {max_sol:,}\nTanks: **{nation['tanks']:,}** / {max_tnk:,}\nPlanes: **{nation['aircraft']:,}** / {max_pln:,}\nShips: **{nation['ships']:,}** / {max_shp:,}"
         embed = discord.Embed(title=f"{nation['nation_name']} ({nation['id']}) & their wars", description=desc, color=0x00ff00)
         embed1 = discord.Embed(title=f"{nation['nation_name']} ({nation['id']}) & their wars", description=desc, color=0x00ff00)
         embed.set_footer(text="_________________________________\nThe chance to get immense triumphs is if the nation in question attacks the main enemy. On average, it's worth attacking if the percentage is above 13%. Use $battlesim for more detailed battle predictions.")
@@ -695,7 +695,7 @@ class Military(commands.Cog):
             else:
                 alliance = "No alliance"
 
-            embed.add_field(name=f"\{war_emoji} {x['nation_name']} ({x['id']})", value=f"{vmstart}[War timeline](https://politicsandwar.com/nation/war/timeline/war={war['id']}) | [Message](https://politicsandwar.com/inbox/message/receiver={x['leader_name'].replace(' ', '+')})\n{alliance}\n\n**[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']})**{result['nation1_append']}\n{main_enemy_bar}\n**{main_enemy_res}/100** | MAPs: **{main_enemy_points}/12**\n\n**[{x['nation_name']}](https://politicsandwar.com/nation/id={x['id']})**{result['nation2_append']}\n{their_enemy_bar}\n**{their_enemy_res}/100** | MAPs: **{their_enemy_points}/12**\n\nExpiration (turns): {war['turnsleft']}\nLast login: <t:{round(datetime.strptime(x['last_active'], '%Y-%m-%d %H:%M:%S%z').timestamp())}:R>\nOngoing wars: {len(x['offensive_wars'] + x['defensive_wars'])}\n\nGround IT chance: **{round(100 * result['nation2_ground_win_rate']**3)}%**\nAir IT chance: **{round(100 * result['nation2_air_win_rate']**3)}%**\nNaval IT chance: **{round(100 * result['nation2_naval_win_rate']**3)}%**{vmend}", inline=True)
+            embed.add_field(name=f"\{war_emoji} {x['nation_name']} ({x['id']})", value=f"{vmstart}[War timeline](https://politicsandwar.com/nation/war/timeline/war={war['id']}) | [Message](https://politicsandwar.com/inbox/message/receiver={x['leader_name'].replace(' ', '+')})\n{alliance}\n\n**[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']})**{result['nation1_append']}\n{main_enemy_bar}\n**{main_enemy_res}/100** | MAPs: **{main_enemy_points}/12**\n\n**[{x['nation_name']}](https://politicsandwar.com/nation/id={x['id']})**{result['nation2_append']}\n{their_enemy_bar}\n**{their_enemy_res}/100** | MAPs: **{their_enemy_points}/12**\n\nExpiration (turns): {war['turnsleft']}\nLast login: <t:{round(datetime.strptime(x['last_active'], '%Y-%m-%dT%H:%M:%S%z').timestamp())}:R>\nOngoing wars: {len(x['offensive_wars'] + x['defensive_wars'])}\n\nGround IT chance: **{round(100 * result['nation2_ground_win_rate']**3)}%**\nAir IT chance: **{round(100 * result['nation2_air_win_rate']**3)}%**\nNaval IT chance: **{round(100 * result['nation2_naval_win_rate']**3)}%**{vmend}", inline=True)
             embed1.add_field(name=f"\{war_emoji} {x['nation_name']} ({x['id']})", value=f"{vmstart}[War timeline](https://politicsandwar.com/nation/war/timeline/war={war['id']}) | [Message](https://politicsandwar.com/inbox/message/receiver={x['leader_name'].replace(' ', '+')})\n{alliance}\n\n**[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']})**{result['nation1_append']}\n**[{x['nation_name']}](https://politicsandwar.com/nation/id={x['id']})**{result['nation2_append']}\n\nOffensive wars: {len(x['offensive_wars'])}/{max_offense}\nDefensive wars: {len(x['defensive_wars'])}/3{beige}\n\n Soldiers: **{x['soldiers']:,}** / {max_sol:,}\nTanks: **{x['tanks']:,}** / {max_tnk:,}\nPlanes: **{x['aircraft']:,}** / {max_pln:,}\nShips: **{x['ships']:,}** / {max_shp:,}\n\nGround IT chance: **{round(100 * result['nation2_ground_win_rate']**3)}%**\nAir IT chance: **{round(100 * result['nation2_air_win_rate']**3)}%**\nNaval IT chance: **{round(100 * result['nation2_naval_win_rate']**3)}%**{vmend}", inline=True)
 
         class status_view(discord.ui.View):
@@ -926,7 +926,7 @@ class Military(commands.Cog):
                         async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={person['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
                             txids = await txids.json()
                         for x in txids['data']:
-                            if x['note'] == 'Resupplying warchest' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S%z') <= end_time:
+                            if x['note'] == 'Resupplying warchest' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%dT%H:%M:%S%z') <= end_time:
                                 success = True
                         if success:
                             await ctx.send(f"I can confirm that the transaction to **{nation['nation']} ({nation['leader']})** has successfully commenced.")
@@ -1364,7 +1364,7 @@ class Military(commands.Cog):
                         continue
                     if used_slots > max_wars:
                         continue
-                    if (datetime.utcnow() - datetime.strptime(x['last_active'], "%Y-%m-%d %H:%M:%S%z").replace(tzinfo=None)).days < inactive_limit:
+                    if (datetime.utcnow() - datetime.strptime(x['last_active'], "%Y-%m-%dT%H:%M:%S%z").replace(tzinfo=None)).days < inactive_limit:
                         continue
                     target_list.append(x)
                     
@@ -1416,7 +1416,7 @@ class Military(commands.Cog):
                     wars = sorted(target['wars'], key=lambda k: k['date'], reverse=True)
                     war = wars[0]
                     if target['def_slots'] == 0:
-                        target['time_since_war'] = (datetime.utcnow() - datetime.strptime(war['date'], "%Y-%m-%d %H:%M:%S%z").replace(tzinfo=None)).days
+                        target['time_since_war'] = (datetime.utcnow() - datetime.strptime(war['date'], "%Y-%m-%dT%H:%M:%S%z").replace(tzinfo=None)).days
                     else:
                         target['time_since_war'] = "Ongoing"
                     if war['winner'] in ["0", target['id']]:
@@ -1468,7 +1468,7 @@ class Military(commands.Cog):
                 if target['last_active'] == '-0001-11-30 00:00:00':
                     days_inactive = 0
                 else:
-                    days_inactive = (datetime.utcnow() - datetime.strptime(target['last_active'], "%Y-%m-%d %H:%M:%S%z").replace(tzinfo=None)).days
+                    days_inactive = (datetime.utcnow() - datetime.strptime(target['last_active'], "%Y-%m-%dT%H:%M:%S%z").replace(tzinfo=None)).days
 
                 for city in target['cities']:
                     target['infrastructure'] += city['infrastructure']

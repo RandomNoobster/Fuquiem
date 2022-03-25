@@ -826,7 +826,7 @@ class General(commands.Cog):
                 apps += (await temp.json())['data']['nations']['data']
 
         for app in apps:
-            app['last_active'] = f"<t:{round(datetime.strptime(app['last_active'], '%Y-%m-%d %H:%M:%S%z').timestamp())}:R>"
+            app['last_active'] = f"<t:{round(datetime.strptime(app['last_active'], '%Y-%m-%dT%H:%M:%S%z').timestamp())}:R>"
 
         apps = sorted(apps, key=lambda k: k['last_active'], reverse=True)
         fields = []
