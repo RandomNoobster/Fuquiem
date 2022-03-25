@@ -116,10 +116,10 @@
                     <td>${nation['score']}</td>
                     <td>${nation['vmode']}</td>
 
-                    % if (datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%d %H:%M:%S%z").replace(tzinfo=None)).total_seconds()/3600 > 72:
-                    <td style="color:red">${round((datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%d %H:%M:%S%z").replace(tzinfo=None)).total_seconds()/3600)}</td>
+                    % if (datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%dT%H:%M:%S%z").replace(tzinfo=None)).total_seconds()/3600 > 72:
+                    <td style="color:red">${round((datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%dT%H:%M:%S%z").replace(tzinfo=None)).total_seconds()/3600)}</td>
                     % else:
-                    <td>${round((datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%d %H:%M:%S%z").replace(tzinfo=None)).total_seconds()/3600)}</td>
+                    <td>${round((datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%dT%H:%M:%S%z").replace(tzinfo=None)).total_seconds()/3600)}</td>
                     % endif
 
                     <td>${round(int(nation['soldiers'])/(nation['num_cities']*5*3000),2)}</td>
