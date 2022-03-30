@@ -28,7 +28,7 @@ class Update(commands.Cog):
         self.bot.bg_task = self.bot.loop.create_task(self.auto_update())
 
     @commands.command(brief='Gives you an overview of, and sends a DM to everyone that needs to login/buy spies/get food')
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.mid_gov_plus_perms)
     async def check(self, ctx, aa='all'):
         try:
             await self.nation_check(ctx.channel, aa)
@@ -144,8 +144,8 @@ class Update(commands.Cog):
             for embed in embeds:
                 await channel.send(embed=embed)
 
-    @commands.command(brief='Debugging cmd, requires admin perms')
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.command(brief='Assign city-tiering roles')
+    @commands.has_any_role(utils.high_gov_plus_perms)
     async def cityroles(self, ctx):
         await self.city_roles()
         await ctx.send(f'City-dependent roles have been assigned!')
@@ -230,8 +230,8 @@ class Update(commands.Cog):
                     if trader_role in member.roles:
                         await member.remove_roles(trader_role)
     
-    @commands.command(brief='Debugging cmd, requires admin perms')
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.command(brief='Refresh sheet information')
+    @commands.has_any_role(*utils.high_gov_plus_perms)
     async def getsheet(self, ctx):
         print('getting sheet')
         await self.sheet_generator()
@@ -446,8 +446,8 @@ class Update(commands.Cog):
             print(datetime.utcnow(), 'finished, going to sleep')
             await asyncio.sleep(60)
 
-    @commands.command(brief='Debugging cmd, requires admin perms')
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.command(brief='Manually run scheduled tasks')
+    @commands.has_any_role(*utils.high_gov_plus_perms)
     async def update(self, ctx):
         await ctx.send('I will do my worst...')
         try: 
@@ -461,8 +461,8 @@ class Update(commands.Cog):
             pass
         await ctx.send('Things have been updated from the API.')
 
-    @commands.command(brief='Debugging cmd, requires admin perms')
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.command(brief='Manually remind people to buy spies')
+    @commands.has_any_role(*utils.mid_gov_plus_perms)
     async def spyreminder(self, ctx):
         await ctx.send('I will do my worst...')
         Military = self.bot.get_cog('Military')

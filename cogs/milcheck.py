@@ -32,7 +32,7 @@ class Military(commands.Cog):
         self.bot.bg_task = self.bot.loop.create_task(self.wars())
 
     @commands.command(brief='Returns military statistics', help='Displays information about rebuys, warchests, mmr and ongoing wars for the Church and Convent.')
-    @commands.has_any_role('Deacon', 'Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.low_gov_plus_perms)
     async def milcheck(self, ctx):
         async with aiohttp.ClientSession() as session:
             message = await ctx.send('Hang on...')
@@ -125,7 +125,7 @@ class Military(commands.Cog):
         asyncio.create_task(utils.reaction_checker(self, message4, embeds4))
 
     @commands.command(brief='Delete all threads in this channel.', help="Deletes any active thread in the channel the command was called.")
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.mid_gov_plus_perms)
     async def clear_threads(self, ctx):
         for thread in ctx.channel.threads:
             await thread.delete()
@@ -463,7 +463,6 @@ class Military(commands.Cog):
                                 print((await temp1.json())['errors'])
                                 await asyncio.sleep(60)
                                 continue
-                    print(len(done_wars))
                     for new_war in wars:
                         if new_war['att_alliance_id'] in ['4729', '7531']: ## CHANGE T0 ATOM ---------------------------------------------------------
                             atom = new_war['attacker']
@@ -487,6 +486,7 @@ class Military(commands.Cog):
                             if attack['id'] not in attack_logs['attacks']:
                                 attacker = await attack_check(attack, new_war)
                                 await smsg(attacker, attack, new_war, atom, non_atom, None)
+                    print(len(done_wars))
                     for done_war in done_wars:
                         if done_war['att_alliance_id'] in ['4729', '7531']: ## CHANGE T0 ATOM ---------------------------------------------------------
                             atom = done_war['attacker']
@@ -524,8 +524,8 @@ class Military(commands.Cog):
                                     await thread.edit(archived=True)
                                 mongo.war_logs.find_one_and_update({"id": done_war['id']}, {"$set": {"finished": True}})
                                 break
-                if len(done_wars) > 0:
-                    min_id = done_wars[0]['id']
+                if len(all_wars) > 0:
+                    min_id = all_wars[0]['id']
                 prev_wars = wars
                 await asyncio.sleep(60)
             except:
@@ -536,7 +536,7 @@ class Military(commands.Cog):
         aliases=['s'],
         help="Can be used without arguments in a war thread, or you can supply an argument to get the warring status of the supplied nation."
     )
-    @commands.has_any_role('Pupil', 'Zealot', 'Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.pupil_plus_perms)
     async def status(self, ctx, arg=None):
         with open ('./data/attachments/marching.gif', 'rb') as gif:
             gif = discord.File(gif)
@@ -725,7 +725,7 @@ class Military(commands.Cog):
         brief='Add someone to the military coordination thread.',
         help="Must be used in a thread. Very wasteful command, since you can also add people by pinging them."
         )
-    @commands.has_any_role('Pupil', 'Zealot', 'Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.pupil_plus_perms)
     async def add(self, ctx, *, user):
         await self.add_to_thread(ctx.channel, user)
 
@@ -733,7 +733,7 @@ class Military(commands.Cog):
         brief='Remove someone from the military coordination thread.',
         help="Must be used in a thread. Supply the user you wish to remove from the thread."
         )
-    @commands.has_any_role('Deacon', 'Advisor', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.low_gov_plus_perms)
     async def remove(self, ctx, *, user):
         await self.remove_from_thread(ctx.channel, user)
 
@@ -777,7 +777,7 @@ class Military(commands.Cog):
         brief="Sends a warchest top up to the people in need",
         help="Requires admin perms, sends people the resources they need in addition to telling people what to deposit."
         )
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.mid_gov_plus_perms)
     async def warchest(self, ctx, alliance=None):
         async with aiohttp.ClientSession() as session:
             if alliance is None:
@@ -796,7 +796,7 @@ class Military(commands.Cog):
         brief="Sends a warchest top up to the specified person",
         help="Requires admin perms. It's basically the $warchest command, but it's limited to the person you specified."
         )
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.mid_gov_plus_perms)
     async def resupply(self, ctx, *, arg):
         async with aiohttp.ClientSession() as session:
             person = utils.find_user(self, arg)
@@ -960,11 +960,10 @@ class Military(commands.Cog):
                         pass
 
     @commands.command(brief='Manually update the #threats channel')
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.low_gov_plus_perms)
     async def check_wars(self, ctx):
         await self.wars_check()
         await ctx.send(f'Done!')
-        # merely a debugging command
 
     async def wars_check(self):
         async with aiohttp.ClientSession() as session:
@@ -1060,7 +1059,7 @@ class Military(commands.Cog):
             
 
     @commands.command(brief='Change the global mmr setting')
-    @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.mid_gov_plus_perms)
     async def mmr(self, ctx, mmr):
         mmr = re.sub("[^0-9]", "", mmr)
         min_bar = int(mmr[0])
@@ -1077,8 +1076,8 @@ class Military(commands.Cog):
         brief='Find raid targets',
         aliases=['raid'],
         help="When going through the setup wizard, you can choose to get the results on discord or as a webpage. If you decide to get the targets on discord, you will be able to react with the arrows in order to view different targets. You can also type 'page 62' to go nation number 62. This will of course work for any number. By reacting with the clock, you will add a beige reminder for the nation if they are in beige. Fuquiem will then DM you when the nation exits beige. You can use $reminders to view active reminders. If you choose to get the targets on a webpage, you will get a link to a page with a table. The table will include all nations that match the criteria you specified in the wizard. If you want beige reminders, there is a 'remind me'-button for every nation currently in beige. You can press the table headers to sort by different attributes. By default it's sorted by monetary net income."
-        )
-    @commands.has_any_role('Pupil', 'Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    )
+    @commands.has_any_role(*utils.pupil_plus_perms)
     async def raids(self, ctx, *, arg=None):
         invoker = str(ctx.author.id)
         async with aiohttp.ClientSession() as session:
@@ -1716,8 +1715,8 @@ class Military(commands.Cog):
         aliases=['bsim', 'bs'],
         brief='Simulate battles between two nations',
         help="Accepts up to two arguments. The first argument is the attacking nation, whilst the latter is the defending nation. If only one argument is provided, Fuquiem will assume that you are the defender. If no arguments are provided, it will assume you are attacking yourself. If it is used in a war thread, it will use the enemy in the thread as the defender if you have not supplied any other defender."
-        )
-    @commands.has_any_role('Pupil', 'Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    )
+    @commands.has_any_role(*utils.pupil_plus_perms)
     async def battlesim(self, ctx, nation1=None, nation2=None):
         #check is any wars are active, and if they have air superiority, ground control, fortified etc
         message = await ctx.send('Alright, give me a sec to calculate the winrates...')

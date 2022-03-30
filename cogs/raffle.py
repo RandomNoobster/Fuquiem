@@ -19,7 +19,7 @@ class Raffle(commands.Cog):
         self.bot = bot
 
     @commands.command(brief='Signs you up for the raffle!')
-    @commands.has_any_role('Pupil')
+    @commands.has_any_role(utils.pupil_id)
     async def login(self, ctx):
         x = mongo.users.find_one({"user": ctx.author.id})
         if x == None:
@@ -99,7 +99,7 @@ class Raffle(commands.Cog):
         await ctx.send(content=mention_string, allowed_mentions=discord.AllowedMentions(everyone=False, users=False, roles=False))
 
     @commands.command(brief='Debugging cmd, requires admin perms')
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.high_gov_plus_perms)
     async def draw(self, ctx):
         await self.draw_func()
         # merely a debugging command

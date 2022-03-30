@@ -120,8 +120,8 @@ class Economic(commands.Cog):
 
     @commands.command(
         brief='Archive current resource prices'
-        )
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    )
+    @commands.has_any_role(*utils.high_gov_plus_perms)
     async def getprices(self, ctx):
         file = await self.get_prices()
         mongo.price_history.insert_one(file)
@@ -131,8 +131,7 @@ class Economic(commands.Cog):
     @commands.command(
         brief='Print average prices for resources',
         help='Sends a message on discord and prints average prices to the console. This is the average of all recorded prices.'
-        )
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    )
     async def avgprices(self, ctx):
         rss = ['Aluminum', 'Bauxite', 'Coal', 'Credits', 'Food', 'Gasoline', 'Iron', 'Lead', 'Munitions', 'Oil', 'Steel', 'Uranium']
         resp = list(mongo.price_history.find({}))
@@ -144,7 +143,6 @@ class Economic(commands.Cog):
             avg[rs] = round(avg[rs]/len(resp))
         print(avg)
         await ctx.send(avg)
-        # merely a debugging command
 
     async def get_prices(self):
         async with aiohttp.ClientSession() as session:
@@ -165,7 +163,7 @@ class Economic(commands.Cog):
         help='This command may only be used by Cardinals. Usage: "$withdraw <recipient> <type of resource> - <amount of resource>, <type of resource> - <amount of resource>... " Recipient can be nation name, nation id, nation link, leader name, discord id, discord name, or discord mention. Please note that spaces are ignored, so it does not matter if you type "-" and "," or " - " and ", "',
         aliases=['with', 'w']
         )
-    @commands.has_any_role('Pam', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(utils.pam_id, *utils.high_gov_plus_perms)
     async def withdraw(self, ctx, recipient, *, rss):
         async with aiohttp.ClientSession() as session:
             randy = utils.find_user(self, 465463547200012298)
@@ -424,7 +422,7 @@ class Economic(commands.Cog):
         aliases=['fd']
         )
     @commands.cooldown(1, 172800, commands.BucketType.user)
-    @commands.has_any_role('Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.zealot_plus_perms)
     async def food(self, ctx):
         async with aiohttp.ClientSession() as session:
             randy = utils.find_user(self, 465463547200012298)
@@ -487,7 +485,7 @@ class Economic(commands.Cog):
         help="Sends you 3k uranium. The command has a 48 hour cooldown, and may only be used by Zealots."
         )
     @commands.cooldown(1, 172800, commands.BucketType.user)
-    @commands.has_any_role('Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.zealot_plus_perms)
     async def uranium(self, ctx):
         async with aiohttp.ClientSession() as session:
             randy = utils.find_user(self, 465463547200012298)
@@ -544,23 +542,23 @@ class Economic(commands.Cog):
                 else:
                     await ctx.send(f"Beat me up with an eyebrow! Things didn't go as planned! Please check this page to see if you got your uranium:\nhttps://politicsandwar.com/nation/id={person['nationid']}&display=bank")
 
-    @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.high_gov_plus_perms)
     @commands.command(
         aliases=['ba', 'balincrement', 'bi'],
         brief="Adds value to person's balance",
         help="Create an artifical transaction record of a set amount of money"
-        )
+    )
     async def baladd(self, ctx, person, diff):
         user = utils.find_user(self, person)
         message = await ctx.send("Fuck Requiem...")
         await self.balmod(diff, message, 1, user)
 
-    @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.high_gov_plus_perms)
     @commands.command(
         aliases=['balremove', 'br'],
         brief="Subtracts value to person's balance",
         help="Create an artifical transaction record of a set amount of money"
-        )
+    )
     async def balsubtract(self, ctx, person, diff):
         user = utils.find_user(self, person)
         message = await ctx.send("Fuck Requiem...")
@@ -819,7 +817,7 @@ class Economic(commands.Cog):
         brief='Send people grants',
         help='This command may only be used by Cardinals. Usage: "$grant <type of resource> - <amount of resource>, <type of resource> - <amount of resource>... <recipient>" Recipient can be nation name, nation id, nation link, leader name, discord id, discord name, or discord mention. Please note that spaces are ignored, so it does not matter if you type "-" and "," or " - " and ", "'
         )
-    @commands.has_any_role('Pam', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(utils.pam_id, *utils.high_gov_plus_perms)
     async def grant(self, ctx, recipient, *, rss):
         async with aiohttp.ClientSession() as session:
             randy = utils.find_user(self, 465463547200012298)
@@ -940,8 +938,7 @@ class Economic(commands.Cog):
         aliases=['rev'],
         brief='Revenue breakdown of a nation',
         help="The command takes one argument; a nation. If no argument is provided, it will default to the nation of the person that invoked the command. You can react with ⚔️ to get an overivew of the nation's war incomes."
-        )
-    @commands.has_any_role('Pupil', 'Zealot', 'Deacon', 'Advisor', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    )
     async def revenue(self, ctx, person: str = None, *, build: str = None):
         message = await ctx.send('Stay with me...')
         if person == None:

@@ -17,6 +17,61 @@ key = os.getenv("encryption_key")
 api_key = os.getenv("api_key")
 cipher_suite = Fernet(key)
 
+pupil_id = 711385354929700905
+deacon_id = 790688418429665300
+advisor_id = 831593315937943562
+zealot_id = 434258764221251584
+acolyte_id = 434258659288154112
+cardinal_id = 434258149474697216
+primus_id = 484572512731136001
+pontifex_id = 434258420456095744
+banker_id = 775428212342652938
+raffle_id = 747179040720289842
+fa_id = 804880073483092060
+ea_id = 875380908100816907
+ma_id = 875380984202285086
+ia_id = 875380653951185016
+pam_id = 893083974421843988
+
+pupil_plus_perms = [
+    pupil_id,
+    zealot_id,
+    deacon_id,
+    acolyte_id,
+    cardinal_id,
+    primus_id,
+    pontifex_id
+]
+
+zealot_plus_perms = [
+    zealot_id,
+    acolyte_id,
+    cardinal_id,
+    primus_id,
+    pontifex_id
+]
+
+low_gov_plus_perms = [
+    deacon_id,
+    acolyte_id,
+    cardinal_id,
+    primus_id,
+    pontifex_id
+]
+
+mid_gov_plus_perms = [
+    acolyte_id,
+    cardinal_id,
+    primus_id,
+    pontifex_id
+]
+
+high_gov_plus_perms = [
+    cardinal_id,
+    primus_id,
+    pontifex_id
+]
+
 def embed_pager(title: str, fields: list, description: str = "", color: int = 0x00ff00, inline: bool = True) -> list:
     embeds = []
     for i in range(math.ceil(len(fields)/24)):

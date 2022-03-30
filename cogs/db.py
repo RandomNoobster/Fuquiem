@@ -21,7 +21,7 @@ class Database(commands.Cog):
         self.bot = bot
  
     @commands.command(brief='Meant for debugging purposes')
-    @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.high_gov_plus_perms)
     async def debug(self, ctx):
         """print('debugging')
         current = list(mongo['users'].find({}))
@@ -71,7 +71,7 @@ class Database(commands.Cog):
 
 
     @commands.command(brief='Add someone to the db', help='First argument should be a ping, and the second argument should be a nation link.', aliases=['dab'])
-    @commands.has_any_role('Internal Affairs', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(utils.ia_id, *utils.mid_gov_plus_perms)
     async def dba(self, ctx, disc: discord.User, nation):
         async with aiohttp.ClientSession() as session:
             nid = str(re.sub("[^0-9]", "", nation))
@@ -200,7 +200,7 @@ class Database(commands.Cog):
             await utils.reaction_checker(self, message, embeds)
 
     @commands.command(brief='Remove someone from the db')
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.mid_gov_plus_perms)
     async def dbd(self, ctx, *, arg):
         person = utils.find_user(self, arg)
         if person == {}:
@@ -217,7 +217,7 @@ class Database(commands.Cog):
     
 
     @commands.command(brief='Demask someone')
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.mid_gov_plus_perms)
     async def demask(self, ctx, *, arg):
         content = "Thinking...\n"
         message = await ctx.send(content)
@@ -252,7 +252,7 @@ class Database(commands.Cog):
 
 
     @commands.command(brief='Move someone back from the secondary db', help='')
-    @commands.has_any_role('Internal Affairs', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(utils.ia_id, *utils.mid_gov_plus_perms)
     async def restore(self, ctx, *, arg):
         message = await ctx.send("Asking James for selfies...")
         result = None
@@ -313,7 +313,7 @@ class Database(commands.Cog):
         mongo.users.delete_one({"user": member.id})
 
     @commands.command(brief='The ENTIRE db!')
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.low_gov_plus_perms)
     async def db(self, ctx):
         current = list(mongo['users'].find({}))
         fields = []        
@@ -324,7 +324,7 @@ class Database(commands.Cog):
         await utils.reaction_checker(self, message, embeds)
 
     @commands.command(brief='Display the secondary database with all deleted users', aliases=['removeddb', 'rdb'])
-    @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.low_gov_plus_perms)
     async def removed_db(self, ctx):
         current = list(mongo['leaved_users'].find({}))
         fields = []        

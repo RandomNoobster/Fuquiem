@@ -128,8 +128,8 @@ class General(commands.Cog):
     @commands.command(
         brief="Change the status of nations",
         help="2: Member, 1: Applicant, 0: Remove, -1: Ban, -2: Unban, -3: Invite/uninvite"
-        )
-    @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    )
+    @commands.has_any_role(*utils.high_gov_plus_perms)
     async def move(self, ctx, level: int, *, arg):
         message = await ctx.send("Be patient, young padawan...")
         async with aiohttp.ClientSession() as session:
@@ -171,7 +171,7 @@ class General(commands.Cog):
         await self.change_perm(responses, str(level), message)        
 
     @commands.command(aliases=['message'], brief="Send a premade message to someone")
-    @commands.has_any_role('Internal Affairs')
+    @commands.has_any_role(utils.ia_id, *utils.high_gov_plus_perms)
     async def msg(self, ctx, *, arg):
         message = await ctx.send("Working on it..")
         if "," in arg:
@@ -637,7 +637,7 @@ class General(commands.Cog):
         await message.edit(content=f"A beige reminder for https://politicsandwar.com/nation/id={nation['nationid']} was added.")
 
     @commands.command(brief='When Deacons audit someone they can use "$audited <personyoujustaudited>" to register this to the spreadsheet')
-    @commands.has_any_role('Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.low_gov_plus_perms)
     async def audited(self, ctx, person):
         person = utils.find_user(self, person)
         if person['audited']:
@@ -660,7 +660,7 @@ class General(commands.Cog):
 
 
     @commands.command(aliases=['trades', 'trader', 'traders'],brief='A list of the 10 traders with the largest amount of the resource you specify')
-    @commands.has_any_role('Pupil', 'Zealot', 'Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.pupil_plus_perms)
     async def trade(self, ctx, resource):
         resource = resource.lower()
         church = requests.get(
@@ -722,7 +722,7 @@ class General(commands.Cog):
             await ctx.send(f"I didn't find anything!")
     
     @commands.command(brief='Send an informative message')
-    @commands.has_any_role('Internal Affairs')
+    @commands.has_any_role(utils.ia_id, *utils.high_gov_plus_perms)
     async def welcome(self, ctx, arg):
         message = await ctx.send("Doing my job...")
         user = utils.find_user(self, arg)
@@ -764,7 +764,7 @@ class General(commands.Cog):
         await message.edit(content=content)
 
     @commands.command(brief='Admits an applicant, accepts 1 argument')
-    @commands.has_any_role('Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(utils.ia_id, *utils.mid_gov_plus_perms)
     async def admit(self, ctx, arg):
         message = await ctx.send("<:thonk:787399051582504980>")
         nation = utils.find_nation_plus(self, arg)
@@ -800,12 +800,12 @@ class General(commands.Cog):
             return
         
     @commands.command(brief='Shows information about applicants', aliases=['apps'])
-    @commands.has_any_role('Internal Affairs')
+    @commands.has_any_role(*utils.low_gov_plus_perms)
     async def applicants(self, ctx):
         await self.member_analysis(ctx, [1], "Applicants")
 
     @commands.command(brief='Shows information about members', aliases=['mems'])
-    @commands.has_any_role('Internal Affairs')
+    @commands.has_any_role(*utils.low_gov_plus_perms)
     async def members(self, ctx):
         await self.member_analysis(ctx, [2,3,4,5], "Members")
     
@@ -876,7 +876,7 @@ class General(commands.Cog):
         await utils.reaction_checker(self, message, embeds)
 
     @commands.command(aliases=['builds'], brief="Shows you the best city builds", help="After calling the command, you have to tell Fuquiem 3 things. 1) How much infra you want. 2) How much land you want. 3) What MMR you want. When you're done with this, Fuquiem will link to a webpage showing the best builds for producing every resource. Note that these are the best builds for YOU and YOU only! I takes your projects and continent into consideration when calculating the revenue of each build. When calling the command, you can therefore supply a person for whom you want the builds to be calculated for. IMPORTANT! - This tool only shows builds that are currently being used somewhere in Orbis. This means that you may very well be able to improve upon these builds. It's worth mentioning that even though this shows the best builds for producing every type of resource (except for the ones you can't produce due to continent restrictions), the \"best build for net income\" is in reality best for every resource. This is because the higher monetary income lets you buy more of a resource than you could get by producing it. Another important thing to mention, is that the monetary net income is dependent on market prices. This means that in times of war, manufactured resources will increase in price, increasing the profitability of builds producing these resources. The \"best\" build for net income may therefore not always be the same.")
-    @commands.has_any_role('Pupil', 'Zealot', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
+    @commands.has_any_role(*utils.pupil_plus_perms)
     async def build(self, ctx, arg_infra: str = None, arg_land: str = None, arg_mmr: str = None, person: str = None):
         now = datetime.now()
         yesterday = now + timedelta(days=-1)
