@@ -432,11 +432,12 @@ class Military(commands.Cog):
                 async with aiohttp.ClientSession() as session:
                     has_more_pages = True
                     n = 1
+                    wars = []
                     while has_more_pages:
                         async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{wars(alliance_id:[4729,7531] page:{n} active:true){{paginatorInfo{{hasMorePages}} data{{id att_fortify war_type def_fortify attpeace defpeace turnsleft date att_alliance_id def_alliance_id attacker{{nation_name leader_name alliance{{name}} id num_cities cities{{id}}}} defender{{nation_name leader_name alliance{{name}} id num_cities cities{{id}}}} attacks{{type id date loot_info victor moneystolen success cityid resistance_eliminated infradestroyed infra_destroyed_value improvementslost aircraft_killed_by_tanks attcas1 attcas2 defcas1 defcas2}}}}}}}}"}) as temp:
                             n += 1
                             try:
-                                wars = (await temp.json())['data']['wars']['data']
+                                wars += (await temp.json())['data']['wars']['data']
                                 has_more_pages = (await temp.json())['data']['wars']['paginatorInfo']['hasMorePages']
                             except:
                                 print((await temp.json())['errors'])
