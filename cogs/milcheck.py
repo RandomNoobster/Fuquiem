@@ -167,7 +167,7 @@ class Military(commands.Cog):
     async def wars(self):
         await self.bot.wait_until_ready()
         #channel_id = int(os.getenv("channel_id"))
-        channel = self.bot.get_channel(842115066424852510) #923249186500116560
+        channel = self.bot.get_channel(923249186500116560) #923249186500116560 | 842115066424852510
         debug_channel = self.bot.get_channel(739155202640183377)
         prev_wars = None
 
