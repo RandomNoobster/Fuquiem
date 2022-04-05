@@ -177,7 +177,7 @@ class Update(commands.Cog):
             if not user:
                 print(f"I could not find {nation['nation_name']} as a member on discord.")
                 continue
-            if nation['cities'] < 10:
+            if nation['num_cities'] < 10:
                 if zerotoninerole not in user.roles:
                     await user.add_roles(zerotoninerole)
                 if tentonineteenrole in user.roles:
@@ -186,7 +186,7 @@ class Update(commands.Cog):
                     await user.remove_roles(twentytotwentyninerole)
                 if thirtyplusrole in user.roles:
                     await user.remove_roles(thirtyplusrole)
-            if 9 < nation['cities'] < 20:
+            if 9 < nation['num_cities'] < 20:
                 if tentonineteenrole not in user.roles:
                     await user.add_roles(tentonineteenrole)
                 if zerotoninerole in user.roles:
@@ -195,7 +195,7 @@ class Update(commands.Cog):
                     await user.remove_roles(twentytotwentyninerole)
                 if thirtyplusrole in user.roles:
                     await user.remove_roles(thirtyplusrole)
-            if 19 < nation['cities'] < 30:
+            if 19 < nation['num_cities'] < 30:
                 if twentytotwentyninerole not in user.roles:
                     await user.add_roles(twentytotwentyninerole)
                 if tentonineteenrole in user.roles:
@@ -204,7 +204,7 @@ class Update(commands.Cog):
                     await user.remove_roles(zerotoninerole)
                 if thirtyplusrole in user.roles:
                     await user.remove_roles(thirtyplusrole)
-            if 29 < nation['cities']:
+            if 29 < nation['num_cities']:
                 if thirtyplusrole not in user.roles:
                     await user.add_roles(thirtyplusrole)
                 if tentonineteenrole in user.roles:
