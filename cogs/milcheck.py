@@ -504,6 +504,8 @@ class Military(commands.Cog):
                                 if attack['id'] not in attack_logs['attacks']:
                                     attacker = await attack_check(attack, new_war)
                                     await smsg(attacker, attack, new_war, atom, non_atom, None)
+                        except discord.errors.Forbidden:
+                            pass
                         except Exception as e:
                             await debug_channel.send(f"I encountered an error when iterating through `wars` ```{e}```")
                     for done_war in done_wars:
