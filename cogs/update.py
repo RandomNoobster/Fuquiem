@@ -153,10 +153,10 @@ class Update(commands.Cog):
 
     async def city_roles(self):
         async with aiohttp.ClientSession() as session:
-            async with session.get(f'http://politicsandwar.com/api/alliance-members/?allianceid=4729&key={api_key}') as church_nations:
-                church_nations = (await church_nations.json())['nations']
-            async with session.get(f'http://politicsandwar.com/api/alliance-members/?allianceid=7531&key={convent_key}') as convent_nations:
-                convent_nations = (await convent_nations.json())['nations']
+            async with session.post(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_position:[2,3,4,5] alliance_id:4729){data{id nation_name num_cities}}}}"}) as temp:
+                church_nations = (await temp.json())['data']['nations']['data']
+            async with session.post(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{nations(page:1 first:500 alliance_position:[2,3,4,5] alliance_id:7531){data{id nation_name num_cities}}}}"}) as temp:
+                convent_nations = (await temp.json())['data']['nations']['data']
             nations = church_nations + convent_nations
 
         guild = self.bot.get_guild(434071714893398016)
@@ -169,13 +169,13 @@ class Update(commands.Cog):
         trader_role = guild.get_role(796057460502298684)
     
         for nation in nations:
-            person = utils.find_user(self, str(nation['nationid']))
+            person = utils.find_user(self, nation['id'])
             if person == {}:
-                print(f"I couldn't assign a city-role to {nation['nation']}")
+                print(f"I couldn't assign a city-role to {nation['nation_name']}")
                 continue
             user = guild.get_member(person['user'])
             if not user:
-                print(f"I could not find {nation['nation']} as a member on discord.")
+                print(f"I could not find {nation['nation_name']} as a member on discord.")
                 continue
             if nation['cities'] < 10:
                 if zerotoninerole not in user.roles:
@@ -215,20 +215,19 @@ class Update(commands.Cog):
                     await user.remove_roles(zerotoninerole)
 
         for member in guild.members:
-            if zerotoninerole in member.roles or tentonineteenrole in member.roles or twentytotwentyninerole in member.roles or thirtyplusrole in member.roles:
-                if heathen_role in member.roles:
-                    if twentytotwentyninerole in member.roles:
-                        await member.remove_roles(twentytotwentyninerole)
-                    if tentonineteenrole in member.roles:
-                        await member.remove_roles(tentonineteenrole)
-                    if zerotoninerole in member.roles:
-                        await member.remove_roles(zerotoninerole)
-                    if thirtyplusrole in member.roles:
-                        await member.remove_roles(thirtyplusrole)
-                    if love_pings in member.roles:
-                        await member.remove_roles(love_pings)
-                    if trader_role in member.roles:
-                        await member.remove_roles(trader_role)
+            if heathen_role in member.roles:
+                if twentytotwentyninerole in member.roles:
+                    await member.remove_roles(twentytotwentyninerole)
+                if tentonineteenrole in member.roles:
+                    await member.remove_roles(tentonineteenrole)
+                if zerotoninerole in member.roles:
+                    await member.remove_roles(zerotoninerole)
+                if thirtyplusrole in member.roles:
+                    await member.remove_roles(thirtyplusrole)
+                if love_pings in member.roles:
+                    await member.remove_roles(love_pings)
+                if trader_role in member.roles:
+                    await member.remove_roles(trader_role)
     
     @commands.command(brief='Refresh sheet information')
     @commands.has_any_role(*utils.high_gov_plus_perms)
