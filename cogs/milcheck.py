@@ -546,6 +546,8 @@ class Military(commands.Cog):
                                         await thread.edit(archived=True)
                                     mongo.war_logs.find_one_and_update({"id": done_war['id']}, {"$set": {"finished": True}})
                                     break
+                        except discord.errors.Forbidden:
+                            pass
                         except Exception as e:
                             await debug_channel.send(f"I encountered an error when iterating through `done_wars` ```{e}```")
                 if len(all_wars) > 0:
