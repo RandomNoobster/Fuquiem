@@ -145,7 +145,7 @@ class Update(commands.Cog):
                 await channel.send(embed=embed)
 
     @commands.command(brief='Assign city-tiering roles')
-    @commands.has_any_role(utils.high_gov_plus_perms)
+    @commands.has_any_role(*utils.high_gov_plus_perms)
     async def cityroles(self, ctx):
         await self.city_roles()
         await ctx.send(f'City-dependent roles have been assigned!')
