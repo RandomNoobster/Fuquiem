@@ -153,11 +153,11 @@ class Update(commands.Cog):
 
     async def city_roles(self):
         async with aiohttp.ClientSession() as session:
-            async with session.post(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_position:[2,3,4,5] alliance_id:4729){data{id nation_name num_cities}}}}"}) as temp:
-                church_nations = (await temp.json())['data']['nations']['data']
-            async with session.post(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{nations(page:1 first:500 alliance_position:[2,3,4,5] alliance_id:7531){data{id nation_name num_cities}}}}"}) as temp:
-                convent_nations = (await temp.json())['data']['nations']['data']
-            nations = church_nations + convent_nations
+            nations = []
+            async with session.post(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_position:[2,3,4,5] alliance_id:4729){data{id nation_name num_cities}}}"}) as temp:
+                nations += (await temp.json())['data']['nations']['data']
+            async with session.post(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{nations(page:1 first:500 alliance_position:[2,3,4,5] alliance_id:7531){data{id nation_name num_cities}}}"}) as temp:
+                nations += (await temp.json())['data']['nations']['data']
 
         guild = self.bot.get_guild(434071714893398016)
         zerotoninerole = guild.get_role(837789914846330922)
