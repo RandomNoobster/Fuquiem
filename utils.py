@@ -74,7 +74,6 @@ high_gov_plus_perms = [
 
 async def call(data: dict = None, key: str = api_key) -> Union[dict, aiohttp.ClientResponse]:
     async with aiohttp.ClientSession() as session:
-        data = "{nations(page:1 first:500 alliance_position:[2,3,4,5] alliance_id:4729){data{id nation_name num_cities}}}"
         while True:
             async with session.post(f'https://api.politicsandwar.com/graphql?api_key={key}', json={"query": data}) as response:
                 if response.headers['X-RateLimit-Remaining'] == 0:
