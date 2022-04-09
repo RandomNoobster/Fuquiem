@@ -483,7 +483,7 @@ class Economic(commands.Cog):
         brief='Gives you uranium',
         aliases=['ur', 'uran'],
         help="Sends you 3k uranium. The command has a 48 hour cooldown, and may only be used by Zealots."
-        )
+    )
     @commands.cooldown(1, 172800, commands.BucketType.user)
     @commands.has_any_role(*utils.zealot_plus_perms)
     async def uranium(self, ctx):
@@ -542,62 +542,40 @@ class Economic(commands.Cog):
                 else:
                     await ctx.send(f"Beat me up with an eyebrow! Things didn't go as planned! Please check this page to see if you got your uranium:\nhttps://politicsandwar.com/nation/id={person['nationid']}&display=bank")
 
+    @commands.command(brief="Modify a person's balance")
     @commands.has_any_role(*utils.high_gov_plus_perms)
-    @commands.command(
-        aliases=['ba', 'balincrement', 'bi'],
-        brief="Adds value to person's balance",
-        help="Create an artifical transaction record of a set amount of money"
-    )
-    async def baladd(self, ctx, person, diff):
-        user = utils.find_user(self, person)
-        message = await ctx.send("Fuck Requiem...")
-        await self.balmod(diff, message, 1, user)
+    async def balmod(self, ctx: discord.ApplicationContext, person, amount, resource):
+        message = await ctx.send(content="Thinking...")
+        user = utils.find_nation_plus(self, person)
+        if user == None:
+            await message.edit(content="I could not find that nation!")
+            return
+            
+        amount = utils.str_to_int(amount)
+        to_insert = {"time": datetime.utcnow(), "note": "Manual adjuster", "bnkr": "0", "s_id": "0", "s_tp": 1, "r_tid": user['nationid'], "r_tp": 1, "mo": 0, "co": 0, "oi": 0, "ur": 0, "ir": 0, "ba": 0, "le": 0, "ga": 0, "mu": 0, "st": 0, "al": 0, "fo": 0 }
 
-    @commands.has_any_role(*utils.high_gov_plus_perms)
-    @commands.command(
-        aliases=['balremove', 'br'],
-        brief="Subtracts value to person's balance",
-        help="Create an artifical transaction record of a set amount of money"
-    )
-    async def balsubtract(self, ctx, person, diff):
-        user = utils.find_user(self, person)
-        message = await ctx.send("Fuck Requiem...")
-        await self.balmod(diff, message, -1, user)
+        rss = ['aluminum', 'bauxite', 'coal', 'food', 'gasoline', 'iron', 'lead', 'money', 'munitions', 'oil', 'steel', 'uranium']
+        found = False
+        
+        for rs in rss:
+            if resource.lower() in rs:
+                rs = resource.lower()
+                to_insert[rs:2] = amount
+                found = True
+                break
 
-    async def balmod(self, diff, message, prefix, user):
-        change = diff
-        try:
-            if "." in diff:
-                num_inf = re.sub("[A-z]", "", diff)
-                diff = int(num_inf.replace(".", "")) / 10**(len(num_inf) - num_inf.rfind("."))
-                #print(diff)
-        except:
-            pass
-
-        if "k" in change.lower():
-            diff = int(float(re.sub("[A-z]", "", str(diff))) * 1000)
-        if "m" in change.lower():
-            diff = int(float(re.sub("[A-z]", "", str(diff))) * 1000000)
-        if "b" in change.lower():
-            diff = int(float(re.sub("[A-z]", "", str(diff))) * 1000000000)
-        else:
-            try:
-                diff = int(diff)
-            except:
-                await message.edit("I couldn't do that!")
-                return
-
-        if not isinstance(diff, int):
-            await message.edit('Something\'s wrong with your arguments!')
+        if not found:
+            await message.edit(content="I do not know what resource that is!")
             return
 
-        balance = mongo.total_balance.find_one_and_update({'nationid': user['nationid']}, {"$inc": {"mo": (diff * prefix)}})
-        mongo.bank_records.insert_one({"time": datetime.utcnow(), "note": "Manual adjuster", "bnkr": "0", "s_id": "0", "s_tp": 1, "r_tid": user['nationid'], "r_tp": 1, "mo": prefix * diff, "co": 0, "oi": 0, "ur": 0, "ir": 0, "ba": 0, "le": 0, "ga": 0, "mu": 0, "st": 0, "al": 0, "fo": 0 })
+        balance = mongo.total_balance.find_one_and_update({'nationid': user['id']}, {"$inc": {rs[:2]: (amount)}})
+        mongo.bank_records.insert_one()
+        
         if balance == None:
-            await message.edit("I could not find their balance!")
+            await message.edit(content="I could not find their balance!")
             return
 
-        await message.edit(content=f"I modified <@{user['user']}>'s balance by {(diff*prefix):,}", allowed_mentions=discord.AllowedMentions(everyone=False, users=False, roles=False))
+        await message.edit(content=f"I modified {user['leader_name']}'s balance of `{rs}` by `{(amount):,}`")
 
     @commands.command(
         aliases=['bal'],
