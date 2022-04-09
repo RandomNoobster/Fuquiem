@@ -353,7 +353,7 @@ class Economic(commands.Cog):
                             if k in rs:
                                 excess += f"&d_{rs}={v}"
                                 break
-                    await ctx.send(f"Use this pre-filed link to deposit the resources: <https://politicsandwar.com/alliance/id={req['allianceid']}&display=bank{excess}>")
+                    await ctx.send(f"Use this pre-filled link to deposit the resources: <https://politicsandwar.com/alliance/id={req['allianceid']}&display=bank{excess}>")
                     return
                 else:
                     deposit_url = f'https://politicsandwar.com/alliance/id={req["allianceid"]}&display=bank'
