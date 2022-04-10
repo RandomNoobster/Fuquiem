@@ -32,6 +32,7 @@ ea_id = 875380908100816907
 ma_id = 875380984202285086
 ia_id = 875380653951185016
 pam_id = 893083974421843988
+randy_id = 747167690275291268
 
 pupil_plus_perms = [
     pupil_id,
@@ -40,7 +41,8 @@ pupil_plus_perms = [
     acolyte_id,
     cardinal_id,
     primus_id,
-    pontifex_id
+    pontifex_id,
+    randy_id
 ]
 
 zealot_plus_perms = [
@@ -48,7 +50,8 @@ zealot_plus_perms = [
     acolyte_id,
     cardinal_id,
     primus_id,
-    pontifex_id
+    pontifex_id,
+    randy_id
 ]
 
 low_gov_plus_perms = [
@@ -56,20 +59,23 @@ low_gov_plus_perms = [
     acolyte_id,
     cardinal_id,
     primus_id,
-    pontifex_id
+    pontifex_id,
+    randy_id
 ]
 
 mid_gov_plus_perms = [
     acolyte_id,
     cardinal_id,
     primus_id,
-    pontifex_id
+    pontifex_id,
+    randy_id
 ]
 
 high_gov_plus_perms = [
     cardinal_id,
     primus_id,
-    pontifex_id
+    pontifex_id,
+    randy_id
 ]
 
 async def call(data: dict = None, key: str = api_key) -> Union[dict, aiohttp.ClientResponse]:
