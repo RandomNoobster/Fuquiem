@@ -550,8 +550,14 @@ class Economic(commands.Cog):
         if user == None:
             await message.edit(content="I could not find that nation!")
             return
-            
-        amount = utils.str_to_int(amount)
+
+        if "-" in amount:
+            amount = amount.replace("-", "")
+            prefix = -1
+        else:
+            prefix = 1
+
+        amount = utils.str_to_int(amount) * prefix
         to_insert = {"time": datetime.utcnow(), "note": "Manual adjuster", "bnkr": "0", "s_id": "0", "s_tp": 1, "r_tid": user['id'], "r_tp": 1, "mo": 0, "co": 0, "oi": 0, "ur": 0, "ir": 0, "ba": 0, "le": 0, "ga": 0, "mu": 0, "st": 0, "al": 0, "fo": 0 }
 
         rss = ['aluminum', 'bauxite', 'coal', 'food', 'gasoline', 'iron', 'lead', 'money', 'munitions', 'oil', 'steel', 'uranium']
