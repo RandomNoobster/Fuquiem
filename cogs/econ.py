@@ -552,7 +552,7 @@ class Economic(commands.Cog):
             return
             
         amount = utils.str_to_int(amount)
-        to_insert = {"time": datetime.utcnow(), "note": "Manual adjuster", "bnkr": "0", "s_id": "0", "s_tp": 1, "r_tid": user['nationid'], "r_tp": 1, "mo": 0, "co": 0, "oi": 0, "ur": 0, "ir": 0, "ba": 0, "le": 0, "ga": 0, "mu": 0, "st": 0, "al": 0, "fo": 0 }
+        to_insert = {"time": datetime.utcnow(), "note": "Manual adjuster", "bnkr": "0", "s_id": "0", "s_tp": 1, "r_tid": user['id'], "r_tp": 1, "mo": 0, "co": 0, "oi": 0, "ur": 0, "ir": 0, "ba": 0, "le": 0, "ga": 0, "mu": 0, "st": 0, "al": 0, "fo": 0 }
 
         rss = ['aluminum', 'bauxite', 'coal', 'food', 'gasoline', 'iron', 'lead', 'money', 'munitions', 'oil', 'steel', 'uranium']
         found = False
