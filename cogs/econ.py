@@ -566,7 +566,7 @@ class Economic(commands.Cog):
         for rs in rss:
             if resource.lower() in rs:
                 rs = resource.lower()
-                to_insert[rs:2] = amount
+                to_insert[rs[:2]] = amount
                 found = True
                 break
 
@@ -575,7 +575,7 @@ class Economic(commands.Cog):
             return
 
         balance = mongo.total_balance.find_one_and_update({'nationid': user['id']}, {"$inc": {rs[:2]: (amount)}})
-        mongo.bank_records.insert_one()
+        mongo.bank_records.insert_one(to_insert)
         
         if balance == None:
             await message.edit(content="I could not find their balance!")
