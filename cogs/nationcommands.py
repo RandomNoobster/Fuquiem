@@ -701,25 +701,18 @@ class General(commands.Cog):
                         n += 1
         await ctx.send(embed=embed)
                             
-    @commands.command(brief='Shows a list of alliances with treasures')
+    @commands.command(brief='Shows a list of all treasures')
     async def treasures(self, ctx):
         res = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{treasures{{bonus spawndate nation{{id alliance_position num_cities score nation_name alliance{{name id}}}}}}}}"}).json()['data']['treasures']
         embed = discord.Embed(title=f'Treasures', description='',
                               color=0x00ff00, timestamp=datetime.utcnow())
-        n = 0
+        fields = []
         for x in res:
-            if n == 25:
-                await ctx.send(embed=embed)
-                embed.clear_fields()
-                n = 0
-            seconds = (datetime.strptime(x['spawndate'], "%Y-%m-%d") - datetime.utcnow()).total_seconds() + 60 * 24 * 60 * 60
-            days = round(seconds / (24 * 3600))
-            embed.add_field(name=f"{x['nation']['nation_name']}", value=f"[Link to nation](https://politicsandwar.com/nation/id={x['nation']['id']})\nRespawn in {days} days\n{x['bonus']}% bonus\nC{x['nation']['num_cities']}, {round(x['nation']['score'])} score\n{x['nation']['alliance_position'].lower().capitalize()} of [{x['nation']['alliance']['name']}](https://politicsandwar.com/alliance/id={x['nation']['alliance']['id']})")
-            n += 1
-        if len(embed.fields) > 0:
-            await ctx.send(embed=embed)
-        else:
-            await ctx.send(f"I didn't find anything!")
+            epoch = int(datetime.strptime(x['spawndate'], "%Y-%m-%d").timestamp() + 60 * 24 * 60 * 60)
+            fields.append({"name": f"{x['nation']['nation_name']}", "value": f"[Link to nation](https://politicsandwar.com/nation/id={x['nation']['id']})\nRespawn <t:{epoch}:R>\n{x['bonus']}% bonus\nC{x['nation']['num_cities']}, {round(x['nation']['score'])} score\n{x['nation']['alliance_position'].lower().capitalize()} of [{x['nation']['alliance']['name']}](https://politicsandwar.com/alliance/id={x['nation']['alliance']['id']})"})
+        embeds = utils.embed_pager("Treasures", fields)
+        message = await ctx.send(embed=embeds[0])
+        await utils.reaction_checker(self, message, embeds)
     
     @commands.command(brief='Send an informative message')
     @commands.has_any_role(utils.ia_id, *utils.high_gov_plus_perms)
