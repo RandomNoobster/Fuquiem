@@ -1063,7 +1063,7 @@ class General(commands.Cog):
 
         with open(pathlib.Path.cwd() / 'data' / 'dumps' / 'cities' / f'cities-{date}.csv', encoding='cp437') as f1:
             csv_dict_reader = DictReader(f1)
-            nation_age = nation['date'][:nation['date'].index(" ")]
+            nation_age = nation['date'][:nation['date'].index("T")]
             for city in csv_dict_reader:
                 if str(infra).lower() not in "any":
                     if float(city['infrastructure']) != float(infra):
