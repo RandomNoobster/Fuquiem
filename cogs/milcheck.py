@@ -688,7 +688,7 @@ class Military(commands.Cog):
             while len(their_enemy_bar) < 10:
                 their_enemy_bar += "⬛"
 
-            if nation['pirate_economy']:
+            if x['pirate_economy']:
                 max_offense = 6
             else:
                 max_offense = 5
