@@ -10,7 +10,5 @@ cogs/__pycache__/update.cpython-39.pyc
 .vscode/launch.json
 __pycache__/keep_alive.cpython-39.pyc
 __pycache__/main.cpython-39.pyc
-data/dumps/cities/cities-2021-09-30.csv
-data/dumps/cities/cities-2021-12-10.csv
 __pycache__/utils.cpython-39.pyc
-data/dumps/cities/cities-2022-01-30.csv
+data/dumps/cities/cities*.csv
