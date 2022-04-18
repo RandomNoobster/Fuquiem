@@ -163,7 +163,7 @@ class Economic(commands.Cog):
         help='This command may only be used by Cardinals. Usage: "$withdraw <recipient> <type of resource> - <amount of resource>, <type of resource> - <amount of resource>... " Recipient can be nation name, nation id, nation link, leader name, discord id, discord name, or discord mention. Please note that spaces are ignored, so it does not matter if you type "-" and "," or " - " and ", "',
         aliases=['with', 'w']
         )
-    @commands.has_any_role(utils.pam_id, *utils.high_gov_plus_perms)
+    @commands.has_any_role(utils.pam_id, *utils.mid_gov_plus_perms)
     async def withdraw(self, ctx, recipient, *, rss):
         async with aiohttp.ClientSession() as session:
             randy = utils.find_user(self, 465463547200012298)
