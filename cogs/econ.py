@@ -614,7 +614,7 @@ class Economic(commands.Cog):
                     tx_obj = {}
 
                     for txid in res:
-                        if user_obj['nationid'] == txid['rid'] or user_obj['nationid'] == txid['sid']:
+                        if user_obj['id'] == txid['rid'] or user_obj['id'] == txid['sid']:
                             tx_obj['time'] = datetime.strptime(txid['date'], "%Y-%m-%dT%H:%M:%S%z").replace(tzinfo=None)
                             if tx_obj['time'] < datetime(2021, 7, 4, 15):
                                 #print('skipped due to recency')
