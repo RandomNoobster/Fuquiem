@@ -713,17 +713,17 @@ class Economic(commands.Cog):
                 pass
 
             if person == '':
-                person = utils.find_user(self, ctx.author.id)
+                person = utils.find_nation_plus(self, ctx.author.id)
             else:
-                person = utils.find_user(self, person)
+                person = utils.find_nation_plus(self, person)
             if person == {}:
                 await message.edit(content='I could not find that person, please try again.', embed=bal_embed)
                 return None, None
-            bal = (mongo.total_balance.find_one({"nationid": person['nationid']}))
+            bal = (mongo.total_balance.find_one({"nationid": person['id']}))
             if bal == None:
                 await message.edit(content='I was not able to find their balance.', embed=bal_embed)
                 return None, None
-            bal_embed = discord.Embed(title=f"{person['leader']}'s balance",
+            bal_embed = discord.Embed(title=f"{person['leader_name']}'s balance",
                                     description="", color=0x00ff00)
             for rs in rss:
                 amount = bal[rs[:2]]
