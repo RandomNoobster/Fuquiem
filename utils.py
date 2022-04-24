@@ -4,6 +4,7 @@ import asyncio
 import json
 from datetime import datetime
 from typing import Union, Tuple
+from collections import defaultdict
 import aiohttp
 import re
 import pymongo
@@ -16,6 +17,8 @@ mongo = client[str(version)]
 key = os.getenv("encryption_key")
 api_key = os.getenv("api_key")
 cipher_suite = Fernet(key)
+
+RSS = ['aluminum', 'bauxite', 'coal', 'food', 'gasoline', 'iron', 'lead', 'money', 'munitions', 'oil', 'steel', 'uranium']
 
 pupil_id = 711385354929700905
 deacon_id = 790688418429665300
@@ -434,6 +437,25 @@ def str_to_int(string: str) -> int:
         raise ValueError("The provided value is not a valid amount.")
 
     return amount
+
+async def total_value(resources: dict) -> int:
+    async with aiohttp.ClientSession() as session:
+        prices = defaultdict(lambda: 0)
+        async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{tradeprices(page:1){{data{{coal oil uranium iron bauxite lead gasoline munitions steel aluminum food}}}}}}"}) as temp:
+            price_history = (await temp.json())['data']['tradeprices']['data']
+            for entry in price_history:
+                for rs in RSS:
+                    if rs != 'money':
+                        prices[rs] += entry[rs]
+            for rs in RSS:
+                prices[rs] = prices[rs]/len(price_history)
+            prices['money'] = 1
+        people = list(mongo.total_balance.find({}))
+
+        x = 0
+        for rs in RSS:
+            x += resources[rs[:2]] * prices[rs]
+        return x
 
 async def pre_revenue_calc(api_key, message: discord.Message, query_for_nation: bool = False, nationid: Union[int, str] = None, parsed_nation: dict = None):
     async with aiohttp.ClientSession() as session:
