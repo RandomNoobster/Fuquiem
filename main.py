@@ -57,6 +57,13 @@ async def on_command_error(ctx, error):
             error = str(error).replace(os.getenv(variable), "XXXCENSOREDXXX")
         await ctx.send(f'An error occurred:\n```{error}```')
 
+@bot.event
+async def on_application_command_error(ctx: discord.ApplicationContext, error):
+    print(error)
+    for variable in os.environ:
+        error = str(error).replace(os.getenv(variable), "XXXCENSOREDXXX")
+    await ctx.send(f'An error occurred:\n```{error}```')
+
 
 for filename in os.listdir('./cogs'):
     if filename.endswith('.py'):
