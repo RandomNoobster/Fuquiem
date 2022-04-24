@@ -16,6 +16,7 @@ from main import mongo
 from discord.ext import commands
 import os
 from cryptography.fernet import Fernet
+from discord.commands import slash_command, Option
 
 api_key = os.getenv("api_key")
 key = os.getenv("encryption_key")
@@ -797,6 +798,196 @@ class Economic(commands.Cog):
                                     description=f"The current market value of...\n```{pretty_res}```\n...is ${round(total):,}", color=0x00ff00)
             await message.edit(content='', embed=embed)
     
+    @slash_command(
+        name="request",
+        description="Request resorces from the allliance bank",
+        guild_ids=[434071714893398016,729979781940248577]
+    )
+    async def request(
+        self,
+        ctx: discord.ApplicationContext,
+        aluminum: Option(str, "The amount of aluminum you want to request.")="0",
+        bauxite: Option(str, "The amount of bauxite you want to request.")="0",
+        coal: Option(str, "The amount of coal you want to request.")="0",
+        food: Option(str, "The amount of food you want to request.")="0",
+        gasoline: Option(str, "The amount of gasoline you want to request.")="0",
+        iron: Option(str, "The amount of iron you want to request.")="0",
+        lead: Option(str, "The amount of lead you want to request.")="0",
+        money: Option(str, "The amount of money you want to request.")="0",
+        munitions: Option(str, "The amount of munitions you want to request.")="0",
+        oil: Option(str, "The amount of oil you want to request.")="0",
+        steel: Option(str, "The amount of steel you want to request.")="0",
+        uranium: Option(str, "The amount of uranium you want to request.")="0",
+    ):
+        await ctx.defer()
+
+        async with aiohttp.ClientSession() as session:
+            time_initiated = datetime.utcnow()
+            person = utils.find_nation_plus(self, ctx.author.id)
+            if person == None:
+                await ctx.edit(content="I was unable to find that person!")
+                return
+
+            resource_list = [(utils.str_to_int(aluminum), "aluminum"), (utils.str_to_int(bauxite), "bauxite"), (utils.str_to_int(coal), "coal"), (utils.str_to_int(food), "food"), (utils.str_to_int(gasoline), "gasoline"), (utils.str_to_int(iron), "iron"), (utils.str_to_int(lead), "lead"), (utils.str_to_int(money), "money"), (utils.str_to_int(munitions), "munitions"), (utils.str_to_int(oil), "oil"), (utils.str_to_int(steel), "steel"), (utils.str_to_int(uranium), "uranium")]
+            
+            something = False
+            for amount, name in resource_list:
+                if amount in [0, "0"]:
+                    continue
+                else:
+                    something = True
+            
+            if not something:
+                await ctx.edit(content="You did not request anything!")
+                return
+
+            withdraw_url = f'https://politicsandwar.com/alliance/id=4729&display=bank'
+            withdraw_data = {
+                "withmoney": '0',
+                "withfood": '0',
+                "withcoal": '0',
+                "withoil": '0',
+                "withuranium": '0',
+                "withlead": '0',
+                "withiron": '0',
+                "withbauxite": '0',
+                "withgasoline": '0',
+                "withmunitions": '0',
+                "withsteel": '0',
+                "withaluminum": '0',
+                "withtype": 'Nation',
+                "withrecipient": person['nation_name'],
+                "withnote": 'Sent and requested via discord.',
+                "withsubmit": 'Withdraw'
+            }
+
+            for x in withdraw_data:
+                for amount, name in resource_list:
+                    if name in x:
+                        withdraw_data[x] = amount
+            
+            balance_before = mongo.total_balance.find_one({"nationid": person['id']})
+            if balance_before == None:
+                for amount, name in resource_list:
+                    balance_before[name[:2]] = 0
+
+            balance_after = balance_before.copy()
+            for amount, name in resource_list:
+                balance_after[name[:2]] -= amount
+                #print(name, amount, balance_before[name[:2]],balance_after[name[:2]])
+            
+            confirmation = None
+            interactor = None
+            message = None
+
+            class yes_or_no(discord.ui.View):
+                def __init__(self):
+                    super().__init__(timeout=None)
+                
+                @discord.ui.button(label="Accept", style=discord.ButtonStyle.success)
+                async def callback(self, b: discord.Button, i: discord.Interaction):
+                    nonlocal confirmation
+                    confirmation = True
+                    await i.response.pong()
+                    for x in view.children:
+                        x.disabled = True
+                    await i.message.edit(view=view)
+                    self.stop()
+                
+                @discord.ui.button(label="Reject", style=discord.ButtonStyle.danger)
+                async def one_two_callback(self, b: discord.Button, i: discord.Interaction):
+                    nonlocal confirmation
+                    confirmation = False
+                    await i.response.pong()
+                    for x in view.children:
+                        x.disabled = True
+                    await i.message.edit(view=view)
+                    self.stop()
+                
+                async def interaction_check(self, i: discord.Interaction)-> bool:
+                    cardinal = i.guild.get_role(434258149474697216)
+                    if cardinal not in i.user.roles:
+                        await i.response.send_message("Only high ranking government members can approve of transactions!", ephemeral=True)
+                        return False
+                    else:
+                        nonlocal interactor, message
+                        message = i.message
+                        interactor = i.user
+                        return True
+                
+            bal_embed = discord.Embed(title=f"{ctx.author} made a request", description="", color=0xffb700)    
+
+            balance_before_txt = ""
+            transaction_txt = ""
+            balance_after_txt = ""
+
+            for value, name in resource_list:
+                if value == 0:
+                    bold_start = ""
+                    bold_end = ""
+                else:
+                    bold_start = "**"
+                    bold_end = "**"
+                balance_before_txt += f"{bold_start}{name.capitalize()}: {balance_before[name[:2]]:,.0f}{bold_end}\n"
+                transaction_txt += f"{bold_start}{name.capitalize()}: {value:,}{bold_end}\n"
+                balance_after_txt += f"{bold_start}{name.capitalize()}: {balance_after[name[:2]]:,.0f}{bold_end}\n"
+
+            balance_before_txt += f"\n**Total: {await utils.total_value(balance_before):,.0f}**\n\u200b"
+            transaction_data = {}
+            for value, name in resource_list:
+                transaction_data[name[:2]] = value
+            transaction_txt += f"\n**Total: {await utils.total_value(transaction_data):,.0f}**\n\u200b"
+            balance_after_txt += f"\n**Total: {await utils.total_value(balance_after):,.0f}**\n\u200b"
+
+            bal_embed.add_field(name="Balance Before", value=balance_before_txt, inline=True)
+            bal_embed.add_field(name="Requested Transaction", value=transaction_txt, inline=True)
+            bal_embed.add_field(name="Balance After", value=balance_after_txt, inline=True)
+            bal_embed.add_field(name="Recipient", value=f"[{person['leader_name']} of {person['nation_name']}](https://politicsandwar.com/nation/id={person['id']})", inline=False)
+            
+            view = yes_or_no()
+            await ctx.edit(content=":clock1: Pending approval...", embed=bal_embed, view=view)
+            timed_out = await view.wait()
+            if timed_out:
+                return
+            if not confirmation:
+                bal_embed.color = 0xff0000
+                await message.edit(content=f"<:redcross:862669500977905694> Request was denied by {interactor}", embed=bal_embed)
+                return
+            
+            await message.edit("Performing transaction...")
+            
+            randy = utils.find_user(self, 465463547200012298)
+            if randy['email'] == '' or randy['pwd'] == '':
+                await ctx.send('Randy has not registered his PnW credentials with Fuquiem.')
+            cipher_suite = Fernet(key)
+            login_url = "https://politicsandwar.com/login/"
+            login_data = {
+                "email": str(cipher_suite.decrypt(randy['email'].encode()))[2:-1],
+                "password": str(cipher_suite.decrypt(randy['pwd'].encode()))[2:-1],
+                "loginform": "Login"
+            }
+            login_req = await session.post(login_url, data=login_data)
+            if "You entered an incorrect email/password combination." in await login_req.text():
+                await message.edit(content=f":white_check_mark: Request was approved by {interactor}\n:warning: The login credentials are incorrect!", embed=bal_embed)
+                return
+
+            start_time = (datetime.utcnow() - timedelta(seconds=5))
+            end_time = (datetime.utcnow() + timedelta(seconds=5))
+            await session.post(withdraw_url, data=withdraw_data)
+            
+            success = False
+            await asyncio.sleep(1)
+            async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={person['id']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
+                txids = await txids.json()
+            for x in txids['data']:
+                if x['note'] == 'Sent and requested via discord.' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
+                    success = True
+            if success:
+                bal_embed.color = 0x2bff00
+                await message.edit(content=f':white_check_mark: Request was approved by {interactor}', embed=bal_embed)
+            else:
+                await message.edit(content=f":white_check_mark: Request was approved by {interactor}\n:warning: This request might have failed. Check this page to be sure: https://politicsandwar.com/nation/id={person['id']}&display=bank", embed=bal_embed)
+
     @commands.command(
         brief='Send people grants',
         help='This command may only be used by Cardinals. Usage: "$grant <type of resource> - <amount of resource>, <type of resource> - <amount of resource>... <recipient>" Recipient can be nation name, nation id, nation link, leader name, discord id, discord name, or discord mention. Please note that spaces are ignored, so it does not matter if you type "-" and "," or " - " and ", "'
