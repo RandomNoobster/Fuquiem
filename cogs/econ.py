@@ -905,8 +905,9 @@ class Economic(commands.Cog):
                     self.stop()
                 
                 async def interaction_check(self, i: discord.Interaction)-> bool:
-                    cardinal = i.guild.get_role(434258149474697216)
-                    if cardinal not in i.user.roles:
+                    cardinal = i.guild.get_role(utils.cardinal_id)
+                    acolyte = i.guild.get_role(utils.acolyte_id)
+                    if cardinal not in i.user.roles and acolyte not in i.user.roles:
                         await i.response.send_message("Only high ranking government members can approve of transactions!", ephemeral=True)
                         return False
                     else:
