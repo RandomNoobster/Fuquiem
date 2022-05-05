@@ -868,6 +868,7 @@ class Economic(commands.Cog):
             
             balance_before = mongo.total_balance.find_one({"nationid": person['id']})
             if balance_before == None:
+                balance_before = {}
                 for amount, name in resource_list:
                     balance_before[name[:2]] = 0
 
