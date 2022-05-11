@@ -801,7 +801,6 @@ class Economic(commands.Cog):
     @slash_command(
         name="request",
         description="Request resorces from the allliance bank",
-        guild_ids=[434071714893398016,729979781940248577]
     )
     async def request(
         self,
