@@ -860,7 +860,7 @@ class Military(commands.Cog):
                     city_count = nation['cities']
                     user = None
                     excess = ""
-                    person = utils.find_user(self, 465463547200012298)
+                    person = utils.find_user(self, nation['nationid'])
                     minmoney = round(city_count * 500000 - float(nation['money']))
                     maxmoney = round(city_count * 500000 * 3 - float(nation['money']))
                     if maxmoney < 0:
@@ -869,31 +869,31 @@ class Military(commands.Cog):
                             excess += "&d_money=" + str(round(abs(city_count * 500000 * 2 - float(nation['money']))))
                     if minmoney < 0:
                         minmoney = 0
-                    mingasoline = round(city_count * 320.25 - float(nation['gasoline']))
-                    maxgasoline = round(city_count * 320.25 * 3 - float(nation['gasoline']))
+                    mingasoline = round(city_count * 350 * 2 - float(nation['gasoline']))
+                    maxgasoline = round(city_count * 350 * 3 - float(nation['gasoline']))
                     if maxgasoline < 0:
                         if person != {}:
                             user = await self.bot.fetch_user(person['user'])
-                            excess += "&d_gasoline=" + str(round(abs(city_count * 320.25 * 2 - float(nation['gasoline']))))
+                            excess += "&d_gasoline=" + str(round(abs(city_count * 350 * 2 - float(nation['gasoline']))))
                     if mingasoline < 0:
                         mingasoline = 0
-                    minmunitions = round(city_count * 361.2 - float(nation['munitions']))
-                    maxmunitions = round(city_count * 361.2 * 3 - float(nation['munitions']))
+                    minmunitions = round(city_count * 400 * 2 - float(nation['munitions']))
+                    maxmunitions = round(city_count * 400 * 3 - float(nation['munitions']))
                     if maxmunitions < 0:
                         if person != {}:
                             user = await self.bot.fetch_user(person['user'])
-                            excess += "&d_munitions=" + str(round(abs(city_count * 361.2 * 2 - float(nation['munitions']))))
+                            excess += "&d_munitions=" + str(round(abs(city_count * 400 * 2 - float(nation['munitions']))))
                     if minmunitions < 0:
                         minmunitions = 0
-                    minsteel = round(city_count * 619.5 - float(nation['steel']))
-                    maxsteel = round(city_count * 619.5 * 3 - float(nation['steel']))
+                    minsteel = round(city_count * 600 * 2 - float(nation['steel']))
+                    maxsteel = round(city_count * 600 * 3 - float(nation['steel']))
                     if maxsteel < 0:
                         if person != {}:
                             user = await self.bot.fetch_user(person['user'])
-                            excess += "&d_steel=" + str(round(abs(city_count * 619.5 * 2 - float(nation['steel']))))
+                            excess += "&d_steel=" + str(round(abs(city_count * 600 * 2 - float(nation['steel']))))
                     if minsteel < 0:
                         minsteel = 0
-                    minaluminum = round(city_count * 315 - float(nation['aluminum']))
+                    minaluminum = round(city_count * 315 * 2 - float(nation['aluminum']))
                     maxaluminum = round(city_count * 315 * 3 - float(nation['aluminum']))
                     if maxaluminum < 0:
                         if person != {}:
@@ -954,10 +954,10 @@ class Military(commands.Cog):
                         async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={person['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
                             txids = await txids.json()
                         for x in txids['data']:
-                            if x['note'] == 'Resupplying warchest' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%dT%H:%M:%S%z') <= end_time:
+                            if x['note'] == 'Resupplying warchest' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
                                 success = True
                         if success:
-                            await ctx.send(f"I can confirm that the transaction to **{nation['nation']} ({nation['leader']})** has successfully commenced.")
+                            await ctx.send(f"I can confirm that the transaction to {nation['nation']} ({nation['leader']}) has successfully commenced.")
                         else:
                             await ctx.send(f"<@465463547200012298> the transaction to **{nation['nation']} ({nation['leader']})** might have failed. Check this page to be sure:\nhttps://politicsandwar.com/nation/id={nation['nationid']}&display=bank")
                 except Exception as e:
