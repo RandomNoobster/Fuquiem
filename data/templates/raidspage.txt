@@ -85,7 +85,7 @@
                 var to_parse = {turns: turns, invoker: "${invoker}", id: id, endpoint: "${endpoint}"}
 
                 $.ajax({
-                    url: 'http://130.162.174.7/raids/${endpoint}',
+                    url: 'http://130.162.174.7:5000/raids/${endpoint}',
                     type: 'POST',
                     data: JSON.stringify(to_parse),
                     contentType: "application/json; charset=utf-8",

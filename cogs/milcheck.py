@@ -1276,7 +1276,7 @@ class Military(commands.Cog):
                 result = Template(template).render(results=results)
                 return str(result)
         app.add_url_rule(f"/damage/{endpoint}", view_func=webraid.as_view(str(datetime.utcnow())), methods=["GET", "POST"]) # this solution of adding a new page instead of updating an existing for the same nation is kinda dependent on the bot resetting every once in a while, bringing down all the endpoints
-        await message.edit(content=f"Go to http://130.162.174.7/damage/{endpoint}", attachments=[])
+        await message.edit(content=f"Go to http://130.162.174.7:5000/damage/{endpoint}", attachments=[])
 
         
     async def battle_calc(self, nation1_id, nation2_id):
