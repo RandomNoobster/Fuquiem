@@ -346,6 +346,7 @@ class Update(commands.Cog):
                     await disc.send("Hey, there's 4 hours left until the winners of today's raffle is drawn! Remember to sign up for the raffle in <#850302301838114826>!")
 
     async def nuke_reminder(self):
+        return
         async with aiohttp.ClientSession() as session:
             async with session.post(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_id:4729 vmode:false){data{id leader_name nation_name score warpolicy spies cia spy_satellite espionage_available nukes missiles mlp nrf}}}"}) as temp:
                 church = (await temp.json())['data']['nations']['data']
