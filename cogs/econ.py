@@ -1171,7 +1171,7 @@ class Economic(commands.Cog):
                 if war['date'] == '-0001-11-30 00:00:00':
                     wars_list.remove(war)
             wars_list = sorted(wars_list, key=lambda k: k['date'], reverse=False)
-            days_since_first_war = (datetime.utcnow() - datetime.strptime(wars_list[0]['date'], "%Y-%m-%dT%H:%M:%S%z")).days
+            days_since_first_war = (datetime.utcnow() - datetime.strptime(wars_list[0]['date'], "%Y-%m-%dT%H:%M:%S%z").replace(tzinfo=None)).days
 
         for war in wars_list:
             if war['attid'] == nation['id']:
