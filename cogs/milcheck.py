@@ -419,19 +419,19 @@ class Military(commands.Cog):
                         content = f"{war['attacker']['nation_name']} and {war['defender']['nation_name']} are now fortified."
                         color = 0xffff00
                     elif war['att_fortify']:
-                        content = f"{war['attacker']['nation_name']} is now fortified."
+                        content = f"{war['attacker']['nation_name']} is now fortified in the war against {war['defender']['nation_name']}."
                         if war['attacker'] == atom:
                             color = 0x00ff00
                         else:
                             color = 0xff0000
                     elif war['def_fortify']:
-                        content = f"{war['defender']['nation_name']} is now fortified."
+                        content = f"{war['defender']['nation_name']} is now fortified in the war against {war['attacker']['nation_name']}."
                         if war['defender'] == atom:
                             color = 0x00ff00
                         else:
                             color = 0xff0000
                     else:
-                        content = f"{war['attacker']['nation_name']} or {war['defender']['nation_name']} fortified (idk who due to api limitations), then subsequently attacked, losing the fortified effect."
+                        content = f"{war['attacker']['nation_name']} or {war['defender']['nation_name']} fortified (idk who due to API limitations), then subsequently attacked, losing the fortified effect."
                         color = 0xffffff
                     
                     embed = discord.Embed(title="Fortification", url=url, description=content, color=color)
@@ -552,8 +552,8 @@ class Military(commands.Cog):
                             pass
                         except Exception as e:
                             await debug_channel.send(f"I encountered an error when iterating through `done_wars` ```{e}```")
-                if len(all_wars) > 0:
-                    min_id = all_wars[0]['id']
+                if len(done_wars) > 0:
+                    min_id = done_wars[0]['id']
                 prev_wars = wars
                 await asyncio.sleep(60)
             except:
@@ -610,7 +610,7 @@ class Military(commands.Cog):
             max_sol += c['barracks'] * 3000
             max_tnk += c['factory'] * 250
             max_pln += c['airforcebase'] * 15
-            max_shp += c['drydock']
+            max_shp += c['drydock'] * 5
         
         for war in nation['wars']:
             if war['defender']['alliance_id'] in ['4729', '7531']:
@@ -693,8 +693,8 @@ class Military(commands.Cog):
             else:
                 max_offense = 5
             
-            if nation['beigeturns'] > 0:
-                beige = f"\nBeige (turns): {nation['beigeturns']}"
+            if x['beigeturns'] > 0:
+                beige = f"\nBeige (turns): {x['beigeturns']}"
             else:
                 beige = ""
 
