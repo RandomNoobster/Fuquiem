@@ -127,6 +127,9 @@ async def reaction_checker(self, message: discord.Message, embeds: list) -> None
             await message.edit(content="**Command timed out!**")
             break
 
+def weird_division(a, b):
+    return a / b if b else 0
+
 def find_user(self, arg, secondary_database: bool = False):
     if isinstance(arg, str):
         arg = arg.strip()
