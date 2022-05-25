@@ -612,17 +612,18 @@ class Military(commands.Cog):
             max_pln += c['airforcebase'] * 15
             max_shp += c['drydock'] * 5
         
-        for war in nation['wars']:
-            if war['defender']['alliance_id'] in ['4729', '7531']:
-                if war['turnsleft'] <= 0:
-                    await self.remove_from_thread(ctx.channel, war['defender']['id'])
-                else:
-                    await self.add_to_thread(ctx.channel, war['defender']['id'])
-            if war['attacker']['alliance_id'] in ['4729', '7531']:
-                if war['turnsleft'] <= 0:
-                    await self.remove_from_thread(ctx.channel, war['attacker']['id'])
-                else:
-                    await self.add_to_thread(ctx.channel, war['attacker']['id'])
+        if isinstance(ctx.channel, discord.Thread):
+            for war in nation['wars']:
+                if war['defender']['alliance_id'] in ['4729', '7531']:
+                    if war['turnsleft'] <= 0:
+                        await self.remove_from_thread(ctx.channel, war['defender']['id'])
+                    else:
+                        await self.add_to_thread(ctx.channel, war['defender']['id'])
+                if war['attacker']['alliance_id'] in ['4729', '7531']:
+                    if war['turnsleft'] <= 0:
+                        await self.remove_from_thread(ctx.channel, war['attacker']['id'])
+                    else:
+                        await self.add_to_thread(ctx.channel, war['attacker']['id'])
 
         nation['offensive_wars'] = [y for y in nation['wars'] if y['turnsleft'] > 0 and y['attid'] == nation['id']]
         nation['defensive_wars'] = [y for y in nation['wars'] if y['turnsleft'] > 0 and y['defid'] == nation['id']]
