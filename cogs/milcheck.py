@@ -585,7 +585,7 @@ class Military(commands.Cog):
             nation_id = str(person['id'])
 
         async with aiohttp.ClientSession() as session:
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation_id}){{ data{{ nation_name leader_name id alliance{{ name }} cities{{ barracks factory airforcebase drydock }} population score last_active beigeturns vmode pirate_economy color dompolicy alliance_id num_cities soldiers tanks aircraft ships missiles nukes wars{{ defender{{ nation_name leader_name alliance_id alliance{{ name }} cities{{ barracks factory airforcebase drydock }} wars{{ attid defid turnsleft }} id pirate_economy score last_active beigeturns vmode num_cities color soldiers tanks aircraft ships nukes missiles }} attacker{{ nation_name leader_name alliance_id alliance{{ name }} cities{{ barracks factory airforcebase drydock }} wars{{ attid defid turnsleft }} id pirate_economy score last_active beigeturns vmode num_cities color soldiers tanks aircraft ships nukes missiles }} date id attid defid winner att_resistance def_resistance attpoints defpoints attpeace defpeace war_type groundcontrol airsuperiority navalblockade turnsleft att_fortify def_fortify }} }} }}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation_id}){{ data{{ nation_name leader_name warpolicy cia id alliance{{ name }} cities{{ barracks factory airforcebase drydock }} population score last_active beigeturns vmode pirate_economy color dompolicy alliance_id num_cities soldiers tanks aircraft ships missiles nukes wars{{ defender{{ nation_name leader_name alliance_id alliance{{ name }} cities{{ barracks factory airforcebase drydock }} wars{{ attid defid turnsleft }} id pirate_economy score last_active beigeturns vmode num_cities color soldiers tanks aircraft ships nukes missiles }} attacker{{ nation_name leader_name alliance_id alliance{{ name }} cities{{ barracks factory airforcebase drydock }} wars{{ attid defid turnsleft }} id pirate_economy score last_active beigeturns vmode num_cities color soldiers tanks aircraft ships nukes missiles }} date id attid defid winner att_resistance def_resistance attpoints defpoints attpeace defpeace war_type groundcontrol airsuperiority navalblockade turnsleft att_fortify def_fortify }} }} }}}}"}) as temp:
                 try:
                     nation = (await temp.json())['data']['nations']['data'][0]
                 except:
@@ -597,10 +597,9 @@ class Military(commands.Cog):
         else:
             max_offense = 5
         
-        if nation['beigeturns'] > 0:
-            beige = f"\nBeige (turns): {nation['beigeturns']}"
-        else:
-            beige = ""
+        beige = f"\nBeige (turns): {nation['beigeturns']}"
+
+        spies = await utils.spy_calc(nation)
 
         max_sol = 0
         max_tnk = 0
@@ -634,7 +633,7 @@ class Military(commands.Cog):
         else:
             alliance = "No alliance"
 
-        desc = f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) | {alliance}\n\nLast login: <t:{round(datetime.strptime(nation['last_active'], '%Y-%m-%dT%H:%M:%S%z').timestamp())}:R>\nOffensive wars: {len(nation['offensive_wars'])}/{max_offense}\nDefensive wars: {len(nation['defensive_wars'])}/3\nDefensive range: {round(nation['score'] / 1.75)} - {round(nation['score'] / 0.75)}{beige}\n\nSoldiers: **{nation['soldiers']:,}** / {max_sol:,}\nTanks: **{nation['tanks']:,}** / {max_tnk:,}\nPlanes: **{nation['aircraft']:,}** / {max_pln:,}\nShips: **{nation['ships']:,}** / {max_shp:,}"
+        desc = f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) | {alliance}\n\nLast login: <t:{round(datetime.strptime(nation['last_active'], '%Y-%m-%dT%H:%M:%S%z').timestamp())}:R>\nCities: {nation['num_cities']}\nSpies: {spies}\nOffensive wars: {len(nation['offensive_wars'])}/{max_offense}\nDefensive wars: {len(nation['defensive_wars'])}/3\nDefensive range: {round(nation['score'] / 1.75)} - {round(nation['score'] / 0.75)}{beige}\n\nSoldiers: **{nation['soldiers']:,}** / {max_sol:,}\nTanks: **{nation['tanks']:,}** / {max_tnk:,}\nPlanes: **{nation['aircraft']:,}** / {max_pln:,}\nShips: **{nation['ships']:,}** / {max_shp:,}"
         embed = discord.Embed(title=f"{nation['nation_name']} ({nation['id']}) & their wars", description=desc, color=0x00ff00)
         embed1 = discord.Embed(title=f"{nation['nation_name']} ({nation['id']}) & their wars", description=desc, color=0x00ff00)
         embed.set_footer(text="_________________________________\nThe chance to get immense triumphs is if the nation in question attacks the main enemy. On average, it's worth attacking if the percentage is above 13%. Use $battlesim for more detailed battle predictions.")
@@ -652,7 +651,7 @@ class Military(commands.Cog):
 
             if war in nation['offensive_wars']:
                 result = await self.battle_calc(nation['id'], war['defender']['id'])
-                war_emoji = "⚔️"
+                war_emoji = "🛡️"
                 x = war['defender']
                 main_enemy_res = war['att_resistance']
                 main_enemy_points = war['attpoints']
@@ -660,7 +659,7 @@ class Military(commands.Cog):
                 their_enemy_res = war['def_resistance']
             else:
                 result = await self.battle_calc(nation['id'], war['attacker']['id'])
-                war_emoji = "🛡️"
+                war_emoji = "⚔️"
                 x = war['attacker']
                 main_enemy_res = war['def_resistance']
                 main_enemy_points = war['defpoints']
