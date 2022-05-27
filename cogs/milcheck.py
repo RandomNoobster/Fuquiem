@@ -1046,7 +1046,7 @@ class Military(commands.Cog):
 
             channel = self.bot.get_channel(842116871322337370) ## 842116871322337370
             await channel.purge()
-            await channel.send("~~strikethrough~~ = this person is merely fighting our applicants\n\❗ = a follower of atom is currently losing against this opponent\n\⚔️ = this person is fighting offensive wars against atom\n\🛡️ = this person is fighting defensive wars against atom\n🟢 = you are able to attack this person\n🟡 = this person is in beige\n🔴 = this person is fully slotted")
+            await channel.send("\n**IMPORTANT**, this is a compilation of every nation (in an alliance) that a follower of Atom is at war with. If you declare war on any of these nations, YOU are responsible for making sure that you are allowed to attack them. Ask a government member if you aren't sure.\n\n~~strikethrough~~ = this person is merely fighting our applicants\n\❗ = a follower of atom is currently losing against this opponent\n\⚔️ = this person is fighting offensive wars against atom\n\🛡️ = this person is fighting defensive wars against atom\n🟢 = you are able to attack this person\n🟡 = this person is in beige\n🔴 = this person is fully slotted")
             enemy_list = sorted(enemy_list, key=lambda k: k['engagements'][0]['score'])
             
             content = ""
