@@ -873,6 +873,8 @@ async def spy_calc(nation: dict) -> int:
         while True:
             spycount = math.floor((upper_lim + lower_lim)/2)
             async with session.get(f"https://politicsandwar.com/war/espionage_get_odds.php?id1=341326&id2={nation['id']}&id3=0&id4=1&id5={spycount}") as probability:
+                if probability.status != 200:
+                    raise Exception(f"spy_calc ran into an issue. Error: {probability.status}")
                 probability = await probability.text()
             #print(probability, spycount, upper_lim, lower_lim)
             if "Greater than 50%" in probability:
