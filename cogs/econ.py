@@ -1,10 +1,8 @@
 from collections import defaultdict
 import discord
-from matplotlib.style import use
 import requests
 import dateutil.parser
 import aiohttp
-from lxml import html
 import math
 import pytz
 import re
@@ -15,6 +13,7 @@ from datetime import datetime, timedelta
 from main import mongo
 from discord.ext import commands
 import os
+import csv
 from cryptography.fernet import Fernet
 from discord.commands import slash_command, Option
 
@@ -28,10 +27,29 @@ class Economic(commands.Cog):
         self.bot = bot
 
     @commands.command(
+        brief="Get price history as csv"
+    )
+    async def price_file(self, ctx):
+        price_history = list(mongo.price_history.find({}))
+        data = []
+        for entry in price_history:
+            new_entry = {}
+            new_entry['time'] = entry['time']
+            for key in entry['prices']:
+                new_entry[key] = entry['prices'][key]
+            data.append(new_entry)
+        with open("./data/dumps/temp/price.csv", "w", newline="") as f:
+            title = new_entry.keys()
+            cw = csv.DictWriter(f,title,delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            cw.writeheader()
+            cw.writerows(data)
+        await ctx.send(file=discord.File('./data/dumps/temp/price.csv'))
+    
+    @commands.command(
         aliases=['prices', 'p'],
         brief='A chart showing price history',
         help='You can use the command without supplying any arguments, then it would default to all resources and the average price. If you only wish to see one resource, the first argument will be the name of that resource (although the bot only uses the first two letters, meaning that even though it works just fine to write "aluminum", it works just as well to write "al"). The second argument is the offer-type, if left blank it will default to average price, but you can specify "buy offer" ("bo") or "sell offer" ("so").'
-        )
+    )
     async def price(self, ctx, input_resource='all', *, type='avg'):
         message = await ctx.send('Doing API calls...')
         f1 = list(mongo.price_history.find({}))
