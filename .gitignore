@@ -12,3 +12,4 @@ __pycache__/keep_alive.cpython-39.pyc
 __pycache__/main.cpython-39.pyc
 __pycache__/utils.cpython-39.pyc
 data/dumps/cities/cities*.csv
+data/dumps/temp/*
