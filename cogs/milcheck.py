@@ -727,8 +727,8 @@ class Military(commands.Cog):
         help="Lets you find the easiest targets during a global war."
         )
     async def targets(self, ctx):
-        #await ctx.send('This command has been disabled.')
-        #return
+        await ctx.send('This command has been disabled.')
+        return
         person = utils.find_user(self, ctx.author.id)
         embed = discord.Embed(title="Targets",
                               description=f"[Explore targets on slotter](https://slotter.bsnk.dev/search?nation={person['nationid']}&alliances=3427,1742,8777,7484,5049,7580,2510,8535,9620,5039,8280,9829,9618,4397,9465,9793&countersMode=false&threatsMode=false&vm=false&grey=true&beige=false)", color=0x00ff00)
