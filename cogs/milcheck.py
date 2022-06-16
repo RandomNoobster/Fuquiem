@@ -173,7 +173,7 @@ class Military(commands.Cog):
             await asyncio.sleep(1.1)
 
             url = f"https://politicsandwar.com/nation/war/timeline/war={war['id']}"
-            if war['att_alliance_id'] in ["4719", "7531"]:
+            if war['att_alliance_id'] in ["4729", "7531"]:
                 war_type = "Offensive"
             else:
                 war_type = "Defensive"
@@ -217,7 +217,7 @@ class Military(commands.Cog):
             await asyncio.sleep(1.1)
 
             url = f"https://politicsandwar.com/nation/war/timeline/war={war['id']}"
-            if war['att_alliance_id'] in ["4719", "7531"]:
+            if war['att_alliance_id'] in ["4729", "7531"]:
                 war_type = "Offensive"
             else:
                 war_type = "Defensive"
