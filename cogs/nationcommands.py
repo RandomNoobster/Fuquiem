@@ -63,8 +63,12 @@ class General(commands.Cog):
 
                 if api_nation['allianceid'] == '4729':
                     admin = church_admin
+                    if level == "2":
+                        api_level = "793"
                 elif api_nation['allianceid'] == '7531':
                     admin = convent_admin
+                    if level == "2":
+                        api_level = "408"
                 elif level == "-3":
                     admin = convent_admin
                 else:
@@ -75,6 +79,11 @@ class General(commands.Cog):
                         return {}
                     else:
                         continue
+                
+                if level == "1":
+                    api_level = "applicant"
+                elif level == "0":
+                    api_level = "remove"
                 
                 if admin['email'] == '' or admin['pwd'] == '':
                     if message:
@@ -93,21 +102,26 @@ class General(commands.Cog):
                         "loginform": "Login"
                     }
                     login_req = s.post(login_url, data=login_data)
+                    
                     if "You entered an incorrect email/password combination." in login_req.text:
                         content += f"**{admin['leader']} has registered incorrect credentials with Fuquiem**"
                         await message.edit(content=content)
                         return {}
                     logged_in = admin
 
-                withdraw_url = f"https://politicsandwar.com/alliance/id={api_nation['allianceid']}"
+                withdraw_url = f"https://politicsandwar.com/alliance/id={api_nation['allianceid']}&display=acp"
+                temp = s.get(withdraw_url).text
+                validation_token = temp[temp.find('validation_token')+25:temp.find('validation_token')+45]
                 withdraw_data = {
-                    "nationperm": api_nation['leadername'],
-                    "level": level,
-                    "permsubmit": 'Go',
+                    "alliance_positions_member": api_nation['leadername'],
+                    "alliance_positions_member_name_type": "leader_name",
+                    "alliance_positions_new_position_select": api_level,
+                    "alliance_positions_assign_submit": 'Save Position Assignment',
+                    "validation_token": validation_token
                 }
                 req = s.post(withdraw_url, data=withdraw_data)
 
-                if level not in ["-3", "-2", "-1"]:
+                if level not in ["invite", "ban", "unban"]:
                     if requests.get(f"http://politicsandwar.com/api/nation/id={api_nation['nationid']}&key=e5171d527795e8").json()['allianceposition'] == level:
                         if message:
                             content += f"{api_nation['leadername']}'s ({api_nation['nationid']}) permissions successfully changed.\n"
