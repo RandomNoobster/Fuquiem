@@ -66,7 +66,10 @@
                     <th data-type="number">Ships milt.</th>
                     <th data-type="number">Total milt.</th>
                     <th data-type="string">Avg. MMR</th>
-                    <th data-type="string">Audited</th>
+                    <th data-type="number">Nukes</th>
+                    <th data-type="number">Missiles</th>
+                    <th data-type="number">Offensive wars</th>
+                    <th data-type="number">Defensive wars</th>
                     % for rs in ['Aluminum', 'Bauxite', 'Coal', 'Food', 'Gasoline', 'Iron', 'Lead', 'Money', 'Munitions', 'Oil', 'Steel', 'Uranium', 'Total bal.']:
                         <th data-type="number">${rs}</th>
                     % endfor
@@ -134,12 +137,12 @@
                     % endif
 
                     <td style="color:${nation['mmr_color']}">${nation['mmr']}</td>
+                    
+                    <td>${nation['nukes']}</td>
+                    <td>${nation['missiles']}</td>
 
-                    % if nation['user_object']['audited']:
-                    <td>${nation['user_object']['audited']}</td>
-                    % else:
-                    <td></td>
-                    %endif
+                    <td>${nation['off_wars']}</td>
+                    <td>${nation['def_wars']}</td>
 
                     % for rs in ['al', 'ba', 'co', 'fo', 'ga', 'ir', 'le', 'mo', 'mu', 'oi', 'st', 'ur', 'total']:
                         % if nation['user_object'][rs] < 0:

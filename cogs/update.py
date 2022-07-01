@@ -241,9 +241,9 @@ class Update(commands.Cog):
             with open('./data/templates/sheet.txt', 'r', encoding='UTF-8') as file:
                 template = file.read()
             try:
-                async with session.post(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_id:4729){data{id alliance_id alliance_position leader_name nation_name color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium espionage_available cities{infrastructure barracks factory airforcebase drydock}}}}"}) as temp:
+                async with session.post(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_id:4729){data{id alliance_id alliance_position leader_name nation_name color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium espionage_available wars{turnsleft att_alliance_id} cities{infrastructure barracks factory airforcebase drydock}}}}"}) as temp:
                     church = (await temp.json())['data']['nations']['data']
-                async with session.post(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{nations(page:1 first:500 alliance_id:7531){data{id alliance_id alliance_position leader_name nation_name color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium espionage_available cities{infrastructure barracks factory airforcebase drydock}}}}"}) as temp:
+                async with session.post(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{nations(page:1 first:500 alliance_id:7531){data{id alliance_id alliance_position leader_name nation_name color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium espionage_available wars{turnsleft att_alliance_id} cities{infrastructure barracks factory airforcebase drydock}}}}"}) as temp:
                     convent = (await temp.json())['data']['nations']['data']
                 sum = church + convent
             except Exception as e:
@@ -311,6 +311,14 @@ class Update(commands.Cog):
                 nation['mmr_color'] = "black"
                 if barracks/nation['num_cities'] < aa['mmr']['bar'] or factories/nation['num_cities'] < aa['mmr']['fac'] or hangars/nation['num_cities'] < aa['mmr']['han'] or drydocks/nation['num_cities'] < aa['mmr']['dry']:
                     nation['mmr_color'] = "red"
+                nation['off_wars'] = 0
+                nation['def_wars'] = 0
+                for war in nation['wars']:
+                    if war['turnsleft'] > 0:
+                        if war['att_alliance_id'] in ["4729", "7531"]:
+                            nation['off_wars'] += 1
+                        else:
+                            nation['def_wars'] += 1
 
             timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M')
             result = Template(template).render(aa=aa,nations=nations,timestamp=timestamp, datetime=datetime)
