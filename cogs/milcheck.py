@@ -735,6 +735,51 @@ class Military(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command(
+        brief='Overview of wars declareed by members',
+    )
+    async def member_wars(self, ctx):
+        message = await ctx.send("Hmmmmmmmmm......")
+        async with aiohttp.ClientSession() as session:
+            query = "{wars(first: 500, alliance_id: 7531, page: page_number, active: false) {paginatorInfo {hasMorePages}data {date att_id}}}"
+            n = 0
+            has_more_pages = True
+            wars = []
+            while has_more_pages:
+                n += 1
+                async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': query.replace("page_number", str(n))}) as temp:
+                    try:
+                        wars += (await temp.json())['data']['wars']['data']
+                        has_more_pages = (await temp.json())['data']['wars']['paginatorInfo']['hasMorePages']
+                    except:
+                        print((await temp.json())['errors'])
+                        return
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': "{nations(first:500 alliance_id:7531 alliance_position:[2,3,4,5]){data{id nation_name num_cities leader_name}}}"}) as temp:
+                try:
+                    members = (await temp.json())['data']['nations']['data']
+                except:
+                    print((await temp.json())['errors'])
+                    return
+
+            fields = []
+            for member in members:
+                war_count = 0
+                for war in wars:
+                    if war['att_id'] == member['id']:
+                        war_count += 1
+                try:
+                    user_id = utils.find_user(self, member['id'])['user']
+                    discord_account = f"<@{user_id}>"
+                except:
+                    discord_account = "Not linked"
+                fields.append({'name': f"{member['nation_name']} ({member['id']})", 'value': f"{war_count} wars, c{member['num_cities']}, {discord_account}", 'wars': war_count})
+
+            fields = sorted(fields, key=lambda x: x['wars'], reverse=True)
+            embeds = utils.embed_pager("Member Wars", fields, inline=False)
+
+            await message.edit(content="", embed=embeds[0])
+            asyncio.create_task(utils.reaction_checker(self, message, embeds))
+
+    @commands.command(
         aliases=['wc'],
         brief="Sends a warchest top up to the people in need",
         help="Requires admin perms, sends people the resources they need in addition to telling people what to deposit."
