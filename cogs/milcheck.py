@@ -411,7 +411,10 @@ class Military(commands.Cog):
                                 all_wars += (await temp1.json())['data']['wars']['data']
                                 has_more_pages = (await temp1.json())['data']['wars']['paginatorInfo']['hasMorePages']
                             except:
-                                print((await temp1.json())['errors'])
+                                try:
+                                    print((await temp1.json())['errors'])
+                                except:
+                                    pass
                                 await asyncio.sleep(60)
                                 continue
                     for war in all_wars:
