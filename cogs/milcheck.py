@@ -164,6 +164,7 @@ class Military(commands.Cog):
             await thread.send(f"I was unable to remove {user} from the thread.")
 
     async def wars(self):
+        return
         await self.bot.wait_until_ready()
         channel_id = 923249186500116560 #923249186500116560 | 842115066424852510
         channel = self.bot.get_channel(channel_id) 
