@@ -422,6 +422,10 @@ class Update(commands.Cog):
                     await self.nation_check(embed_channel)
                 except:
                     await debug_channel.send(f"I encountered an error whilst performing self.nation_check():\n```{traceback.format_exc()}```")
+                try:
+                    await self.nuke_reminder()
+                except:
+                    await debug_channel.send(f"I encountered an error whilst performing self.nuke_reminder():\n```{traceback.format_exc()}```")
 
             if now.hour == 18:
                 try:
@@ -432,10 +436,6 @@ class Update(commands.Cog):
                     await self.raffle_reminder()
                 except:
                     await debug_channel.send(f"I encountered an error whilst performing self.raffle_reminder():\n```{traceback.format_exc()}```")
-                try:
-                    await self.nuke_reminder()
-                except:
-                    await debug_channel.send(f"I encountered an error whilst performing self.nuke_reminder():\n```{traceback.format_exc()}```")
             try:
                 await self.alert_scanner()
             except:
