@@ -354,6 +354,7 @@ class Update(commands.Cog):
                     await disc.send("Hey, there's 4 hours left until the winners of today's raffle is drawn! Remember to sign up for the raffle in <#850302301838114826>!")
 
     async def nuke_reminder(self):
+        debug_channel = self.bot.get_channel(739155202640183377)
         async with aiohttp.ClientSession() as session:
             async with session.post(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_id:4729 vmode:false){data{id leader_name nation_name score warpolicy spies cia spy_satellite espionage_available nukes missiles mlp nrf}}}"}) as temp:
                 church = (await temp.json())['data']['nations']['data']
@@ -362,9 +363,9 @@ class Update(commands.Cog):
             sum = church + convent
             for member in sum:
                 content = "Remember to buy:\n"
-                if member['nrf'] and member['nukes'] < 10:
+                if member['nrf']: #and member['nukes'] < 10:
                     content += "> Nukes: <https://politicsandwar.com/nation/military/nukes/>\n"
-                if member['mlp'] and member['missiles'] < 10: 
+                if member['mlp']: #and member['missiles'] < 10: 
                     content += "> Missiles: <https://politicsandwar.com/nation/military/missiles/>\n"
                 if content != "Remember to buy:\n":
                     try:
@@ -372,8 +373,10 @@ class Update(commands.Cog):
                         user = await self.bot.fetch_user(person['user'])
                         await asyncio.sleep(1)
                         await user.send(content=content)
+                    except discord.Forbidden:
+                        await debug_channel.send(f"<@&875380653951185016> {user} doesn't accept my DMs <:sadcat:787450782747590668>")
                     except:
-                        print(f"error led to no nuke/missile dm to {member['nation_name']}")
+                        await debug_channel.send(f"error led to no nuke/missile dm to {member['nation_name']}")
 
     async def soxi(self):
         users = list(mongo.users.find({}))
