@@ -363,9 +363,9 @@ class Update(commands.Cog):
             sum = church + convent
             for member in sum:
                 content = "Remember to buy:\n"
-                if member['nrf']: #and member['nukes'] < 10:
+                if member['nrf'] and member['nukes'] < 100:
                     content += "> Nukes: <https://politicsandwar.com/nation/military/nukes/>\n"
-                if member['mlp']: #and member['missiles'] < 10: 
+                if member['mlp'] and member['missiles'] < 100: 
                     content += "> Missiles: <https://politicsandwar.com/nation/military/missiles/>\n"
                 if content != "Remember to buy:\n":
                     try:
