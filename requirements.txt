@@ -11,3 +11,4 @@ Mako
 dload
 python-dateutil
 matplotlib
+py-cord==2.4.0

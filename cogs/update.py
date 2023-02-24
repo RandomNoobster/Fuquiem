@@ -81,13 +81,13 @@ class Update(commands.Cog):
                         food_fields.append({"name": nation['leader_name'], "value": f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) runs out of food in {math.ceil(days)} days ({nation['food']} food)."})
                         if nation['alliance_id'] == "4729":
                             try:
-                                await user.send('Hey, you should get some food. Type "$food" in <#850302301838114826>')
+                                await user.send('Hey, you should get some food. Type "$food" in <#850302301838114826>', silent=True)
                                 print('i just sent a msg to', user)
                             except discord.Forbidden:
                                 await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Food', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because it seems that you are running out of food. You don't really want to miss out on 1/3 of your income due to a a lack of food... So please go to the discord and type $food in #pnw-bots, by doing this, Fuquiem will send 100k food your way."})
                         elif nation['alliance_id'] == "7531":
                             try:
-                                await user.send("Hey, you should get some food, you don't want to miss out on 1/3 of your income: https://politicsandwar.com/index.php?id=26&display=world")
+                                await user.send("Hey, you should get some food, you don't want to miss out on 1/3 of your income: https://politicsandwar.com/index.php?id=26&display=world", silent=True)
                                 print('i just sent a msg to', user)
                             except discord.Forbidden:
                                 await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
@@ -101,7 +101,7 @@ class Update(commands.Cog):
                         spy_fields.append({"name": nation['leader_name'], "value": f"[{nation['leader_name']}](https://politicsandwar.com/nation/id={nation['id']}) only has {nation['spies']} spies."})
                         if nation['alliance_id'] == "4729":
                             try:
-                                await user.send('Hey, you should get some spies: https://politicsandwar.com/nation/military/spies/')
+                                await user.send('Hey, you should get some spies: https://politicsandwar.com/nation/military/spies/', silent=True)
                                 print('i just sent a msg to', user)
                             except discord.Forbidden:
                                 await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
@@ -112,7 +112,7 @@ class Update(commands.Cog):
                     if minutes_inactive > 2880:
                         inactivity_fields.append({"name": nation['leader_name'], "value": f"[{nation['leader_name']}](https://politicsandwar.com/nation/id={nation['id']}) has been inactive for {round(minutes_inactive/1440)} days."})
                         try:
-                            await user.send('Hey, you should log in: https://politicsandwar.com')
+                            await user.send('Hey, you should log in: https://politicsandwar.com', silent=True)
                             print('i just sent a msg to', user)
                         except discord.Forbidden:
                             await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
@@ -129,7 +129,7 @@ class Update(commands.Cog):
                         else:
                             continue
                         try:
-                            await user.send(f'Hey, you should change your color to {color} in order to get money from the color bonus: https://politicsandwar.com/nation/edit/')
+                            await user.send(f'Hey, you should change your color to {color} in order to get money from the color bonus: https://politicsandwar.com/nation/edit/', silent=True)
                             print('i just sent a msg to', user)
                         except discord.Forbidden:
                             await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
@@ -372,7 +372,7 @@ class Update(commands.Cog):
                         person = utils.find_user(self, member['id'])
                         user = await self.bot.fetch_user(person['user'])
                         await asyncio.sleep(1)
-                        await user.send(content=content)
+                        await user.send(content=content, silent=True)
                     except discord.Forbidden:
                         await debug_channel.send(f"<@&875380653951185016> {user} doesn't accept my DMs <:sadcat:787450782747590668>")
                     except:
