@@ -497,6 +497,133 @@ class Economic(commands.Cog):
                     await ctx.send('Once upon a time there was 100k food. Now it resides in your nation.')
                 else:
                     await ctx.send(f"Bugger me sideways with a hamburger! Things didn't go as planned! Please check this page to see if you got your food:\nhttps://politicsandwar.com/nation/id={person['nationid']}&display=bank")
+   
+    @commands.command(
+        brief='Gives you missile supplies',
+        help="Sends $300,000, 200 Aluminum, 150 Gasoline, and 150 Munitions to your nation",
+        aliases=['missiles', "msl"]
+        )
+    @commands.cooldown(2, 43200, commands.BucketType.user)
+    @commands.has_any_role(*utils.zealot_plus_perms)
+    async def missile(self, ctx):
+        async with aiohttp.ClientSession() as session:
+            randy = utils.find_user(self, 465463547200012298)
+            if randy['email'] == '' or randy['pwd'] == '':
+                await ctx.send('Randy has not registered his PnW credentials with Fuquiem.')
+
+            cipher_suite = Fernet(key)
+
+            with requests.Session() as s:
+                login_url = "https://politicsandwar.com/login/"
+                login_data = {
+                    "email": str(cipher_suite.decrypt(randy['email'].encode()))[2:-1],
+                    "password": str(cipher_suite.decrypt(randy['pwd'].encode()))[2:-1],
+                    "loginform": "Login"
+                }
+                s.post(login_url, data=login_data)
+
+                person = utils.find_user(self, ctx.author.id)
+
+                
+                withdraw_url = f'https://politicsandwar.com/alliance/id=4729&display=bank'
+                withdraw_data = {
+                    "withmoney": '150000',
+                    "withfood": '',
+                    "withcoal": '0',
+                    "withoil": '0',
+                    "withuranium": '',
+                    "withlead": '0',
+                    "withiron": '0',
+                    "withbauxite": '0',
+                    "withgasoline": '75',
+                    "withmunitions": '75',
+                    "withsteel": '0',
+                    "withaluminum": '100',
+                    "withtype": 'Nation',
+                    "withrecipient": person['name'],
+                    "withnote": 'Life Prevention!',
+                    "withsubmit": 'Withdraw'
+                }
+
+                start_time = (datetime.utcnow() - timedelta(seconds=5))
+                p = s.post(withdraw_url, data=withdraw_data)
+                end_time = (datetime.utcnow() + timedelta(seconds=5))
+                print(f'Response: {p}')
+
+                success = False
+                await asyncio.sleep(1)
+                async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={person['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
+                    txids = await txids.json()
+                for x in txids['data']:
+                    if x['note'] == 'Life Prevention!' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
+                        success = True
+                if success:
+                    await ctx.send("Blood for the blood gods <:elmoburn:935487193579925525>")
+                else:
+                    await ctx.send(f"Things didn't go as planned! Please check this page to see if you got your stuff:\nhttps://politicsandwar.com/nation/id={person['nationid']}&display=bank")
+
+    @commands.command(
+        brief='Gives you nuke supplies',
+        help="Sends $1,750,000, 750 Aluminum, 500 Gasoline, and 250 Uranium to your nation",
+        aliases=['nukes', "nk"]
+        )
+    @commands.cooldown(1, 43200, commands.BucketType.user)
+    @commands.has_any_role(*utils.zealot_plus_perms)
+    async def nuke(self, ctx):
+        async with aiohttp.ClientSession() as session:
+            randy = utils.find_user(self, 465463547200012298)
+            if randy['email'] == '' or randy['pwd'] == '':
+                await ctx.send('Randy has not registered his PnW credentials with Fuquiem.')
+
+            cipher_suite = Fernet(key)
+
+            with requests.Session() as s:
+                login_url = "https://politicsandwar.com/login/"
+                login_data = {
+                    "email": str(cipher_suite.decrypt(randy['email'].encode()))[2:-1],
+                    "password": str(cipher_suite.decrypt(randy['pwd'].encode()))[2:-1],
+                    "loginform": "Login"
+                }
+                s.post(login_url, data=login_data)
+
+                person = utils.find_user(self, ctx.author.id)
+                
+                withdraw_url = f'https://politicsandwar.com/alliance/id=4729&display=bank'
+                withdraw_data = {
+                    "withmoney": '1750000',
+                    "withfood": '',
+                    "withcoal": '0',
+                    "withoil": '0',
+                    "withuranium": '250',
+                    "withlead": '0',
+                    "withiron": '0',
+                    "withbauxite": '0',
+                    "withgasoline": '500',
+                    "withmunitions": '0',
+                    "withsteel": '0',
+                    "withaluminum": '750',
+                    "withtype": 'Nation',
+                    "withrecipient": person['name'],
+                    "withnote": 'Haha atom go brrr',
+                    "withsubmit": 'Withdraw'
+                }
+
+                start_time = (datetime.utcnow() - timedelta(seconds=5))
+                p = s.post(withdraw_url, data=withdraw_data)
+                end_time = (datetime.utcnow() + timedelta(seconds=5))
+                print(f'Response: {p}')
+
+                success = False
+                await asyncio.sleep(1)
+                async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={person['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
+                    txids = await txids.json()
+                for x in txids['data']:
+                    if x['note'] == 'Haha atom go brrr' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
+                        success = True
+                if success:
+                    await ctx.send('Praise Atom <:elmoburn:935487193579925525>')
+                else:
+                    await ctx.send(f"Things didn't go as planned! Please check this page to see if you got your stuff:\nhttps://politicsandwar.com/nation/id={person['nationid']}&display=bank")
 
     @commands.command(
         brief='Gives you uranium',
