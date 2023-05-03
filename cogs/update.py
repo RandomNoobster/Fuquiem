@@ -374,7 +374,7 @@ class Update(commands.Cog):
                         await asyncio.sleep(1)
                         await user.send(content=content, silent=True)
                     except discord.Forbidden:
-                        await debug_channel.send(f"<@&875380653951185016> {user} doesn't accept my DMs <:sadcat:787450782747590668>")
+                        await debug_channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
                     except:
                         await debug_channel.send(f"error led to no nuke/missile dm to {member['nation_name']}")
 
@@ -420,7 +420,7 @@ class Update(commands.Cog):
                         if send:
                             await user.send(content=content, silent=True)
                     except discord.Forbidden:
-                        await debug_channel.send(f"<@&875380653951185016> {user} doesn't accept my DMs <:sadcat:787450782747590668>")
+                        await debug_channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
                     except:
                         await debug_channel.send(f"error led to no 12 MAP dm to {member['nation_name']}")
 
