@@ -6,6 +6,7 @@ import pymongo
 import aiohttp
 import pytz
 import os
+import pnwkit
 import discord
 from discord.ext import commands
 intents = discord.Intents.default()
@@ -18,6 +19,7 @@ version = os.getenv("version")
 mongo = client[str(version)]
 
 bot = commands.Bot(command_prefix='$', intents=intents)
+kit = pnwkit.QueryKit(os.getenv("api_key"))
 
 @bot.event
 async def on_ready():

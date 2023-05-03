@@ -6,7 +6,7 @@ from flask.views import MethodView
 from mako.template import Template
 from keep_alive import app
 import os.path
-from main import mongo
+from main import mongo, kit
 from datetime import datetime, timedelta
 from discord.ext import commands
 import os
@@ -389,9 +389,44 @@ class Update(commands.Cog):
                 return str(result)
         app.add_url_rule(f"/soxi", view_func=soxi.as_view("soxi"), methods=["GET"])
         return
+    
+    async def check_maps(self):
+        debug_channel = self.bot.get_channel(677883771810349067)
+        content = "You have wars with 12 MAPs! Use them before they go to waste! https://politicsandwar.com/nation/war/"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_id:4729 vmode:false){data{id wars{att_id att_points def_points}}}}"}) as temp:
+                church = (await temp.json())['data']['nations']['data']
+            async with session.post(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{nations(page:1 first:500 alliance_id:7531 vmode:false){data{id wars{att_id att_points def_points}}}}"}) as temp:
+                convent = (await temp.json())['data']['nations']['data']
+            sum = church + convent
+            for member in sum:
+                send = False
+                for war in member["wars"]:
+                    if war["att_id"] == member["id"]:
+                        if war["att_points"] == 12:
+                            send = True
+                            break
+                    else:
+                        if war["def_points"] == 12:
+                            send = True
+                            break
+                if send:
+                    try:
+                        person = utils.find_user(self, 465463547200012298) # member['id']
+                        user = await self.bot.fetch_user(person['user'])
+                        async for msg in user.history(limit=10, after=datetime.utcnow() - timedelta(hours=12)):
+                            if msg.content == content:
+                                send = False
+                        if send:
+                            await user.send(content=content, silent=True)
+                    except discord.Forbidden:
+                        await debug_channel.send(f"<@&875380653951185016> {user} doesn't accept my DMs <:sadcat:787450782747590668>")
+                    except:
+                        await debug_channel.send(f"error led to no 12 MAP dm to {member['nation_name']}")
 
     async def auto_update(self):
         await self.bot.wait_until_ready()
+        await self.check_maps()
         Raffle = self.bot.get_cog('Raffle')
         Military = self.bot.get_cog('Military')
         debug_channel = self.bot.get_channel(739155202640183377)
@@ -452,6 +487,10 @@ class Update(commands.Cog):
                 await Military.wars_check()
             except:
                 await debug_channel.send(f"I encountered an error whilst performing Military.wars_check():\n```{traceback.format_exc()}```")
+            try:
+                await self.check_maps()
+            except:
+                await debug_channel.send(f"I encountered an error whilst performing self.check_maps():\n```{traceback.format_exc()}```")
 
             print(datetime.utcnow(), 'finished, going to sleep')
             await asyncio.sleep(60)
