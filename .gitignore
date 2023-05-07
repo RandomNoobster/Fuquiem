@@ -1,14 +1,4 @@
-cogs/__pycache__/db.cpython-39.pyc
-cogs/__pycache__/econ.cpython-39.pyc
-cogs/__pycache__/milcheck.cpython-39.pyc
-cogs/__pycache__/nationcommands.cpython-39.pyc
-cogs/__pycache__/raffle.cpython-39.pyc
-cogs/__pycache__/raids.cpython-39.pyc
-cogs/__pycache__/sheet.cpython-39.pyc
-cogs/__pycache__/update.cpython-39.pyc
 .env
 .vscode/launch.json
-__pycache__/keep_alive.cpython-39.pyc
-__pycache__/main.cpython-39.pyc
-__pycache__/utils.cpython-39.pyc
+*__pycache__*
 data/dumps/cities/cities*.csv
