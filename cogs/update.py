@@ -414,7 +414,8 @@ class Update(commands.Cog):
                     try:
                         person = utils.find_user(self, member['id'])
                         user = await self.bot.fetch_user(person['user'])
-                        async for msg in user.history(limit=10, after=datetime.utcnow() - timedelta(hours=12)):
+                        messages = await user.history(limit=5, after=datetime.utcnow() - timedelta(hours=12)).flatten()
+                        for msg in messages:
                             if msg.content == content:
                                 send = False
                         if send:
