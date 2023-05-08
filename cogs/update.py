@@ -394,9 +394,9 @@ class Update(commands.Cog):
         debug_channel = self.bot.get_channel(677883771810349067)
         content = "You have wars with 12 MAPs! Use them before they go to waste! https://politicsandwar.com/nation/war/"
         async with aiohttp.ClientSession() as session:
-            async with session.post(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_id:4729 vmode:false){data{id wars{att_id att_points def_points}}}}"}) as temp:
+            async with session.post(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_id:4729 vmode:false){data{id nation_name wars{att_id att_points def_points}}}}"}) as temp:
                 church = (await temp.json())['data']['nations']['data']
-            async with session.post(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{nations(page:1 first:500 alliance_id:7531 vmode:false){data{id wars{att_id att_points def_points}}}}"}) as temp:
+            async with session.post(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{nations(page:1 first:500 alliance_id:7531 vmode:false){data{id nation_name wars{att_id att_points def_points}}}}"}) as temp:
                 convent = (await temp.json())['data']['nations']['data']
             sum = church + convent
             for member in sum:
@@ -413,7 +413,7 @@ class Update(commands.Cog):
                 if send:
                     try:
                         person = utils.find_user(self, member['id'])
-                        user = await self.bot.fetch_user(person['user'])
+                        user: discord.User = await self.bot.fetch_user(person['user'])
                         messages = await user.history(limit=5, after=datetime.utcnow() - timedelta(hours=12)).flatten()
                         for msg in messages:
                             if msg.content == content:
