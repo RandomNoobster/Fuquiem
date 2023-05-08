@@ -402,6 +402,8 @@ class Update(commands.Cog):
             for member in sum:
                 send = False
                 for war in member["wars"]:
+                    if war['turnsleft'] <= 0:
+                        continue
                     if war["att_id"] == member["id"]:
                         if war["att_points"] == 12:
                             send = True
