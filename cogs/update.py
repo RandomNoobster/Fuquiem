@@ -119,13 +119,13 @@ class Update(commands.Cog):
                             await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Inactivity', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you have been somewhat inactive lately. He sent this message in the hopes that you might get a notification by email, increasing the probability of you logging in to the game."})
 
                     ## color_check
-                    if nation['alliance_id'] == "4729" and nation['color'] not in ['green', 'beige'] or nation['alliance_id'] == "7531" and nation['color'] not in ['pink', 'beige']:
+                    if nation['alliance_id'] == "4729" and nation['color'] not in ['green', 'beige'] or nation['alliance_id'] == "7531" and nation['color'] not in ['purple', 'beige']:
                         color_fields.append({"name": nation['leader_name'], "value": f"[{nation['leader_name']}](https://politicsandwar.com/nation/id={nation['id']}) are on {nation['color']}"})
                         
                         if nation['alliance_id'] == "4729":
                             color = 'green'
                         elif nation['alliance_id'] == "7531":
-                            color = 'pink'
+                            color = 'purple'
                         else:
                             continue
                         try:
