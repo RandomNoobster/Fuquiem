@@ -429,7 +429,6 @@ class Update(commands.Cog):
 
     async def auto_update(self):
         await self.bot.wait_until_ready()
-        await self.check_maps()
         Raffle = self.bot.get_cog('Raffle')
         Military = self.bot.get_cog('Military')
         debug_channel = self.bot.get_channel(739155202640183377)
@@ -490,10 +489,10 @@ class Update(commands.Cog):
                 await Military.wars_check()
             except:
                 await debug_channel.send(f"I encountered an error whilst performing Military.wars_check():\n```{traceback.format_exc()}```")
-            try:
-                await self.check_maps()
-            except:
-                await debug_channel.send(f"I encountered an error whilst performing self.check_maps():\n```{traceback.format_exc()}```")
+            # try:
+            #     await self.check_maps()
+            # except:
+            #     await debug_channel.send(f"I encountered an error whilst performing self.check_maps():\n```{traceback.format_exc()}```")
 
             print(datetime.utcnow(), 'finished, going to sleep')
             await asyncio.sleep(60)
