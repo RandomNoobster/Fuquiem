@@ -900,7 +900,7 @@ class Military(commands.Cog):
                             if user == None:
                                 pass
                             else:
-                                await user.send(f"Hey, you have an excess of resources! Please use this pre-filled link to deposit the resources for safekeeping: <https://politicsandwar.com/alliance/id={nation['allianceid']}&display=bank{excess}>")
+                                await user.send(f"Hey, you have an excess of resources! Please use this pre-filled link to deposit the resources for safekeeping: <https://politicsandwar.com/alliance/id={nation['allianceid']}&display=bank{excess}>", silent=True)
                                 await ctx.send(f"Sent a message to {user}")
                         except discord.Forbidden:
                             await ctx.send(f"{user} does not allow my DMs")
