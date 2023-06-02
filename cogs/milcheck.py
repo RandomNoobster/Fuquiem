@@ -848,35 +848,35 @@ class Military(commands.Cog):
                     minmoney = round(city_count * 500000 - float(nation['money']))
                     maxmoney = round(city_count * 500000 * 3 - float(nation['money']))
                     if maxmoney < 0:
-                        excess += "&d_money=" + str(round(abs(city_count * 500000 * 2 - float(nation['money']))))
+                        excess += "&d_money=" + str(abs(minmoney))
                     if minmoney < 0:
                         minmoney = 0
 
-                    mingasoline = round(city_count * 350 * 2 - float(nation['gasoline']))
-                    maxgasoline = round(city_count * 350 * 3 - float(nation['gasoline']))
+                    mingasoline = round(city_count * 325 * 2 - float(nation['gasoline']))
+                    maxgasoline = round(city_count * 325 * 3 - float(nation['gasoline']))
                     if maxgasoline < 0:
-                        excess += "&d_gasoline=" + str(round(abs(city_count * 350 * 2 - float(nation['gasoline']))))
+                        excess += "&d_gasoline=" + str(abs(mingasoline))
                     if mingasoline < 0:
                         mingasoline = 0
 
-                    minmunitions = round(city_count * 400 * 2 - float(nation['munitions']))
-                    maxmunitions = round(city_count * 400 * 3 - float(nation['munitions']))
+                    minmunitions = round(city_count * 380 * 2 - float(nation['munitions']))
+                    maxmunitions = round(city_count * 380 * 3 - float(nation['munitions']))
                     if maxmunitions < 0:
-                        excess += "&d_munitions=" + str(round(abs(city_count * 400 * 2 - float(nation['munitions']))))
+                        excess += "&d_munitions=" + str(abs(minmunitions))
                     if minmunitions < 0:
                         minmunitions = 0
 
-                    minsteel = round(city_count * 450 * 2 - float(nation['steel']))
-                    maxsteel = round(city_count * 450 * 3 - float(nation['steel']))
+                    minsteel = round(city_count * 380 * 2 - float(nation['steel']))
+                    maxsteel = round(city_count * 380 * 3 - float(nation['steel']))
                     if maxsteel < 0:
-                        excess += "&d_steel=" + str(round(abs(city_count * 450 * 2 - float(nation['steel']))))
+                        excess += "&d_steel=" + str(abs(minsteel))
                     if minsteel < 0:
                         minsteel = 0
 
-                    minaluminum = round(city_count * 315 * 2 - float(nation['aluminum']))
-                    maxaluminum = round(city_count * 315 * 3 - float(nation['aluminum']))
+                    minaluminum = round(city_count * 300 * 2 - float(nation['aluminum']))
+                    maxaluminum = round(city_count * 300 * 3 - float(nation['aluminum']))
                     if maxaluminum < 0:
-                        excess += "&d_aluminum=" + str(round(abs(city_count * 315 * 2 - float(nation['aluminum']))))
+                        excess += "&d_aluminum=" + str(abs(minaluminum))
                     if minaluminum < 0:
                         minaluminum = 0
                     
@@ -888,7 +888,7 @@ class Military(commands.Cog):
                         minuranium = 0
                     
                     minfood = round(city_count * 400 * 5 - float(nation['food']))
-                    maxfood = round(city_count * 400 * 8 - float(nation['food']))
+                    maxfood = round(city_count * 400 * 10 - float(nation['food']))
                     if maxfood < 0:
                         excess += "&d_food=" + str(abs(minfood))
                     if minfood < 0:
