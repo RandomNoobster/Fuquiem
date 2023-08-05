@@ -44,100 +44,62 @@ class General(commands.Cog):
         await ctx.send(embed=embed)
 
     async def change_perm(self, nations: list, level: str, message: discord.Message = None):
-        convent_admin = utils.find_user(self, 716986772944322635)
-        church_admin = utils.find_user(self, 465463547200012298)
-        cipher_suite = Fernet(key)
-        logged_in = {}
+        church_key = api_key
         content = ""
         
-        with requests.Session() as s:
-            for api_nation in nations:
-                if api_nation['allianceposition'] > '2':
-                    if message:
-                        content += f"I cannot let you change the perms of **{api_nation['leadername']} ({api_nation['nationid']})**, they have too high ranking!\n"
-                    if len(nations) == 1:
-                        await message.edit(content=content)
-                        return {}
-                    else:
-                        continue
-
-                if api_nation['allianceid'] == '4729':
-                    admin = church_admin
-                    if level == "2":
-                        api_level = "793"
-                elif api_nation['allianceid'] == '7531':
-                    admin = convent_admin
-                    if level == "2":
-                        api_level = "408"
-                elif level == "-3":
-                    admin = convent_admin
-                else:
-                    if message:
-                        content += f"**{api_nation['leadername']} ({api_nation['nationid']})** is not affiliated with the Church nor the Convent!\n"
-                    if len(nations) == 1:
-                        await message.edit(content=content)
-                        return {}
-                    else:
-                        continue
-                
-                if level == "1":
-                    api_level = "applicant"
-                elif level == "0":
-                    api_level = "remove"
-                
-                if admin['email'] == '' or admin['pwd'] == '':
-                    if message:
-                        content += f"**{admin['leader']}** has not registered their PnW credentials with Fuquiem.\n"
-                    if len(nations) == 1:
-                        await message.edit(content=content)
-                        return {}
-                    else:
-                        continue
-
-                if logged_in != admin:
-                    login_url = "https://politicsandwar.com/login/"
-                    login_data = {
-                        "email": str(cipher_suite.decrypt(admin['email'].encode()))[2:-1],
-                        "password": str(cipher_suite.decrypt(admin['pwd'].encode()))[2:-1],
-                        "loginform": "Login"
-                    }
-                    login_req = s.post(login_url, data=login_data)
-                    
-                    if "You entered an incorrect email/password combination." in login_req.text:
-                        content += f"**{admin['leader']} has registered incorrect credentials with Fuquiem**"
-                        await message.edit(content=content)
-                        return {}
-                    logged_in = admin
-
-                withdraw_url = f"https://politicsandwar.com/alliance/id={api_nation['allianceid']}&display=acp"
-                temp = s.get(withdraw_url).text
-                validation_token = temp[temp.find('validation_token')+25:temp.find('validation_token')+45]
-                withdraw_data = {
-                    "alliance_positions_member": api_nation['leadername'],
-                    "alliance_positions_member_name_type": "leader_name",
-                    "alliance_positions_new_position_select": api_level,
-                    "alliance_positions_assign_submit": 'Save Position Assignment',
-                    "validation_token": validation_token
-                }
-                req = s.post(withdraw_url, data=withdraw_data)
-
-                if level not in ["invite", "ban", "unban"]:
-                    if requests.get(f"http://politicsandwar.com/api/nation/id={api_nation['nationid']}&key=e5171d527795e8").json()['allianceposition'] == level:
-                        if message:
-                            content += f"{api_nation['leadername']}'s ({api_nation['nationid']}) permissions successfully changed.\n"
-                    else:
-                        if message:
-                            content += f"I might have failed at changing **{api_nation['leadername']}'s ({api_nation['nationid']})** permissions. Check their nation page to be sure: https://politicsandwar.com/nation/id={api_nation['nationid']}\n"
-                        if len(nations) == 1:
-                            await message.edit(content=content)
-                            return {}
-                else:
-                    if req.status_code == 200:
-                        content += f"{api_nation['leadername']}'s ({api_nation['nationid']}) permissions successfully changed.\n"
-                    else:
-                        content += f"I might have failed at changing **{api_nation['leadername']}'s ({api_nation['nationid']})** permissions. Check their nation page to be sure: https://politicsandwar.com/nation/id={api_nation['nationid']}\n"
+        if level == "5":
+            level = "LEADER"
+        elif level == "4":
+            level = "HEIR"
+        elif level == "3":
+            level = "OFFICER"
+        elif level == "2":
+            level = "MEMBER"
+        elif level == "1":
+            level = "APPLICANT"
+        elif level == "0":
+            level = "REMOVE"
+        
+        for api_nation in nations:
+            if api_nation['alliance_position'] in ["OFFICER", "HEIR", "LEADER"]:
                 if message:
+                    content += f"I cannot let you change the perms of **{api_nation['leader_name']} ({api_nation['id']})**, they have too high ranking!\n"
+                if len(nations) == 1:
                     await message.edit(content=content)
+                    return {}
+                else:
+                    continue
+
+            if api_nation['alliance_id'] == '4729':
+                active_api_key = church_key
+            elif api_nation['alliance_id'] == '7531':
+                active_api_key = convent_key
+            elif level == "INVITE":
+                active_api_key = convent_key
+            else:
+                if message:
+                    content += f"**{api_nation['leader_name']} ({api_nation['id']})** is not affiliated with the Church nor the Convent!\n"
+                if len(nations) == 1:
+                    await message.edit(content=content)
+                    return {}
+                else:
+                    continue
+            
+            res = await utils.call(f"mutation{{assignAlliancePosition(id:{api_nation['id']} default_position:{level}){{id}}}}", active_api_key, use_bot_key=True)
+            if "errors" in res:
+                if message:
+                    await message.reply(res["errors"])
+                    content += f"I might have failed at changing **{api_nation['leader_name']}'s ({api_nation['id']})** permissions. Check their nation page to be sure: https://politicsandwar.com/nation/id={api_nation['id']}\n"
+                print("a fucky wucky when changing perms")
+                if len(nations) == 1:
+                    await message.edit(content=content)
+                    return {}
+            else:
+                if message:
+                    content += f"{api_nation['leader_name']}'s ({api_nation['id']}) permissions successfully changed.\n"
+            
+            if message:
+                await message.edit(content=content)
 
     @commands.command(
         brief="Change the status of nations",
@@ -146,31 +108,22 @@ class General(commands.Cog):
     @commands.has_any_role(*utils.high_gov_plus_perms)
     async def move(self, ctx, level: int, *, arg):
         message = await ctx.send("Be patient, young padawan...")
-        async with aiohttp.ClientSession() as session:
-            nations = re.sub("[^0-9\,]", "", arg).split(",")
+        if level == 2:
+            level = "MEMBER"
+        elif level == 1:
+            level = "APPLICANT"
+        elif level == 0:
+            level = "REMOVE"
+        else:
+            await message.edit("Fuck that")
+            return
 
-            content = f"Do you really want to move these people to level {level}?\n\n"
-            responses = []
-            n = 0
+        nations = re.sub("[^0-9\,]", "", arg).split(",")
+        content = f"Do you really want to move these people to level {level}?\n\n"
 
-            async def iterate_nations(nation, session):
-                nonlocal content, n, self
-                user = utils.find_user(self, nation)
-                if user:
-                    user = await self.bot.fetch_user(user['user'])
-                else:
-                    user = None
-                async with session.get(f"http://politicsandwar.com/api/nation/id={nation}&key=e5171d527795e8") as temp:
-                    res = await temp.json()
-                content += f"{res['leadername']} ({user}) of {res['name']} <https://politicsandwar.com/nation/id={nation}>\n"
-                n += 1
-                await message.edit(f"Fetching nations... ({n}/{len(nations)})")
-                return res
-
-            futures = []
-            for nation in nations:
-                futures.append(asyncio.ensure_future(iterate_nations(nation, session)) )
-            responses = await asyncio.gather(*futures)
+        res = (await utils.call(f"{{nations(first:500 id:[{','.join(nations)}]) {{data{{id leader_name discord nation_name discord alliance_id alliance_position}}}}}}"))['data']['nations']['data']
+        for x in res:
+            content += f"{x['leader_name']} ({x['discord']}) of {x['nation_name']} <https://politicsandwar.com/nation/id={x['id']}>\n"
         
         await message.edit(content=content[:2000])
 
@@ -182,12 +135,13 @@ class General(commands.Cog):
             await message.edit(content="Demotion canceled.")
             return
         
-        await self.change_perm(responses, str(level), message)        
+        await self.change_perm(res, str(level), message)        
 
     @commands.command(aliases=['message'], brief="Send a premade message to someone")
     @commands.has_any_role(utils.ia_id, *utils.high_gov_plus_perms)
     async def msg(self, ctx, *, arg):
         message = await ctx.send("Working on it..")
+        arg = re.sub("[^0-9\,]", "", arg)
         if "," in arg:
             nations = arg.split(",")
         else:
@@ -216,30 +170,19 @@ class General(commands.Cog):
             title = "Acolyte of Internal Affairs"
         elif deacon in roles:
             title = "Deacon of Internal Affairs"
+        else:
+            title = "Government Member"
         
         content = ""
         n = 0
-        async with aiohttp.ClientSession() as session:
-            async def prepare_nation(x: str) -> Union[dict, None]:
-                nonlocal content, n
-                nation = utils.find_nation_plus(self, x)
-                if nation == None:
-                    content=f"I could not find `{x.strip()}`, they will be skipped.\n"
-                    return
-
-                async with session.get(f"http://politicsandwar.com/api/nation/id={nation['id']}&key=e5171d527795e8") as temp:
-                    api_nation = await temp.json()
-                api_nation['user'] = mongo.users.find_one({"nationid": api_nation['nationid']})
-                n += 1
-                await message.edit(f"Fetching nations ({n}/{len(nations)})...")
-                return api_nation
         
-            futures = []
-            for x in nations:
-                futures.append(asyncio.ensure_future(prepare_nation(x)))
-        
-            results = await asyncio.gather(*futures) ## will include instances of None, since None is returned
-            to_message = [i for i in results if i]
+        to_message = (await utils.call(f'{{nations(first:500 id:[{",".join(nations)}]) {{data{{id nation_name discord leader_name alliance_id alliance_position}}}}}}'))['data']['nations']['data']
+        for x in to_message:
+            temp = utils.find_user(self, x['id'])
+            if "user" in temp:
+                x['user'] = temp['user']
+            else:
+                x['user'] = None
 
         try:
             api_nation = to_message[0]
@@ -255,7 +198,7 @@ class General(commands.Cog):
                 await message.edit(content=content + "\nNobody was found, please try again!", embed=None)
                 return
 
-        msg_hist = mongo.message_history.find_one({"nationid": api_nation['nationid']})
+        msg_hist = mongo.message_history.find_one({"nationid": api_nation['id']})
 
         embed = discord.Embed(title=f"Type of message", description="Do you want to send a message about...\n\n:one: - removal from our applicant pool\n:two: - closing a ticket\n:three: - them having to join the discord\n:four: - them being moved to applicant due to inactivity", color=0x00ff00)
         message = await ctx.send(embed=embed)
@@ -357,11 +300,11 @@ class General(commands.Cog):
                         res = await last_message(variant)
                         if res == {}:
                             return
-                    if api_nation['allianceposition'] == '1' and len(to_message) < 2 or len(to_message) > 1:
+                    if api_nation['alliance_position'] == 'APPLICANT' and len(to_message) < 2 or len(to_message) > 1:
                         try:
                             while True:
-                                if api_nation['allianceposition'] == '1' and len(to_message) < 2:
-                                    await message.edit(content=f"I noticed that {api_nation['leadername']} of {api_nation['name']} (<https://politicsandwar.com/nation/id={api_nation['nationid']}>) is currently an applicant, do you want me to remove them?")
+                                if api_nation['alliance_position'] == 'APPLICANT' and len(to_message) < 2:
+                                    await message.edit(content=f"I noticed that {api_nation['leader_name']} of {api_nation['nation_name']} (<https://politicsandwar.com/nation/id={api_nation['id']}>) is currently an applicant, do you want me to remove them?")
                                 else:
                                     await message.edit(content=f"Do you want me to remove them?")
 
@@ -371,7 +314,7 @@ class General(commands.Cog):
                                     await msg.delete()
                                     await message.edit(content='I will attempt to change their status.')
                                     await asyncio.sleep(2)
-                                    res = await self.change_perm(to_message, "0", message)
+                                    res = await self.change_perm(to_message, "REMOVE", message)
                                     if res == {}:
                                         return
                                     message = await ctx.send("*Thinking...*")
@@ -386,7 +329,7 @@ class General(commands.Cog):
                             await ctx.send('Command timed out, you were too slow to respond.')
                             return
                 
-                    elif api_nation['allianceposition'] > '1' and len(to_message) < 2:
+                    elif api_nation['alliance_position'] in ["MEMBER", "OFFICER", "HEIR", "LEADER"] and len(to_message) < 2:
                         await message.edit(content="They are a member, not an applicant!")
                         return
 
@@ -395,7 +338,7 @@ class General(commands.Cog):
                         return
                     subject = "Removal from our applicant pool, sorry!"
                     for nation in to_message:
-                        nation['text'] = f"Hi {nation['leadername']},\n\nWe do our best to defend our applicants, but your inactivity leads us to believe that you are incapable of winning any attacks against your nation. We have therefore decided to retract your status as an applicant to our alliance. If you ever turn active again, you are welcome to re-apply.\n\nPlease follow these steps if you wish to re-apply:\n1) Apply in-game <a href=\"https://politicsandwar.com/alliance/join/id=7531\">here</a>\n2) Join our discord <a href=\"https://discord.gg/uszcTxr\">here</a>\n3) There is a channel called #apply-here in our discord server. Go there and create a ticket. We will take care of it from there!\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
+                        nation['text'] = f"Hi {nation['leader_name']},\n\nWe do our best to defend our applicants, but your inactivity leads us to believe that you are incapable of winning any attacks against your nation. We have therefore decided to retract your status as an applicant to our alliance. If you ever turn active again, you are welcome to re-apply.\n\nPlease follow these steps if you wish to re-apply:\n1) Apply in-game <a href=\"https://politicsandwar.com/alliance/join/id=7531\">here</a>\n2) Join our discord <a href=\"https://discord.gg/uszcTxr\">here</a>\n3) There is a channel called #apply-here in our discord server. Go there and create a ticket. We will take care of it from there!\n\nSent on behalf of\n{name}, {title}\n{ctx.author.name} on discord"
                     break
 
                 elif str(reaction.emoji) == "2\N{variation selector-16}\N{combining enclosing keycap}":
@@ -411,7 +354,7 @@ class General(commands.Cog):
                         return
                     subject = "Application ticket closed, sorry!"
                     for nation in to_message:
-                        nation['text'] = f"Hi {nation['leadername']},\n\nYour application ticket to the Convent of Atom has been closed because you haven't completed the application process and have been inactive for more than 48 hours. If you wish to continue your application, you can create a new ticket. Let me know if you have any questions, or need help with anything.\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
+                        nation['text'] = f"Hi {nation['leader_name']},\n\nYour application ticket to the Convent of Atom has been closed because you haven't completed the application process and have been inactive for more than 48 hours. If you wish to continue your application, you can create a new ticket. Let me know if you have any questions, or need help with anything.\n\nSent on behalf of\n{name}, {title}\n{ctx.author.name} on discord"
                     break
                     
                 elif str(reaction.emoji) == "3\N{variation selector-16}\N{combining enclosing keycap}":
@@ -424,7 +367,7 @@ class General(commands.Cog):
                             return
                     subject = "Incomplete application, please complete it!"
                     for nation in to_message:
-                        nation['text'] = f"Hi {nation['leadername']},\n\nI can see that you are currently applying to our alliance. Please note that you have to apply on discord as well in order to become a member.\n\nJoin the Church of Atom discord <a href=\"https://discord.gg/uszcTxr\">here</a>. After joining the discord, go to the channel called #apply-here to create an application ticket.\n\nLet me know if you have any questions.\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
+                        nation['text'] = f"Hi {nation['leader_name']},\n\nI can see that you are currently applying to our alliance. Please note that you have to apply on discord as well in order to become a member.\n\nJoin the Church of Atom discord <a href=\"https://discord.gg/uszcTxr\">here</a>. After joining the discord, go to the channel called #apply-here to create an application ticket.\n\nLet me know if you have any questions.\n\nSent on behalf of\n{name}, {title}\n{ctx.author.name} on discord"
                     break
 
                 elif str(reaction.emoji) == "4\N{variation selector-16}\N{combining enclosing keycap}":
@@ -435,11 +378,11 @@ class General(commands.Cog):
                         res = await last_message(variant)
                         if res == {}:
                             return
-                    if api_nation['allianceposition'] == 2 and len(to_message) < 2 or len(to_message) > 1:
+                    if api_nation['alliance_position'] == "MEMBER" and len(to_message) < 2 or len(to_message) > 1:
                         try:
                             while True:
-                                if api_nation['allianceposition'] == 2 and len(to_message):
-                                    await message.edit(content=f"I noticed that {api_nation['leadername']} of {api_nation['name']} (<https://politicsandwar.com/nation/id={api_nation['nationid']}>) is currently a member, do you want me to move them to applicant?")
+                                if api_nation['alliance_position'] == "MEMBER" and len(to_message):
+                                    await message.edit(content=f"I noticed that {api_nation['leader_name']} of {api_nation['nation_name']} (<https://politicsandwar.com/nation/id={api_nation['id']}>) is currently a member, do you want me to move them to applicant?")
                                 else:
                                     await message.edit(content="Do you want me to move them to applicant?")
                                 msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
@@ -448,7 +391,7 @@ class General(commands.Cog):
                                     await msg.delete()
                                     await message.edit(content='I will attempt to change their status.')
                                     await asyncio.sleep(2)
-                                    res = await self.change_perm(to_message, "1", message)
+                                    res = await self.change_perm(to_message, "APPLICANT", message)
                                     if res == {}:
                                         return
                                     message = await ctx.send("Hmmm...")
@@ -468,7 +411,7 @@ class General(commands.Cog):
                         return
                     subject = "Moved to applicant status, check in on discord!"
                     for nation in to_message:
-                        nation['text'] = f"Hi {nation['leadername']},\n\nIf a member loses a war, the alliance bank is looted. Due to your inactivity, we are worried that you might lose if you were to be attacked. To avoid the bank being looted, we have therefore decided to change your ingame status from member to applicant. Please note that you are still a member on discord. All you need to do to get repromoted ingame is to reach out to us and let us know that you are once again active.\n\nLet me know if you have any questions.\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
+                        nation['text'] = f"Hi {nation['leader_name']},\n\nIf a member loses a war, the alliance bank is looted. Due to your inactivity, we are worried that you might lose if you were to be attacked. To avoid the bank being looted, we have therefore decided to change your ingame status from member to applicant. Please note that you are still a member on discord. All you need to do to get repromoted ingame is to reach out to us and let us know that you are once again active.\n\nLet me know if you have any questions.\n\nSent on behalf of\n{name}, {title}\n{ctx.author.name} on discord"
                     break
 
             except asyncio.TimeoutError:
@@ -476,11 +419,11 @@ class General(commands.Cog):
                 return
 
         if len(to_message) < 2:
-            await message.edit(embed=None, content=f"Do you want to send {nation['leadername']} of {nation['name']} (<https://politicsandwar.com/nation/id={nation['nationid']}>) this message? (y/n)\n\n```{nation['text']}```")
+            await message.edit(embed=None, content=f"Do you want to send {nation['leader_name']} of {nation['nation_name']} (<https://politicsandwar.com/nation/id={nation['id']}>) this message? (y/n)\n\n```{nation['text']}```")
         else:
             recievers = ""
             for nation in to_message:
-                recievers += f"{nation['leadername']} of {nation['name']} ({nation['nationid']})\n"
+                recievers += f"{nation['leader_name']} of {nation['nation_name']} ({nation['id']})\n"
             await message.edit(embed=None, content=f"Do you want to send\n\n{recievers}\na personalized message like this? (y/n)\n\n```{nation['text']}```")
 
         try:
@@ -490,11 +433,11 @@ class General(commands.Cog):
                     await msg.delete()
                     content = ""
                     for nation in to_message:
-                        res = requests.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': nation['nationid'], 'subject': subject, 'message': nation['text']})
+                        res = requests.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': nation['id'], 'subject': subject, 'message': nation['text']})
                         if res.status_code == 200:
-                            content += f"Ingame message was sent to {nation['leadername']} ({nation['nationid']})!\n"
+                            content += f"Ingame message was sent to {nation['leader_name']} ({nation['id']})!\n"
                         else:
-                            content += f"Error {res.status_code}. Ingame message was not sent to **{nation['leadername']} ({nation['nationid']})**!\n"
+                            content += f"Error {res.status_code}. Ingame message was not sent to **{nation['leader_name']} ({nation['id']})**!\n"
                         await message.edit(content=content)
                     break
                 elif msg.content.lower() in ['no', 'n']:
@@ -512,18 +455,18 @@ class General(commands.Cog):
                 try:
                     dm_chan = await self.bot.fetch_user(nation['user']['user'])
                     await dm_chan.send(nation['text'])
-                    content += f"DM to {nation['leadername']} ({nation['nationid']}) was successfuly sent!\n"
+                    content += f"DM to {nation['leader_name']} ({nation['id']}) was successfuly sent!\n"
                 except discord.Forbidden:
-                    content += f"**{nation['leadername']} ({nation['nationid']})** doesn't accept my DMs <:sadcat:787450782747590668>\n"
+                    content += f"**{nation['leader_name']} ({nation['id']})** doesn't accept my DMs <:sadcat:787450782747590668>\n"
                 except TypeError:
-                    content += f"I found no discord account, hence **{nation['leadername']} ({nation['nationid']})** got no DM\n"
+                    content += f"I found no discord account, hence **{nation['leader_name']} ({nation['id']})** got no DM\n"
                 except Exception as error:
-                    content += f"Some error occured, so I couldn't DM **{nation['leadername']} ({nation['nationid']})**```{error}```"
+                    content += f"Some error occured, so I couldn't DM **{nation['leader_name']} ({nation['id']})**```{error}```"
                 await message.edit(content=content)
         await message.edit(content=content)
         
         for nation in to_message:
-            mongo.message_history.find_one_and_update({"nationid": nation['nationid']}, {"$push": {"log": {"sender": ctx.author.id, "epoch": round(datetime.now().timestamp()), "dm": dm, "variant": variant}}}, upsert=True)
+            mongo.message_history.find_one_and_update({"nationid": nation['id']}, {"$push": {"log": {"sender": ctx.author.id, "epoch": round(datetime.now().timestamp()), "dm": dm, "variant": variant}}}, upsert=True)
        
         content += "Done!"
         await message.edit(content=content)
@@ -748,13 +691,13 @@ class General(commands.Cog):
         except:
             content += "Did not add `Pupil`, did they have it already?\n"
         try:
-            response = requests.get(f"http://politicsandwar.com/api/nation/id={user['nationid']}&key=e5171d527795e8").json()
-            if response['allianceposition'] > '1':
+            response = (await utils.call(f"{{nations(id:{user['nationid']}){{data{{alliance_position leader_name nation_name alliance_id id}}}}}}"))['data']['nations']['data'][0]
+            if response['alliance_position'] in ["MEMBER", "OFFICER", "HEIR", "LEADER"]:
                 content += "Did not admit them. They are already a member.\n"
-            elif response['allianceposition'] < '1':
+            elif response['alliance_position'] == "NOALLIANCE":
                 content += "Did not admit them. They are not an applicant.\n"
             else:
-                res = await self.change_perm([response], "2")
+                res = await self.change_perm([response], "MEMBER")
                 if res == {}:
                     content += "Did (probably) not admit them. Are Randy's credentials wrong?\n"
                 else:
@@ -778,23 +721,22 @@ class General(commands.Cog):
         if nation == None:
             await message.edit(content="Run $update or wait until daychange")
             return
-        response = requests.get(
-            f"http://politicsandwar.com/api/nation/id={nation['id']}&key=e5171d527795e8").json()
-        if response['allianceposition'] > '1':
+        response = (await utils.call(f"{{nations(id:{nation['id']}){{data{{alliance_position nation_name leader_name alliance_id id}}}}}}"))['data']['nations']['data'][0]
+        if response['alliance_position'] in ["MEMBER", "OFFICER", "HEIR", "LEADER"]:
             await ctx.send('They are already a member!')
             return
-        elif response['allianceposition'] < '1':
+        elif response['alliance_position'] == "NOALLIANCE":
             await ctx.send('They are not an applicant!')
             return
         try:
-            await message.edit(content=f"Are you sure that you want to promote {response['leadername']} of {response['name']} (<https://politicsandwar.com/nation/id={response['nationid']}>) to member?")
+            await message.edit(content=f"Are you sure that you want to promote {nation['leader_name']} of {nation['nation_name']} (<https://politicsandwar.com/nation/id={nation['id']}>) to member?")
             msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
 
             if msg.content.lower() in ['yes', 'y']:
                 await msg.delete()
                 await message.edit(content='I will attempt to change their status.')
                 await asyncio.sleep(2)
-                res = await self.change_perm([response], "2", message)
+                res = await self.change_perm([response], "MEMBER", message)
                 if res == {}:
                     return
             elif msg.content.lower() in ['no', 'n']:

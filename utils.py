@@ -81,18 +81,38 @@ high_gov_plus_perms = [
     randy_id
 ]
 
-async def call(data: dict = None, key: str = api_key) -> Union[dict, aiohttp.ClientResponse]:
+async def call(data: str, key: str = api_key, retry_limit: int = 2, use_bot_key = False) -> Union[dict, aiohttp.ClientResponse]:
     async with aiohttp.ClientSession() as session:
+        retry = 0
         while True:
-            async with session.post(f'https://api.politicsandwar.com/graphql?api_key={key}', json={"query": data}) as response:
-                if response.headers['X-RateLimit-Remaining'] == 0:
-                    await asyncio.sleep(response.headers['X-RateLimit-Reset-After'])
+            if use_bot_key:
+                headers = {'X-Bot-Key': "4ba04e11ee113594", 'X-Api-Key': api_key}
+            else:
+                headers = {}
+            async with session.post(f'https://api.politicsandwar.com/graphql?api_key={key}', json={"query": data}, headers=headers) as response:
+                if "X-Ratelimit-Remaining" in response.headers:
+                    if response.headers['X-Ratelimit-Remaining'] == '0':
+                        await asyncio.sleep(int(response.headers['X-Ratelimit-Reset-After']))
+                        continue
+                elif "Retry-After" in response.headers:
+                    await asyncio.sleep(int(response.headers['Retry-After']))
                     continue
-                json_response = await response.json()
                 try:
-                    errors = json_response['errors']
-                except:
-                    errors = None
+                    json_response = await response.json()
+                except aiohttp.ContentTypeError:
+                    raise Exception("Attempt to decode JSON with unexpected mimetype: " + await response.text())
+                if response.status == 401:
+                    if "error" in json_response:
+                        if "invalid api_key" in json_response["error"]["errors"][0]["message"]:
+                            raise ConnectionError("Invalid API key.")
+                if "data" not in json_response and use_bot_key == False:
+                    if retry < retry_limit:
+                        retry += 1
+                        await asyncio.sleep(1)
+                        continue
+                    elif "error" in json_response:
+                        if "errors" in json_response["error"]:
+                            raise Exception(json_response["error"]["errors"])
                 return json_response
 
 def embed_pager(title: str, fields: list, description: str = "", color: int = 0x00ff00, inline: bool = True) -> list:
