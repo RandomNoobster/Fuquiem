@@ -17,6 +17,8 @@ import utils
 from typing import Union
 import os
 from cryptography.fernet import Fernet
+from gsheets import Sheets
+from collections import defaultdict
 
 api_key = os.getenv("api_key")
 api_key_2 = os.getenv("api_key_2")
@@ -30,6 +32,43 @@ class Military(commands.Cog):
         self.bot = bot
         self.bot.bg_task = self.bot.loop.create_task(self.wars())
 
+    @commands.command()
+    @commands.has_any_role(*utils.low_gov_plus_perms)
+    async def spy_msg(self, ctx):
+        sheets = Sheets.from_files('~/client_secrets.json', '~/storage.json')
+        s = sheets.get("https://docs.google.com/spreadsheets/d/11Q8H3VYeSHWHVuemFOz14DIS_PvMIAxMBloT-I8Zgt4/edit#gid=2086236902")
+        worksheet = s.sheets[1]
+        to_send = defaultdict(list)
+        for i in range(2, 142):
+            try:
+                recipient = worksheet[f"A{i}"]
+                op = worksheet[f"B{i}"]
+                target = worksheet[f"C{i}"]
+                target_name = worksheet[f"D{i}"]
+                if len(recipient) == 0 or len(op) == 0 or len(target) == 0 or len(target_name) == 0:
+                    continue
+                to_send[recipient].append(f"\n{op} acting spies --> [{target_name}](https://politicsandwar.com/nation/espionage/eid={target})")
+            except IndexError:
+                continue
+        
+        for k,v in to_send.items():
+            msg = "\n".join(v)
+            msg = "Please perform the following spy ops:\n" + msg + "\n\nThis is an automated message which is sent ingame and on discord (if you are verified with Autolycus)."
+            print(k, msg)
+            res = requests.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': k, 'subject': "Spy targets", 'message': msg})
+            if res.json()['success'] == False:
+                await ctx.send(f"[{recipient}](https://politicsandwar.com/nation/id={recipient}), {res.text}")
+            user = mongo.global_users.find_one({"id":k})
+            if not user:
+                pass
+            else:
+                try:
+                    await self.bot.get_user(user['user']).send(msg)
+                    print(msg)
+                except Exception as e:
+                    await ctx.send(f"Unable to DM [{user['id']}](https://politicsandwar.com/nation/id={user['id']}):\n```{e}```")
+
+    
     @commands.command(brief='Returns military statistics', help='Displays information about rebuys, warchests, mmr and ongoing wars for the Church and Convent.')
     @commands.has_any_role(*utils.low_gov_plus_perms)
     async def milcheck(self, ctx):
