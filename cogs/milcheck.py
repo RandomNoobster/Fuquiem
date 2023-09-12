@@ -39,6 +39,7 @@ class Military(commands.Cog):
         s = sheets.get("https://docs.google.com/spreadsheets/d/11Q8H3VYeSHWHVuemFOz14DIS_PvMIAxMBloT-I8Zgt4/edit#gid=2086236902")
         worksheet = s.sheets[1]
         to_send = defaultdict(list)
+        ingame_send = defaultdict(list)
         for i in range(2, 142):
             try:
                 recipient = worksheet[f"A{i}"]
@@ -48,14 +49,17 @@ class Military(commands.Cog):
                 if len(recipient) == 0 or len(op) == 0 or len(target) == 0 or len(target_name) == 0:
                     continue
                 to_send[recipient].append(f"\n{op} acting spies --> [{target_name}](https://politicsandwar.com/nation/espionage/eid={target})")
+                ingame_send[recipient].append(f"\n{op} acting spies --> <a href=\"https://politicsandwar.com/nation/espionage/eid={target}\">{target_name}</a>")
             except IndexError:
                 continue
         
         for k,v in to_send.items():
             msg = "\n".join(v)
             msg = "Please perform the following spy ops:\n" + msg + "\n\nThis is an automated message which is sent ingame and on discord (if you are verified with Autolycus)."
+            ingame_msg = "\n".join(ingame_send[k])
+            ingame_msg = "Please perform the following spy ops:\n" + ingame_msg + "\n\nThis is an automated message which is sent ingame and on discord (if you are verified with Autolycus)."
             print(k, msg)
-            res = requests.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': k, 'subject': "Spy targets", 'message': msg})
+            res = requests.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': k, 'subject': "Spy targets", 'message': ingame_msg})
             if res.json()['success'] == False:
                 await ctx.send(f"[{recipient}](https://politicsandwar.com/nation/id={recipient}), {res.text}")
             user = mongo.global_users.find_one({"id":k})
