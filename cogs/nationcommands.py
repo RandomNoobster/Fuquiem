@@ -31,6 +31,19 @@ class General(commands.Cog):
         self.bot = bot
 
     @commands.command()
+    async def wtf_unverified(self, ctx):
+        from main import client
+        res = await utils.call(f"{{nations(alliance_id:1210 alliance_position:[2,3,4,5]) {{data{{id leader_name discord nation_name}}}}}}")
+        res = res['data']['nations']['data']
+        for x in res:
+            if user := client['main'].global_users.find_one({"id": x['id']}):
+                #print(f"{x['leader_name']} ({x['id']}) is verified")
+                continue
+            else:
+                print(f"{x['leader_name']} ({x['id']}) is not verified")
+
+    
+    @commands.command()
     async def links(self, ctx):
         other = "[Role Guidelines](https://docs.google.com/document/d/1t0xxlafFyrM8MU8k_q3lcyD1R1f8DOsN60avSHNe8_s/edit#)\n[Official Church of Atom Charter](https://docs.google.com/document/d/1ayTELdfE9ogawwDv_14-q5k4NoLysCiUKOxAuWABqlM/edit)\n[Church alliance page](https://politicsandwar.com/alliance/id=4729)\n[Convent alliance page](https://politicsandwar.com/alliance/id=7531)\n[Convent join page](https://politicsandwar.com/alliance/join/id=7531)\n"
         milcom = "[Raiding Guide](https://docs.google.com/document/d/1a5xWQUKVH8-vJmBdXgQVUpR_U-DhLwPWMPjPvEVTFqQ/edit#)\n[CTO](https://ctowned.net)\n[Slotter](https://slotter.bsnk.dev/search)\n[WarNet Plus](https://plus.bsnk.dev)"

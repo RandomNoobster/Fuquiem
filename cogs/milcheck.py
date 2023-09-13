@@ -35,6 +35,7 @@ class Military(commands.Cog):
     @commands.command()
     @commands.has_any_role(*utils.low_gov_plus_perms)
     async def spy_msg(self, ctx):
+        from main import client
         sheets = Sheets.from_files('~/client_secrets.json', '~/storage.json')
         s = sheets.get("https://docs.google.com/spreadsheets/d/11Q8H3VYeSHWHVuemFOz14DIS_PvMIAxMBloT-I8Zgt4/edit#gid=2086236902")
         worksheet = s.sheets[1]
@@ -62,7 +63,7 @@ class Military(commands.Cog):
             res = requests.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': k, 'subject': "Spy targets", 'message': ingame_msg})
             if res.json()['success'] == False:
                 await ctx.send(f"[{recipient}](https://politicsandwar.com/nation/id={recipient}), {res.text}")
-            user = mongo.global_users.find_one({"id":k})
+            user = client['main'].global_users.find_one({"id":k})
             if not user:
                 pass
             else:
