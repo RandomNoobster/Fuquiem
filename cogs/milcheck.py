@@ -967,7 +967,7 @@ class Military(commands.Cog):
                     elif person == {}:
                         await ctx.send(f"https://politicsandwar.com/nation/id={nation['nationid']} is not in registered.")
                     
-                    if minmoney == 0 and mingasoline == 0 and minmunitions == 0 and minsteel == 0 and minaluminum == 0:
+                    if minmoney == 0 and mingasoline == 0 and minmunitions == 0 and minsteel == 0 and minaluminum == 0 and minuranium == 0 and minfood == 0:
                         continue
 
                     with requests.Session() as s:
