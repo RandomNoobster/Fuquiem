@@ -19,6 +19,7 @@ import os
 from cryptography.fernet import Fernet
 from gsheets import Sheets
 from collections import defaultdict
+import pathlib 
 
 api_key = os.getenv("api_key")
 api_key_2 = os.getenv("api_key_2")
@@ -36,7 +37,7 @@ class Military(commands.Cog):
     @commands.has_any_role(*utils.low_gov_plus_perms)
     async def spy_msg(self, ctx):
         from main import client
-        sheets = Sheets.from_files('~/client_secrets.json', '~/storage.json')
+        sheets = Sheets.from_files(pathlib.Path.cwd() / 'client_secrets.json', pathlib.Path.cwd() / 'storage.json')
         s = sheets.get("https://docs.google.com/spreadsheets/d/11Q8H3VYeSHWHVuemFOz14DIS_PvMIAxMBloT-I8Zgt4/edit#gid=2086236902")
         worksheet = s.sheets[1]
         to_send = defaultdict(list)
@@ -49,16 +50,27 @@ class Military(commands.Cog):
                 target_name = worksheet[f"D{i}"]
                 if len(recipient) == 0 or len(op) == 0 or len(target) == 0 or len(target_name) == 0:
                     continue
-                to_send[recipient].append(f"\n{op} acting spies --> [{target_name}](https://politicsandwar.com/nation/espionage/eid={target})")
-                ingame_send[recipient].append(f"\n{op} acting spies --> <a href=\"https://politicsandwar.com/nation/espionage/eid={target}\">{target_name}</a>")
+                to_send[recipient].append(f"\n{op} acting spies --> [{target_name}](https://politicsandwar.com/nation/id={target})")
+                ingame_send[recipient].append(f"\n{op} acting spies --> <a href=\"https://politicsandwar.com/nation/id={target}\">{target_name}</a>")
             except IndexError:
                 continue
         
+        coa = (await utils.call(f"{{nations(alliance_id:4729 alliance_position:[2,3,4,5]) {{data{{id spy_attacks}}}}}}"))['data']['nations']['data']
+        con = (await utils.call(f"{{nations(alliance_id:7531 alliance_position:[2,3,4,5]) {{data{{id spy_attacks}}}}}}", convent_key))['data']['nations']['data']
+        wtf = (await utils.call(f"{{nations(alliance_id:1210 alliance_position:[2,3,4,5]) {{data{{id spy_attacks}}}}}}", "4abd70ed83aeacd78c5d"))['data']['nations']['data']
+
         for k,v in to_send.items():
+            skip = False
+            for x in coa + wtf + con:
+                if x['id'] == k and x['spy_attacks'] == 2:
+                    skip = True
+                    break
+            if skip:
+                continue
             msg = "\n".join(v)
-            msg = "Please perform the following spy ops:\n" + msg + "\n\nThis is an automated message which is sent ingame and on discord (if you are verified with Autolycus)."
+            msg = "Please perform these suggested spy ops:\n" + msg + "\n\nYou can find spy targets at any time by running </spy_targets:1153769889820065852>. This is an automated message which is sent ingame and on discord (if you are verified with Autolycus)."
             ingame_msg = "\n".join(ingame_send[k])
-            ingame_msg = "Please perform the following spy ops:\n" + ingame_msg + "\n\nThis is an automated message which is sent ingame and on discord (if you are verified with Autolycus)."
+            ingame_msg = "Please perform the following spy ops:\n" + ingame_msg + "\n\nYou can find spy targets at any time by running /spy_targets on discord. This is an automated message which is sent ingame and on discord (if you are verified with Autolycus)."
             print(k, msg)
             res = requests.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': k, 'subject': "Spy targets", 'message': ingame_msg})
             if res.json()['success'] == False:
@@ -68,7 +80,9 @@ class Military(commands.Cog):
                 pass
             else:
                 try:
-                    await self.bot.get_user(user['user']).send(msg)
+                    # fetch user??
+                    disc = await self.bot.fetch_user(user['user'])
+                    await disc.send(msg)
                     print(msg)
                 except Exception as e:
                     await ctx.send(f"Unable to DM [{user['id']}](https://politicsandwar.com/nation/id={user['id']}):\n```{e}```")

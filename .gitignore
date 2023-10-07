@@ -2,3 +2,6 @@
 .vscode/launch.json
 *__pycache__*
 data/dumps/cities/cities*.csv
+client_secrets.json
+storage.json
+
