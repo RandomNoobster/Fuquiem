@@ -38,11 +38,13 @@ class Update(commands.Cog):
     async def nation_check(self, channel, aa='all'):
         async with aiohttp.ClientSession() as session:
             message = await channel.send("<:thonk:787399051582504980>")
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:500 alliance_id:4729 vmode:false){{data{{nation_name leader_name id alliance_position continent color food last_active spies dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr cia itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
-                church = (await temp.json())['data']['nations']['data']
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(first:500 alliance_id:7531 vmode:false){{data{{nation_name leader_name id alliance_position continent color food last_active spies dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr cia itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"}) as temp:
-                convent = (await temp.json())['data']['nations']['data']
 
+            query = f"{{data{{nation_name leader_name id alliance_position continent color food aluminum bauxite coal gasoline iron lead munitions oil steel uranium last_active spies dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes wars{{date attid turnsleft winner}} ironw bauxitew armss egr massirr cia propaganda_bureau population itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date name powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}"
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:500 alliance_id:4729 vmode:false){query}}}"}) as temp:
+                church = (await temp.json())['data']['nations']['data']
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(first:500 alliance_id:7531 vmode:false){query}}}"}) as temp:
+                convent = (await temp.json())['data']['nations']['data']
+            
             if aa == 'all':
                 aa = [church, convent]
             elif aa in 'church':
@@ -58,9 +60,12 @@ class Update(commands.Cog):
             embeds = []
             for alliance in aa:
                 food_fields = []
-                spy_fields = []
                 inactivity_fields = []
                 color_fields = []
+                rss_fields = []
+                mil_fields = []
+                power_fields = []
+                improv_fields = []
 
                 for nation in alliance:
                     if nation['alliance_position'] == "APPLICANT":
@@ -71,48 +76,138 @@ class Update(commands.Cog):
                         continue
                     user = await self.bot.fetch_user(person['user'])
                     
-                    ## food_check
+                    ## rss_check
                     rev_obj = await utils.revenue_calc(message, nation, radiation, treasures, prices, colors, seasonal_mod, None)
-                    if nation['food'] == None:
-                        food_fields.append({"name": nation['leader_name'], "value": f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) runs out of food in ??? days (??? food)."})
-                        continue
-                    days = float(nation['food']) / rev_obj['food']
-                    if -1 < days < 1:
-                        food_fields.append({"name": nation['leader_name'], "value": f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) runs out of food in {math.ceil(days)} days ({nation['food']} food)."})
-                        if nation['alliance_id'] == "4729":
+                    rss = ['food', 'aluminum', 'bauxite', 'coal', 'gasoline', 'iron', 'lead', 'munitions', 'oil', 'steel', 'uranium']
+                    msg = "Hey, you should get some: \n"
+                    for rs in rss:
+                        if nation[rs] == None:
+                            continue
+                        if rev_obj[rs] < 0 and nation[rs] < abs(rev_obj[rs]):
+                            msg += f"> {rs}\n"
+                    if "> " in msg:
+                        msg += "You can request some by using </request:1153376925914497024> in <#775428035674898501>"
+                        if "food" in msg or "uranium" in msg:
+                            msg += ". For food and uranium it's possible to use the `$food` and `$uran` commands in <#850302301838114826> to instantly get some."
+                        rss_fields.append({"name": nation['leader_name'], "value": f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) is running out of resources."})
+                        try: 
+                            await user.send(msg, silent=True, embed=None, embeds=[])
+                            print('i just sent a msg to', user)
+                        except discord.Forbidden:
+                            await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
+                            await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Resources', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because it seems that you are running out of resources. You can request some by using </request:1153376925914497024> in #rss-requests."})
+                            
+                    ## wasting improv slots
+                    improv_waste = set()
+                    for city in nation['cities']:
+                        slots = math.floor(city['infrastructure']/50)
+                        slots -= city['oilpower'] + city['windpower'] + city['coalpower'] + city['nuclearpower'] + city['coalmine'] + city['oilwell'] + city['uramine'] + city['barracks'] + city['farm'] + city['policestation'] + city['hospital'] + city['recyclingcenter'] + city['subway'] + city['supermarket'] + city['bank'] + city['mall'] + city['stadium'] + city['leadmine'] + city['ironmine'] + city['bauxitemine'] + city['gasrefinery'] + city['aluminumrefinery'] + city['steelmill'] + city['munitionsfactory'] + city['factory'] + city['airforcebase'] + city['drydock']
+                        if slots > 0:
+                            improv_waste.add((city['id'], city['name'], slots))
+                    if len(improv_waste) > 0:
+                        try:
+                            improv_fields.append({"name": nation['leader_name'], "value": f"[{nation['leader_name']}](https://politicsandwar.com/nation/id={nation['id']}) has unused improvement slots."})
+                            city_msg = "\n".join([f"> [{name}](https://politicsandwar.com/city/id={id})" for id, name, slots in improv_waste])
+                            await user.send(utils.cut_string(f'Hey, the following cities have unused improvement slots:\n {city_msg}'), silent=True, embed=None, embeds=[])
+                            print('i just sent a msg to', user)
+                        except discord.Forbidden:
+                            await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
+                            await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Improvements', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you have unused improvement slots. You can use these slots to build more improvements, which will increase your income. "})
+                   
+                    ## city check
+                    power_waste = set()
+                    city_power = set()
+                    for city in nation['cities']:
+                        for city in nation['cities']:
+                            slots = math.floor(city['infrastructure']/50)
+                            slots -= city['oilpower'] + city['windpower'] + city['coalpower'] + city['nuclearpower'] + city['coalmine'] + city['oilwell'] + city['uramine'] + city['barracks'] + city['farm'] + city['policestation'] + city['hospital'] + city['recyclingcenter'] + city['subway'] + city['supermarket'] + city['bank'] + city['mall'] + city['stadium'] + city['leadmine'] + city['ironmine'] + city['bauxitemine'] + city['gasrefinery'] + city['aluminumrefinery'] + city['steelmill'] + city['munitionsfactory'] + city['factory'] + city['airforcebase'] + city['drydock']
+                            if slots < 0:
+                                continue
+                            unpowered_infra = city['infrastructure']
+                            for _ in range(city['windpower']): # can add something about wasted slots
+                                if unpowered_infra < 0: power_waste.add((city['id'], city['name']))
+                                if unpowered_infra > 0:
+                                    unpowered_infra -= 250
+                            for _ in range(city['nuclearpower']): 
+                                if unpowered_infra < 0: power_waste.add((city['id'], city['name']))
+                                for level in range(2):
+                                    if unpowered_infra > 0:
+                                        unpowered_infra -= 1000
+                            for _ in range(city['oilpower']): 
+                                if unpowered_infra < 0: power_waste.add((city['id'], city['name']))
+                                for level in range(5):
+                                    if unpowered_infra > 0:
+                                        unpowered_infra -= 100
+                            for _ in range(city['coalpower']): 
+                                if unpowered_infra < 0: power_waste.add((city['id'], city['name']))
+                                for level in range(5):
+                                    if unpowered_infra > 0:
+                                        unpowered_infra -= 100
+                            city_power.add((city['id'], city['name'], unpowered_infra))
+                    
+                    ## to much power
+                    if power_waste:
+                        milt = utils.advanced_militarization_checker(nation)
+                        if round(milt['barracks_mmr']) == 5 and round(milt['factory_mmr']) == 5 and round(milt['hangar_mmr']) == 5:
+                            pass
+                        else:
                             try:
-                                await user.send('Hey, you should get some food. Type "$food" in <#850302301838114826>', silent=True)
-                                print('i just sent a msg to', user)
-                            except discord.Forbidden:
-                                await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Food', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because it seems that you are running out of food. You don't really want to miss out on 1/3 of your income due to a a lack of food... So please go to the discord and type $food in #pnw-bots, by doing this, Fuquiem will send 100k food your way."})
-                        elif nation['alliance_id'] == "7531":
-                            try:
-                                await user.send("Hey, you should get some food, you don't want to miss out on 1/3 of your income: https://politicsandwar.com/index.php?id=26&display=world", silent=True)
+                                power_fields.append({"name": nation['leader_name'], "value": f"[{nation['leader_name']}](https://politicsandwar.com/nation/id={nation['id']}) has too many power plants."})
+                                city_msg = "\n".join([f"> [{name}](https://politicsandwar.com/city/id={id})" for id, name in power_waste])
+                                await user.send(utils.cut_string(f'Hey, the following cities have too many power plants:\n {city_msg}'), silent=True, embed=None, embeds=[])
                                 print('i just sent a msg to', user)
                             except discord.Forbidden:
                                 await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
-                                await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Food', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because it seems that you are running out of food. You don't really want to miss out on 1/3 of your income due to a a lack of food... You can go here to buy some food for your nation: <a href=\"https://politicsandwar.com/index.php?id=26&display=world\">https://politicsandwar.com/index.php?id=26&display=world</a>"})
+                                await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Power', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you have more power plants than you need."})
+                    
+                    ## not enough power
+                    msg = "\n".join([f"> [{name}](https://politicsandwar.com/city/id={id})" for id, name, unpowered_infra in city_power if unpowered_infra > 0])
+                    if "politicsandwar" in msg:
+                        try:
+                            power_fields.append({"name": nation['leader_name'], "value": f"[{nation['leader_name']}](https://politicsandwar.com/nation/id={nation['id']}) has too few power plants."})
+                            await user.send(utils.cut_string(f'Hey, you need more power plants in the following cities:\n {msg}'), silent=True, embed=None, embeds=[])
+                            print('i just sent a msg to', user)
+                        except discord.Forbidden:
+                            await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
+                            await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Power', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you have unpowered infrastructure."})
 
-                    ## spies_check
-                    max_spies = 50
-                    if nation['cia']:
-                        max_spies += 10
-                    if int(nation['spies']) < max_spies:
-                        spy_fields.append({"name": nation['leader_name'], "value": f"[{nation['leader_name']}](https://politicsandwar.com/nation/id={nation['id']}) only has {nation['spies']} spies."})
-                        if nation['alliance_id'] == "4729":
-                            try:
-                                await user.send('Hey, you should get some spies: https://politicsandwar.com/nation/military/spies/', silent=True)
-                                print('i just sent a msg to', user)
-                            except discord.Forbidden:
-                                await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
-                                await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Spies', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you don't have max spies. To buy spies, please go here: <a href=\"https://politicsandwar.com/nation/military/spies/\">https://politicsandwar.com/nation/military/spies/</a>"})
+
+                    ## mmr check
+                    milt = utils.advanced_militarization_checker(nation)
+                    active_war = False
+                    for war in nation['wars']:
+                        if war['turnsleft'] == 0:
+                            active_war = True
+                            break
+                    if active_war and (milt['barracks_mmr'] < 4.5 or milt['factory_mmr'] < 4.5 or milt['hangar_mmr'] < 4.5 or milt['drydock_mmr'] < 2.5):
+                        try:
+                            mil_fields.append({"name": nation['leader_name'], "value": f"[{nation['leader_name']}](https://politicsandwar.com/nation/id={nation['id']}) has too little military improvements."})
+                            await user.send(f'Hey, when you are at war, you should always have an MMR of 5/5/5/3. You are at war and your MMR is currently too low, please fix: https://politicsandwar.com/city/manager/', silent=True, embed=None, embeds=[])
+                            print('i just sent a msg to', user)
+                        except discord.Forbidden:
+                            await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
+                            await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Military Improvements', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. Fuquiem wanted to get in touch because you have too little military improvements. When you are at war, you should always have an MMR of 5/5/5/3. You can change your military improvements here: <a href=\"https://politicsandwar.com/city/manager/\">https://politicsandwar.com/city/manager/</a>"})
+                    
+                    ## buy mil check
+                    msg = "Hey, you can buy military units: \n"
+                    for unit in ['soldiers', 'tanks', 'aircraft', 'ships', 'spies']:
+                        if nation[unit] < milt[f"max_{unit}"]:
+                            msg += f"> [{unit}](https://politicsandwar.com/nation/military/{unit.replace('ships', 'navy')}/)\n"
+                    if "> " in msg:
+                        try:
+                            mil_fields.append({"name": nation['leader_name'], "value": f"[{nation['leader_name']}](https://politicsandwar.com/nation/id={nation['id']}) can buy military units."})
+                            await user.send(utils.cut_string(msg), silent=True, embed=None, embeds=[])
+                            print('i just sent a msg to', user)
+                        except discord.Forbidden:
+                            await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
+                            await session.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': int(person['nationid']), 'subject': 'Buy Military Units', 'message': "Hey, this is an automated message from your good friend Fuquiem. He was unable to reach you through discord, so he's contacting you here instead. You can buy military units here: <a href=\"https://politicsandwar.com/nation/military/\">https://politicsandwar.com/nation/military/</a>"})
 
                     ## inactivity_check
                     minutes_inactive = round((datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%dT%H:%M:%S%z").replace(tzinfo=None)).total_seconds()/60)
                     if minutes_inactive > 2880:
                         inactivity_fields.append({"name": nation['leader_name'], "value": f"[{nation['leader_name']}](https://politicsandwar.com/nation/id={nation['id']}) has been inactive for {round(minutes_inactive/1440)} days."})
                         try:
-                            await user.send('Hey, you should log in: https://politicsandwar.com', silent=True)
+                            await user.send('Hey, you should log in: https://politicsandwar.com', silent=True, embed=None, embeds=[])
                             print('i just sent a msg to', user)
                         except discord.Forbidden:
                             await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
@@ -129,7 +224,7 @@ class Update(commands.Cog):
                         else:
                             continue
                         try:
-                            await user.send(f'Hey, you should change your color to {color} in order to get money from the color bonus: https://politicsandwar.com/nation/edit/', silent=True)
+                            await user.send(f'Hey, you should change your color to {color} in order to get money from the color bonus: https://politicsandwar.com/nation/edit/', silent=True, embed=None, embeds=[])
                             print('i just sent a msg to', user)
                         except discord.Forbidden:
                             await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
@@ -137,8 +232,11 @@ class Update(commands.Cog):
                 
                 embeds += utils.embed_pager(f"{alliance[0]['alliance']['name']} food", food_fields)
                 embeds += utils.embed_pager(f"{alliance[0]['alliance']['name']} inactivity", inactivity_fields)
-                embeds += utils.embed_pager(f"{alliance[0]['alliance']['name']} spies", spy_fields)
                 embeds += utils.embed_pager(f"{alliance[0]['alliance']['name']} color", color_fields)
+                embeds += utils.embed_pager(f"{alliance[0]['alliance']['name']} rss", rss_fields)
+                embeds += utils.embed_pager(f"{alliance[0]['alliance']['name']} military", mil_fields)
+                embeds += utils.embed_pager(f"{alliance[0]['alliance']['name']} power", power_fields)
+                embeds += utils.embed_pager(f"{alliance[0]['alliance']['name']} improvements", improv_fields)
 
             await message.delete()
             for embed in embeds:

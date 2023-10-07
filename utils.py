@@ -271,6 +271,67 @@ async def yes_or_no(self, ctx) -> Union[bool, None]:
     except asyncio.TimeoutError:
         return None
 
+
+def advanced_militarization_checker(nation: dict) -> float:
+    """
+    Requires `cities` with `barracks`, `factory`, `airforcebase` and `drydock`. Also `soldiers`, `tanks`, `aircraft`, `ships`, `propaganda_bureau` and `population`
+    """
+    milt = {}
+    cities = len(nation['cities'])
+    barracks = 0
+    factories = 0
+    hangars = 0
+    drydocks = 0
+
+    for city in nation['cities']:
+        barracks += city['barracks']
+        factories += city['factory']
+        hangars += city['airforcebase']
+        drydocks += city['drydock']
+
+    milt['barracks_mmr'] = round(barracks / cities, 1)
+    milt['factory_mmr'] = round(factories / cities, 1)
+    milt['hangar_mmr'] = round(hangars / cities, 1)
+    milt['drydock_mmr'] = round(drydocks / cities, 1)
+
+    milt['max_soldiers'] = math.floor(
+        min(3000 * barracks, nation['population']/6.67))
+    milt['max_tanks'] = math.floor(
+        min(250 * factories, nation['population']/66.67))
+    milt['max_aircraft'] = math.floor(
+        min(15 * hangars, nation['population']/1000))
+    milt['max_ships'] = math.floor(
+        min(5 * drydocks, nation['population']/10000))
+
+    pg_mod = (int(nation["propaganda_bureau"]) * 0.1 + 1)
+    milt['soldiers_daily'] = round(milt['max_soldiers']/3) * pg_mod
+    milt['tanks_daily'] = round(milt['max_tanks']/5) * pg_mod
+    milt['aircraft_daily'] = round(milt['max_aircraft']/5) * pg_mod
+    milt['ships_daily'] = round(milt['max_ships']/5) * pg_mod
+
+    milt['soldiers_days'] = math.ceil(weird_division(
+        milt['max_soldiers'] - nation['soldiers'], milt['max_soldiers']/3))
+    milt['tanks_days'] = math.ceil(weird_division(
+        milt['max_tanks'] - nation['tanks'], milt['max_tanks']/5))
+    milt['aircraft_days'] = math.ceil(weird_division(
+        milt['max_aircraft'] - nation['aircraft'], milt['max_aircraft']/5))
+    milt['ships_days'] = math.ceil(weird_division(
+        milt['max_ships'] - nation['ships'], milt['max_ships']/5))
+
+    milt['total_milt'] = (nation['soldiers'] / (cities * 5 * 3000) + nation['tanks'] / (
+        cities * 5 * 250) + nation['aircraft'] / (cities * 5 * 15) + nation['ships'] / (cities * 3 * 5)) / 4
+    milt['soldiers_milt'] = nation['soldiers'] / (cities * 5 * 3000)
+    milt['tanks_milt'] = nation['tanks'] / (cities * 5 * 250)
+    milt['aircraft_milt'] = nation['aircraft'] / (cities * 5 * 15)
+    milt['ships_milt'] = nation['ships'] / (cities * 3 * 5)
+
+    max_spies = 50
+    if nation['cia']:
+        max_spies += 10
+    milt['max_spies'] = max_spies
+
+    return milt
+
 def militarization_checker(nation: dict) -> float:
     cities = nation['num_cities']
     milt = (nation['soldiers'] / (cities * 5 * 3000) + nation['tanks'] / (cities * 5 * 250) + nation['aircraft'] / (cities * 5 * 15) + nation['ships'] / (cities * 3 * 5)) / 4
@@ -528,6 +589,12 @@ async def pre_revenue_calc(api_key, message: discord.Message, query_for_nation: 
             seasonal_mod['au'] = 1.2
 
         return nation, colors, prices, treasures, radiation, seasonal_mod
+
+def cut_string(string: str, length: int = 2000) -> str:
+    if len(string) > length:
+        return string[:length-6] + "...```"
+    else:
+        return string
 
 async def revenue_calc(message: discord.Message, nation: dict, radiation: dict, treasures: dict, prices: dict, colors: dict, seasonal_mod: dict, build: str = None, single_city: bool = False, include_spies: bool = False) -> dict:
     max_commerce = 100
@@ -793,7 +860,7 @@ async def revenue_calc(message: discord.Message, nation: dict, radiation: dict, 
         color_text = f"\n\nColor Trade Bloc Bonus: ${round(color_bonus):,}"
     food -= nationpop / 1000
 
-    if nation['num_cities'] < 11:
+    if nation['num_cities'] < 21:
         new_player_bonus = 2.1 - 0.1 * nation['num_cities']
         new_player_text = f"\n\nNew Player Bonus: ${round((new_player_bonus - 1) * money_income):,}"
     if nation['dompolicy'] == "Open Markets":
@@ -847,26 +914,25 @@ async def revenue_calc(message: discord.Message, nation: dict, radiation: dict, 
     rev_obj['monetary_net_num'] = round(money_income * policy_bonus * new_player_bonus * nation_treasure_bonus + color_bonus - power_upkeep - rss_upkeep - military_upkeep * mil_cost - civil_upkeep + coal * prices['coal'] + oil * prices['oil'] + uranium * prices['uranium'] + lead * prices['lead'] + iron * prices['iron'] + bauxite * prices['bauxite'] + gasoline * prices['gasoline'] + munitions * prices['munitions'] + steel * prices['steel'] + aluminum * prices['aluminum'] + food * prices['food'])
     rev_obj['net_cash_num'] = round(money_income * policy_bonus * new_player_bonus * nation_treasure_bonus + color_bonus - power_upkeep - rss_upkeep - military_upkeep * mil_cost - civil_upkeep)
     rev_obj['food'] = food
-    if single_city and not build:
-        rev_obj['money'] = rev_obj['net_cash_num']
-        rev_obj['net income'] = rev_obj['monetary_net_num']
-        rev_obj['aluminum'] = aluminum
-        rev_obj['bauxite'] = bauxite
-        rev_obj['coal'] = coal
-        rev_obj['gasoline'] = gasoline
-        rev_obj['iron'] = iron
-        rev_obj['lead'] = lead
-        rev_obj['munitions'] = munitions
-        rev_obj['oil'] = oil
-        rev_obj['steel'] = steel
-        rev_obj['uranium'] = uranium
-        rev_obj['disease_rate'] = disease_rate
-        rev_obj['crime_rate'] = crime_rate
-        rev_obj['commerce'] = commerce
-        rev_obj['pollution'] = pollution
-        return rev_obj
-    else:
+    rev_obj['money'] = rev_obj['net_cash_num']
+    rev_obj['net income'] = rev_obj['monetary_net_num']
+    rev_obj['aluminum'] = aluminum
+    rev_obj['bauxite'] = bauxite
+    rev_obj['coal'] = coal
+    rev_obj['gasoline'] = gasoline
+    rev_obj['iron'] = iron
+    rev_obj['lead'] = lead
+    rev_obj['munitions'] = munitions
+    rev_obj['oil'] = oil
+    rev_obj['steel'] = steel
+    rev_obj['uranium'] = uranium
+    rev_obj['disease_rate'] = disease_rate
+    rev_obj['crime_rate'] = crime_rate
+    rev_obj['commerce'] = commerce
+    rev_obj['pollution'] = pollution
+    if not (single_city and not build):
         rev_obj['nation'] = nation
+    rev_obj['unpowered_infra'] = unpowered_infra
     rev_obj['footer'] = footer
     rev_obj['max_infra'] = max_infra
     rev_obj['avg_infra'] = round(total_infra / nation['num_cities'])
