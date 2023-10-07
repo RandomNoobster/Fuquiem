@@ -13,6 +13,7 @@ import os
 from cryptography.fernet import Fernet
 import utils
 import traceback
+import random
 
 api_key = os.getenv("api_key")
 api_key_2 = os.getenv("api_key_2")
@@ -194,6 +195,8 @@ class Update(commands.Cog):
                         if nation[unit] < milt[f"max_{unit}"]:
                             msg += f"> [{unit}](https://politicsandwar.com/nation/military/{unit.replace('ships', 'navy')}/)\n"
                     if "> " in msg:
+                        if random.random() < 0.1:
+                            msg += "Pro tip: If you play PnW on a computer, you can use this userscript to make unit rebuys easier: https://greasyfork.org/en/scripts/456781-easy-rebuy-for-politics-and-war. This video explains how you can install userscripts via Tampermonkey: https://www.youtube.com/watch?v=N71RrRfztv4"
                         try:
                             mil_fields.append({"name": nation['leader_name'], "value": f"[{nation['leader_name']}](https://politicsandwar.com/nation/id={nation['id']}) can buy military units."})
                             await user.send(utils.cut_string(msg), silent=True, embed=None, embeds=[])
@@ -206,8 +209,11 @@ class Update(commands.Cog):
                     minutes_inactive = round((datetime.utcnow() - datetime.strptime(nation['last_active'], "%Y-%m-%dT%H:%M:%S%z").replace(tzinfo=None)).total_seconds()/60)
                     if minutes_inactive > 2880:
                         inactivity_fields.append({"name": nation['leader_name'], "value": f"[{nation['leader_name']}](https://politicsandwar.com/nation/id={nation['id']}) has been inactive for {round(minutes_inactive/1440)} days."})
+                        msg = "Hey, you should log in: https://politicsandwar.com"
+                        if random.random() < 0.1:
+                            msg += "\nPro tip: If you play PnW on a computer, you can use this userscript to get login reminders in your browser: https://greasyfork.org/en/scripts/476197-pnw-login-reminder. This video explains how you can install userscripts via Tampermonkey: https://www.youtube.com/watch?v=N71RrRfztv4"
                         try:
-                            await user.send('Hey, you should log in: https://politicsandwar.com', silent=True, embed=None, embeds=[])
+                            await user.send(msg, silent=True, embed=None, embeds=[])
                             print('i just sent a msg to', user)
                         except discord.Forbidden:
                             await channel.send(f"{user} doesn't accept my DMs <:sadcat:787450782747590668>")
