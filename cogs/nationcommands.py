@@ -25,6 +25,7 @@ api_key = os.getenv("api_key")
 convent_key = os.getenv("convent_api_key")
 cipher_suite = Fernet(key)
 
+
 class General(commands.Cog):
 
     def __init__(self, bot):
@@ -32,7 +33,7 @@ class General(commands.Cog):
 
     @commands.command()
     async def links(self, ctx):
-        other = "[Role Guidelines](https://docs.google.com/document/d/1t0xxlafFyrM8MU8k_q3lcyD1R1f8DOsN60avSHNe8_s/edit#)\n[Official Church of Atom Charter](https://docs.google.com/document/d/1ayTELdfE9ogawwDv_14-q5k4NoLysCiUKOxAuWABqlM/edit)\n[Church alliance page](https://politicsandwar.com/alliance/id=4729)\n[Convent alliance page](https://politicsandwar.com/alliance/id=7531)\n[Convent join page](https://politicsandwar.com/alliance/join/id=7531)\n"
+        other = "[Role Guidelines](https://docs.google.com/document/d/1t0xxlafFyrM8MU8k_q3lcyD1R1f8DOsN60avSHNe8_s/edit#)\n[Official Church of Atom Charter](https://docs.google.com/document/d/1ayTELdfE9ogawwDv_14-q5k4NoLysCiUKOxAuWABqlM/edit)\n[Church alliance page](https://politicsandwar.com/alliance/id=4729)\n[Convent alliance page](https://politicsandwar.com/alliance/id=8819)\n[Convent join page](https://politicsandwar.com/alliance/join/id=8819)\n"
         milcom = "[Raiding Guide](https://docs.google.com/document/d/1a5xWQUKVH8-vJmBdXgQVUpR_U-DhLwPWMPjPvEVTFqQ/edit#)\n[CTO](https://ctowned.net)\n[Slotter](https://slotter.bsnk.dev/search)\n[WarNet Plus](https://plus.bsnk.dev)"
         ia = "[CoA's Guide to P&W](https://docs.google.com/document/u/1/d/1lrPGQpaAGygRCmZP1U6y5S2ryzMApByPagFNUzdwtJU/edit#)\n[Nations sheet](https://fuquiem.karemcbob.repl.co/sheet)\n[Multi-Buster Tool](https://politicsandwar.com/index.php?id=178)\n"
         fa = "[Discord invite link](https://discord.gg/uszcTxr)\n[FA Discord invite link](https://discord.gg/dZ9u53Tqpm)\n"
@@ -49,7 +50,7 @@ class General(commands.Cog):
         cipher_suite = Fernet(key)
         logged_in = {}
         content = ""
-        
+
         with requests.Session() as s:
             for api_nation in nations:
                 if api_nation['allianceposition'] > '2':
@@ -63,7 +64,7 @@ class General(commands.Cog):
 
                 if api_nation['allianceid'] == '4729':
                     admin = church_admin
-                elif api_nation['allianceid'] == '7531':
+                elif api_nation['allianceid'] == '8819':
                     admin = convent_admin
                 elif level == "-3":
                     admin = convent_admin
@@ -75,7 +76,7 @@ class General(commands.Cog):
                         return {}
                     else:
                         continue
-                
+
                 if admin['email'] == '' or admin['pwd'] == '':
                     if message:
                         content += f"**{admin['leader']}** has not registered their PnW credentials with Fuquiem.\n"
@@ -148,9 +149,10 @@ class General(commands.Cog):
 
             futures = []
             for nation in nations:
-                futures.append(asyncio.ensure_future(iterate_nations(nation, session)) )
+                futures.append(asyncio.ensure_future(
+                    iterate_nations(nation, session)))
             responses = await asyncio.gather(*futures)
-        
+
         await message.edit(content=content[:2000])
 
         msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=60)
@@ -160,8 +162,8 @@ class General(commands.Cog):
             await msg.delete()
             await message.edit(content="Demotion canceled.")
             return
-        
-        await self.change_perm(responses, str(level), message)        
+
+        await self.change_perm(responses, str(level), message)
 
     @commands.command(aliases=['message'], brief="Send a premade message to someone")
     @commands.has_any_role('Internal Affairs')
@@ -195,7 +197,7 @@ class General(commands.Cog):
             title = "Acolyte of Internal Affairs"
         elif deacon in roles:
             title = "Deacon of Internal Affairs"
-        
+
         content = ""
         n = 0
         async with aiohttp.ClientSession() as session:
@@ -210,21 +212,23 @@ class General(commands.Cog):
                     else:
                         nation = await utils.find_nation(nation['nationid'])
                         if nation == None:
-                            content=f"I could not find `{x.strip()}`, they will be skipped.\n"
+                            content = f"I could not find `{x.strip()}`, they will be skipped.\n"
                             return
 
                 async with session.get(f"http://politicsandwar.com/api/nation/id={nation['nationid']}&key=e5171d527795e8") as temp:
                     api_nation = await temp.json()
-                api_nation['user'] = mongo.users.find_one({"nationid": api_nation['nationid']})
+                api_nation['user'] = mongo.users.find_one(
+                    {"nationid": api_nation['nationid']})
                 n += 1
                 await message.edit(f"Fetching nations ({n}/{len(nations)})...")
                 return api_nation
-        
+
             futures = []
             for x in nations:
                 futures.append(asyncio.ensure_future(prepare_nation(x)))
-        
-            results = await asyncio.gather(*futures) ## will include instances of None, since None is returned
+
+            # will include instances of None, since None is returned
+            results = await asyncio.gather(*futures)
             to_message = [i for i in results if i]
 
         api_nation = to_message[0]
@@ -236,15 +240,20 @@ class General(commands.Cog):
             if not api_nation:
                 return
 
-        msg_hist = mongo.message_history.find_one({"nationid": api_nation['nationid']})
+        msg_hist = mongo.message_history.find_one(
+            {"nationid": api_nation['nationid']})
 
         embed = discord.Embed(title=f"Type of message", description="Do you want to send a message about...\n\n:one: - removal from our applicant pool\n:two: - closing a ticket\n:three: - them having to join the discord\n:four: - them being moved to applicant due to inactivity", color=0x00ff00)
         message = await ctx.send(embed=embed)
 
-        react01 = asyncio.create_task(message.add_reaction("1\N{variation selector-16}\N{combining enclosing keycap}"))
-        react02 = asyncio.create_task(message.add_reaction("2\N{variation selector-16}\N{combining enclosing keycap}"))
-        react03 = asyncio.create_task(message.add_reaction("3\N{variation selector-16}\N{combining enclosing keycap}"))
-        react04 = asyncio.create_task(message.add_reaction("4\N{variation selector-16}\N{combining enclosing keycap}"))
+        react01 = asyncio.create_task(message.add_reaction(
+            "1\N{variation selector-16}\N{combining enclosing keycap}"))
+        react02 = asyncio.create_task(message.add_reaction(
+            "2\N{variation selector-16}\N{combining enclosing keycap}"))
+        react03 = asyncio.create_task(message.add_reaction(
+            "3\N{variation selector-16}\N{combining enclosing keycap}"))
+        react04 = asyncio.create_task(message.add_reaction(
+            "4\N{variation selector-16}\N{combining enclosing keycap}"))
         await asyncio.gather(react01, react02, react03, react04)
 
         dm = False
@@ -292,7 +301,8 @@ class General(commands.Cog):
             nonlocal ctx, message, msg_hist
             if msg_hist == None:
                 return
-            relevant_msg_hist = [x for x in msg_hist['log'] if x['variant'] == variant]
+            relevant_msg_hist = [
+                x for x in msg_hist['log'] if x['variant'] == variant]
             if len(relevant_msg_hist) > 0:
                 message_content = "A message with regards to this was sent by"
                 n = 0
@@ -366,7 +376,7 @@ class General(commands.Cog):
                         except asyncio.TimeoutError:
                             await ctx.send('Command timed out, you were too slow to respond.')
                             return
-                
+
                     elif api_nation['allianceposition'] > '1' and len(to_message) < 2:
                         await message.edit(content="They are a member, not an applicant!")
                         return
@@ -376,7 +386,8 @@ class General(commands.Cog):
                         return
                     subject = "Removal from our applicant pool, sorry!"
                     for nation in to_message:
-                        nation['text'] = f"Hi {nation['leadername']},\n\nWe do our best to defend our applicants, but your inactivity leads us to believe that you are incapable of winning any attacks against your nation. We have therefore decided to retract your status as an applicant to our alliance. If you ever turn active again, you are welcome to re-apply.\n\nPlease follow these steps if you wish to re-apply:\n1) Apply in-game <a href=\"https://politicsandwar.com/alliance/join/id=7531\">here</a>\n2) Join our discord <a href=\"https://discord.gg/uszcTxr\">here</a>\n3) There is a channel called #apply-here in our discord server. Go there and create a ticket. We will take care of it from there!\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
+                        nation[
+                            'text'] = f"Hi {nation['leadername']},\n\nWe do our best to defend our applicants, but your inactivity leads us to believe that you are incapable of winning any attacks against your nation. We have therefore decided to retract your status as an applicant to our alliance. If you ever turn active again, you are welcome to re-apply.\n\nPlease follow these steps if you wish to re-apply:\n1) Apply in-game <a href=\"https://politicsandwar.com/alliance/join/id=8819\">here</a>\n2) Join our discord <a href=\"https://discord.gg/uszcTxr\">here</a>\n3) There is a channel called #apply-here in our discord server. Go there and create a ticket. We will take care of it from there!\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
                     break
 
                 elif str(reaction.emoji) == "2\N{variation selector-16}\N{combining enclosing keycap}":
@@ -387,14 +398,15 @@ class General(commands.Cog):
                         res = await last_message(variant)
                         if res == {}:
                             return
-                    res = await discord_dm()                
+                    res = await discord_dm()
                     if res == {}:
                         return
                     subject = "Application ticket closed, sorry!"
                     for nation in to_message:
-                        nation['text'] = f"Hi {nation['leadername']},\n\nYour application ticket to the Convent of Atom has been closed because you haven't completed the application process and have been inactive for more than 48 hours. If you wish to continue your application, you can create a new ticket. Let me know if you have any questions, or need help with anything.\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
+                        nation[
+                            'text'] = f"Hi {nation['leadername']},\n\nYour application ticket to the Convent of Atom has been closed because you haven't completed the application process and have been inactive for more than 48 hours. If you wish to continue your application, you can create a new ticket. Let me know if you have any questions, or need help with anything.\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
                     break
-                    
+
                 elif str(reaction.emoji) == "3\N{variation selector-16}\N{combining enclosing keycap}":
                     variant = 3
                     await message.edit(embed=None, content="Thinking...")
@@ -405,7 +417,8 @@ class General(commands.Cog):
                             return
                     subject = "Incomplete application, please complete it!"
                     for nation in to_message:
-                        nation['text'] = f"Hi {nation['leadername']},\n\nI can see that you are currently applying to our alliance. Please note that you have to apply on discord as well in order to become a member.\n\nJoin the Church of Atom discord <a href=\"https://discord.gg/uszcTxr\">here</a>. After joining the discord, go to the channel called #apply-here to create an application ticket.\n\nLet me know if you have any questions.\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
+                        nation[
+                            'text'] = f"Hi {nation['leadername']},\n\nI can see that you are currently applying to our alliance. Please note that you have to apply on discord as well in order to become a member.\n\nJoin the Church of Atom discord <a href=\"https://discord.gg/uszcTxr\">here</a>. After joining the discord, go to the channel called #apply-here to create an application ticket.\n\nLet me know if you have any questions.\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
                     break
 
                 elif str(reaction.emoji) == "4\N{variation selector-16}\N{combining enclosing keycap}":
@@ -443,13 +456,14 @@ class General(commands.Cog):
                         except asyncio.TimeoutError:
                             await ctx.send('Command timed out, you were too slow to respond.')
                             return
-                        
+
                     res = await discord_dm()
                     if res == {}:
                         return
                     subject = "Moved to applicant status, check in on discord!"
                     for nation in to_message:
-                        nation['text'] = f"Hi {nation['leadername']},\n\nIf a member loses a war, the alliance bank is looted. Due to your inactivity, we are worried that you might lose if you were to be attacked. To avoid the bank being looted, we have therefore decided to change your ingame status from member to applicant. Please note that you are still a member on discord. All you need to do to get repromoted ingame is to reach out to us and let us know that you are once again active.\n\nLet me know if you have any questions.\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
+                        nation[
+                            'text'] = f"Hi {nation['leadername']},\n\nIf a member loses a war, the alliance bank is looted. Due to your inactivity, we are worried that you might lose if you were to be attacked. To avoid the bank being looted, we have therefore decided to change your ingame status from member to applicant. Please note that you are still a member on discord. All you need to do to get repromoted ingame is to reach out to us and let us know that you are once again active.\n\nLet me know if you have any questions.\n\nSent on behalf of\n{name}, {title}\n{str(ctx.author)} on discord"
                     break
 
             except asyncio.TimeoutError:
@@ -471,7 +485,8 @@ class General(commands.Cog):
                     await msg.delete()
                     content = ""
                     for nation in to_message:
-                        res = requests.post('https://politicsandwar.com/api/send-message/', data={'key': api_key, 'to': nation['nationid'], 'subject': subject, 'message': nation['text']})
+                        res = requests.post('https://politicsandwar.com/api/send-message/', data={
+                                            'key': api_key, 'to': nation['nationid'], 'subject': subject, 'message': nation['text']})
                         if res.status_code == 200:
                             content += f"Ingame message was sent to {nation['leadername']} ({nation['nationid']})!\n"
                         else:
@@ -485,7 +500,7 @@ class General(commands.Cog):
         except asyncio.TimeoutError:
             await message.edit(content='Command timed out, you were too slow to respond.')
             return
-        
+
         if dm:
             message = await ctx.send("\u200b")
             content = ""
@@ -502,13 +517,14 @@ class General(commands.Cog):
                     content += f"Some error occured, so I couldn't DM **{nation['leadername']} ({nation['nationid']})**```{error}```"
                 await message.edit(content=content)
         await message.edit(content=content)
-        
+
         for nation in to_message:
-            mongo.message_history.find_one_and_update({"nationid": nation['nationid']}, {"$push": {"log": {"sender": ctx.author.id, "epoch": round(datetime.now().timestamp()), "dm": dm, "variant": variant}}}, upsert=True)
-       
+            mongo.message_history.find_one_and_update({"nationid": nation['nationid']}, {"$push": {"log": {
+                                                      "sender": ctx.author.id, "epoch": round(datetime.now().timestamp()), "dm": dm, "variant": variant}}}, upsert=True)
+
         content += "Done!"
         await message.edit(content=content)
-        
+
     @commands.command(brief='Displays a list the 25 first people sorted by shortest timer', help='Accepts an optional argument "convent"', aliases=['ct', 'citytimers', 'timers', 'timer'])
     async def citytimer(self, ctx, aa='church'):
         aa.lower()
@@ -517,14 +533,15 @@ class General(commands.Cog):
                 f'http://politicsandwar.com/api/alliance-members/?allianceid=4729&key={api_key}').json()['nations']
         elif aa in 'convent':
             nations = requests.get(
-                f'http://politicsandwar.com/api/alliance-members/?allianceid=7531&key={convent_key}').json()['nations']
+                f'http://politicsandwar.com/api/alliance-members/?allianceid=8819&key={convent_key}').json()['nations']
         else:
             ctx.send('That was not a valid alliance, please try again.')
             return
 
         embed = discord.Embed(title='City timers:', description='Here is up to 25 people sorted by the shortest timer:',
                               color=0x00ff00, timestamp=datetime.utcnow())
-        people = sorted(nations, key=lambda k: k['turns_since_last_city'], reverse=True)
+        people = sorted(
+            nations, key=lambda k: k['turns_since_last_city'], reverse=True)
         content = ''
         n = 1
         for x in people:
@@ -544,14 +561,15 @@ class General(commands.Cog):
                 f'http://politicsandwar.com/api/alliance-members/?allianceid=4729&key={api_key}').json()['nations']
         elif aa in 'convent':
             nations = requests.get(
-                f'http://politicsandwar.com/api/alliance-members/?allianceid=7531&key={convent_key}').json()['nations']
+                f'http://politicsandwar.com/api/alliance-members/?allianceid=8819&key={convent_key}').json()['nations']
         else:
             ctx.send('That was not a valid alliance, please try again.')
             return
 
         embed = discord.Embed(title='Project timers:', description='Here is up to 25 people sorted by the shortest timer:',
                               color=0x00ff00, timestamp=datetime.utcnow())
-        people = sorted(nations, key=lambda k: k['turns_since_last_project'], reverse=True)
+        people = sorted(
+            nations, key=lambda k: k['turns_since_last_project'], reverse=True)
         content = ''
         n = 1
         for x in people:
@@ -567,20 +585,23 @@ class General(commands.Cog):
     async def reminders(self, ctx):
         message = await ctx.send('Fuck requiem...')
         person = mongo.users.find_one({"user": ctx.author.id})
-        #print(person)
+        # print(person)
         if person == None:
             await message.edit(content="I cannot find you in the database!")
-        insults = ['ha loser', 'what a nub', 'such a pleb', 'get gud', 'u suc lol']
+        insults = ['ha loser', 'what a nub',
+                   'such a pleb', 'get gud', 'u suc lol']
         insult = random.choice(insults)
         if person['beige_alerts'] == []:
             await message.edit(content=f"You have no beige reminders!\n\n||{insult}||")
             return
         reminders = ""
-        person['beige_alerts'] = sorted(person['beige_alerts'], key=lambda k: k['time'], reverse=True)
+        person['beige_alerts'] = sorted(
+            person['beige_alerts'], key=lambda k: k['time'], reverse=True)
         for x in person['beige_alerts']:
-            reminders += (f"\n<t:{round(x['time'].timestamp())}> (<t:{round(x['time'].timestamp())}:R>) - <https://politicsandwar.com/nation/id={x['id']}>")
+            reminders += (
+                f"\n<t:{round(x['time'].timestamp())}> (<t:{round(x['time'].timestamp())}:R>) - <https://politicsandwar.com/nation/id={x['id']}>")
         await message.edit(content=f"Here are your reminders:\n{reminders}")
-    
+
     @commands.command(brief='Delete a beige reminder', help='', aliases=['delalert', 'delrem', 'del_reminder'])
     async def delreminder(self, ctx, id):
         message = await ctx.send('Fuck requiem...')
@@ -592,7 +613,8 @@ class General(commands.Cog):
                 alert_list = person['beige_alerts'].remove(alert)
                 if not alert_list:
                     alert_list = []
-                mongo.users.find_one_and_update({"user": person['user']}, {"$set": {"beige_alerts": alert_list}})
+                mongo.users.find_one_and_update({"user": person['user']}, {
+                                                "$set": {"beige_alerts": alert_list}})
                 found = True
         if not found:
             await message.edit(content="I did not find a reminder for that nation!")
@@ -605,13 +627,14 @@ class General(commands.Cog):
         if nation == None:
             await message.edit(content='I could not find that nation!')
             return
-        #print(nation)
-        res = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{nation['nationid']}){{data{{beigeturns}}}}}}"}).json()['data']['nations']['data'][0]
+        # print(nation)
+        res = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={
+                            'query': f"{{nations(first:1 id:{nation['nationid']}){{data{{beigeturns}}}}}}"}).json()['data']['nations']['data'][0]
         if res['beigeturns'] == 0:
             await message.edit(content="They are not beige!")
             return
         reminder = {}
-        #print(data)
+        # print(data)
         turns = int(res['beigeturns'])
         time = datetime.utcnow()
         if time.hour % 2 == 0:
@@ -620,7 +643,8 @@ class General(commands.Cog):
             time += timedelta(hours=turns*2-1)
         reminder['time'] = datetime(time.year, time.month, time.day, time.hour)
         reminder['id'] = str(nation['nationid'])
-        mongo.users.find_one_and_update({"user": ctx.author.id}, {"$push": {"beige_alerts": reminder}})
+        mongo.users.find_one_and_update({"user": ctx.author.id}, {
+                                        "$push": {"beige_alerts": reminder}})
         await message.edit(content=f"A beige reminder for https://politicsandwar.com/nation/id={nation['nationid']} was added.")
 
     @commands.command(brief='When Deacons audit someone they can use "$audited <personyoujustaudited>" to register this to the spreadsheet')
@@ -633,7 +657,8 @@ class General(commands.Cog):
                 msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=40)
 
                 if msg.content.lower() in ['yes', 'y']:
-                    mongo.users.find_one_and_update({"user": person['user']}, {'$set': {'audited': ctx.author.name}})
+                    mongo.users.find_one_and_update({"user": person['user']}, {
+                                                    '$set': {'audited': ctx.author.name}})
                     await ctx.send(f"`{await self.bot.fetch_user(person['user'])}`'s `audited` attribute was changed from `{person['audited']}` to `{ctx.author.name}`.")
                     return
                 elif msg.content.lower() in ['no', 'n']:
@@ -642,18 +667,18 @@ class General(commands.Cog):
             except asyncio.TimeoutError:
                 await ctx.send('Command timed out, you were too slow to respond.')
         else:
-            mongo.users.find_one_and_update({"user": person['user']}, {'$set': {'audited': ctx.author.name}})
+            mongo.users.find_one_and_update({"user": person['user']}, {
+                                            '$set': {'audited': ctx.author.name}})
             await ctx.send(f"`{await self.bot.fetch_user(person)}`'s `audited` attribute was added as `{ctx.author.name}`.")
 
-
-    @commands.command(aliases=['trades', 'trader', 'traders'],brief='A list of the 10 traders with the largest amount of the resource you specify')
+    @commands.command(aliases=['trades', 'trader', 'traders'], brief='A list of the 10 traders with the largest amount of the resource you specify')
     @commands.has_any_role('Pupil', 'Zealot', 'Deacon', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def trade(self, ctx, resource):
         resource = resource.lower()
         church = requests.get(
             f'http://politicsandwar.com/api/alliance-members/?allianceid=4729&key={api_key}').json()
         convent = requests.get(
-            f'http://politicsandwar.com/api/alliance-members/?allianceid=7531&key={convent_key}').json()
+            f'http://politicsandwar.com/api/alliance-members/?allianceid=8819&key={convent_key}').json()
         nations = church['nations'] + convent['nations']
         current = current = list(mongo['users'].find({}))
         rss = ['food', 'coal', 'oil', 'uranium', 'bauxite',
@@ -673,7 +698,8 @@ class General(commands.Cog):
         embed = discord.Embed(title=f'Traders with {resource}:', description='',
                               color=0x00ff00, timestamp=datetime.utcnow())
 
-        people = sorted(nations, key=lambda k: float(k[resource]), reverse=True)
+        people = sorted(nations, key=lambda k: float(
+            k[resource]), reverse=True)
         n = 0
         for person in people:
             if n == 10:
@@ -684,13 +710,15 @@ class General(commands.Cog):
                     if user == None:
                         continue
                     if role in user.roles:
-                        embed.add_field(name=user,value=f"[They](https://politicsandwar.com/nation/id={person['nationid']}) have {person[resource]} {resource}",inline=False)
+                        embed.add_field(
+                            name=user, value=f"[They](https://politicsandwar.com/nation/id={person['nationid']}) have {person[resource]} {resource}", inline=False)
                         n += 1
         await ctx.send(embed=embed)
-                            
+
     @commands.command(brief='Shows a list of alliances with treasures')
     async def treasures(self, ctx):
-        res = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{treasures{{bonus spawndate nation{{id alliance_position num_cities score nation_name alliance{{name id}}}}}}}}"}).json()['data']['treasures']
+        res = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={
+                            'query': f"{{treasures{{bonus spawndate nation{{id alliance_position num_cities score nation_name alliance{{name id}}}}}}}}"}).json()['data']['treasures']
         embed = discord.Embed(title=f'Treasures', description='',
                               color=0x00ff00, timestamp=datetime.utcnow())
         n = 0
@@ -699,7 +727,8 @@ class General(commands.Cog):
                 await ctx.send(embed=embed)
                 embed.clear_fields()
                 n = 0
-            seconds = (datetime.strptime(x['spawndate'], "%Y-%m-%d") - datetime.utcnow()).total_seconds() + 60 * 24 * 60 * 60
+            seconds = (datetime.strptime(
+                x['spawndate'], "%Y-%m-%d") - datetime.utcnow()).total_seconds() + 60 * 24 * 60 * 60
             days = round(seconds / (24 * 3600))
             embed.add_field(name=f"{x['nation']['nation_name']}", value=f"[Link to nation](https://politicsandwar.com/nation/id={x['nation']['id']})\nRespawn in {days} days\n{x['bonus']}% bonus\nC{x['nation']['num_cities']}, {round(x['nation']['score'])} score\n{x['nation']['alliance_position'].lower().capitalize()} of [{x['nation']['alliance']['name']}](https://politicsandwar.com/alliance/id={x['nation']['alliance']['id']})")
             n += 1
@@ -707,7 +736,7 @@ class General(commands.Cog):
             await ctx.send(embed=embed)
         else:
             await ctx.send(f"I didn't find anything!")
-    
+
     @commands.command(brief='Send an informative message')
     @commands.has_any_role('Internal Affairs')
     async def welcome(self, ctx, arg):
@@ -728,7 +757,8 @@ class General(commands.Cog):
         except:
             content += "Did not add `Pupil`, did they have it already?\n"
         try:
-            response = requests.get(f"http://politicsandwar.com/api/nation/id={user['nationid']}&key=e5171d527795e8").json()
+            response = requests.get(
+                f"http://politicsandwar.com/api/nation/id={user['nationid']}&key=e5171d527795e8").json()
             if response['allianceposition'] > '1':
                 content += "Did not admit them. They are already a member.\n"
             elif response['allianceposition'] < '1':
@@ -785,7 +815,7 @@ class General(commands.Cog):
         except asyncio.TimeoutError:
             await ctx.send('Command timed out, you were too slow to respond.')
             return
-        
+
     @commands.command(brief='Shows information about applicants', aliases=['apps'])
     @commands.has_any_role('Internal Affairs')
     async def applicants(self, ctx):
@@ -795,7 +825,7 @@ class General(commands.Cog):
     @commands.has_any_role('Internal Affairs')
     async def members(self, ctx):
         await self.member_analysis(ctx, 2, "Members")
-    
+
     async def member_analysis(self, ctx, level: int, embed_title: str):
         message = await ctx.send("Finding plebs...")
 
@@ -809,7 +839,7 @@ class General(commands.Cog):
                 prices['money'] = 1
             async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 alliance_position:{level} first:500 alliance_id:4729){{data{{id leader_name nation_name alliance{{name}} color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium cities{{infrastructure barracks factory airforcebase drydock}}}}}}}}"}) as temp:
                 apps = (await temp.json())['data']['nations']['data']
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(page:1 alliance_position:{level} first:500 alliance_id:7531){{data{{id leader_name nation_name alliance{{name}} color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium cities{{infrastructure barracks factory airforcebase drydock}}}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={convent_key}", json={'query': f"{{nations(page:1 alliance_position:{level} first:500 alliance_id:8819){{data{{id leader_name nation_name alliance{{name}} color num_cities score vmode beigeturns last_active soldiers tanks aircraft ships missiles nukes aluminum bauxite coal food gasoline iron lead money munitions oil steel uranium cities{{infrastructure barracks factory airforcebase drydock}}}}}}}}"}) as temp:
                 apps += (await temp.json())['data']['nations']['data']
 
         for app in apps:
@@ -868,7 +898,7 @@ class General(commands.Cog):
         else:
             dload.save_unzip(f"https://politicsandwar.com/data/cities/cities-{date}.csv.zip", str(
                 pathlib.Path.cwd() / 'data' / 'dumps' / 'cities'), True)
-        
+
         message = await ctx.send('Stay with me...')
         if person == None:
             person = ctx.author.id
@@ -892,16 +922,18 @@ class General(commands.Cog):
             if not db_nation:
                 await message.edit(content='I could not find that person!')
                 return
-        
-        nation = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:1 id:{db_nation['nationid']}){{data{{id continent date color dompolicy alliance{{name}} alliance_id num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap}}}}}}"}).json()['data']['nations']['data']
+
+        nation = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={
+                               'query': f"{{nations(first:1 id:{db_nation['nationid']}){{data{{id continent date color dompolicy alliance{{name}} alliance_id num_cities ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap}}}}}}"}).json()['data']['nations']['data']
         if len(nation) == 0:
             await message.edit(content="That person was not in the API!")
             return
         else:
             nation = nation[0]
-        
+
         if not arg_infra:
-            embed = discord.Embed(title=f"Infrastructure", description="How much infrastructure do you want the build to be for?\n\nex. \"1500\"\nex. \"2.5k\"\nex. \"any\"", color=0x00ff00)
+            embed = discord.Embed(
+                title=f"Infrastructure", description="How much infrastructure do you want the build to be for?\n\nex. \"1500\"\nex. \"2.5k\"\nex. \"any\"", color=0x00ff00)
             await message.edit(content="", embed=embed)
 
         while True:
@@ -916,7 +948,8 @@ class General(commands.Cog):
                 try:
                     if "." in infra:
                         num_inf = re.sub("[A-z]", "", infra)
-                        infra = int(num_inf.replace(".", "")) / 10**(len(num_inf) - num_inf.rfind(".") - 1)
+                        infra = int(num_inf.replace(".", "")) / \
+                            10**(len(num_inf) - num_inf.rfind(".") - 1)
                 except:
                     if not arg_infra:
                         await message.edit(content="**I did not understand that, please call the command again!**")
@@ -952,7 +985,8 @@ class General(commands.Cog):
                 break
 
         if not arg_land:
-            embed = discord.Embed(title=f"Land", description="How much land should I assume the cities to have when calculating their revenue?\n\nex. \"1500\"\nex. \"2.5k\"", color=0x00ff00)
+            embed = discord.Embed(
+                title=f"Land", description="How much land should I assume the cities to have when calculating their revenue?\n\nex. \"1500\"\nex. \"2.5k\"", color=0x00ff00)
             await message.edit(content="", embed=embed)
 
         while True:
@@ -967,7 +1001,8 @@ class General(commands.Cog):
                 try:
                     if "." in land:
                         num_land = re.sub("[A-z]", "", land)
-                        land = int(num_land.replace(".", "")) / 10**(len(num_land) - num_land.find(".") + num_land.rfind(".") - 2)
+                        land = int(num_land.replace(
+                            ".", "")) / 10**(len(num_land) - num_land.find(".") + num_land.rfind(".") - 2)
                 except:
                     if not arg_land:
                         await message.edit(content="**I did not understand that, please call the command again!**")
@@ -999,7 +1034,8 @@ class General(commands.Cog):
                 break
 
         if not arg_mmr:
-            embed = discord.Embed(title=f"MMR", description="What should the minimum military requirement be?\n\nex. \"1/2/5/1\"\nex. \"0351\"\nex. \"any\"", color=0x00ff00)
+            embed = discord.Embed(
+                title=f"MMR", description="What should the minimum military requirement be?\n\nex. \"1/2/5/1\"\nex. \"0351\"\nex. \"any\"", color=0x00ff00)
             await message.edit(content="", embed=embed)
 
         while True:
@@ -1032,28 +1068,35 @@ class General(commands.Cog):
                 print('message break')
                 break
         await message.edit(content="Doing some filtering...", embed=None)
-        
+
         to_scan = []
         rss = []
-        all_rss = ['net income', 'aluminum', 'bauxite', 'coal', 'food', 'gasoline', 'iron', 'lead', 'money', 'munitions', 'oil', 'steel', 'uranium']
+        all_rss = ['net income', 'aluminum', 'bauxite', 'coal', 'food', 'gasoline',
+                   'iron', 'lead', 'money', 'munitions', 'oil', 'steel', 'uranium']
         if nation['continent'] == "af":
             cont_rss = ['coal_mines', 'iron_mines', 'lead_mines']
-            rss = [rs for rs in all_rss if rs + "_mines" not in cont_rss and rs + "_wells" not in cont_rss]
+            rss = [rs for rs in all_rss if rs +
+                   "_mines" not in cont_rss and rs + "_wells" not in cont_rss]
         elif nation['continent'] == "as":
             cont_rss = ['coal_mines', 'bauxite_mines', 'lead_mines']
-            rss = [rs for rs in all_rss if rs + "_mines" not in cont_rss and rs + "_wells" not in cont_rss]
+            rss = [rs for rs in all_rss if rs +
+                   "_mines" not in cont_rss and rs + "_wells" not in cont_rss]
         elif nation['continent'] == "au":
             cont_rss = ['oil_wells', 'iron_mines', 'uranium_mines']
-            rss = [rs for rs in all_rss if rs + "_mines" not in cont_rss and rs + "_wells" not in cont_rss]
+            rss = [rs for rs in all_rss if rs +
+                   "_mines" not in cont_rss and rs + "_wells" not in cont_rss]
         elif nation['continent'] == "eu":
             cont_rss = ['oil_wells', 'bauxite_mines', 'uranium_mines']
-            rss = [rs for rs in all_rss if rs + "_mines" not in cont_rss and rs + "_wells" not in cont_rss]
+            rss = [rs for rs in all_rss if rs +
+                   "_mines" not in cont_rss and rs + "_wells" not in cont_rss]
         elif nation['continent'] == "na":
             cont_rss = ['oil_wells', 'bauxite_mines', 'lead_mines']
-            rss = [rs for rs in all_rss if rs + "_mines" not in cont_rss and rs + "_wells" not in cont_rss]
+            rss = [rs for rs in all_rss if rs +
+                   "_mines" not in cont_rss and rs + "_wells" not in cont_rss]
         elif nation['continent'] == "sa":
             cont_rss = ['coal_mines', 'iron_mines', 'uranium_mines']
-            rss = [rs for rs in all_rss if rs + "_mines" not in cont_rss and rs + "_wells" not in cont_rss]
+            rss = [rs for rs in all_rss if rs +
+                   "_mines" not in cont_rss and rs + "_wells" not in cont_rss]
 
         with open(pathlib.Path.cwd() / 'data' / 'dumps' / 'cities' / f'cities-{date}.csv', encoding='cp437') as f1:
             csv_dict_reader = DictReader(f1)
@@ -1073,7 +1116,7 @@ class General(commands.Cog):
                         continue
                     if int(city['drydocks']) < min_dry:
                         continue
-                
+
                 skip = False
                 for mine in cont_rss:
                     if int(city[mine]) > 0:
@@ -1081,7 +1124,7 @@ class General(commands.Cog):
                         break
                 if skip:
                     continue
-                
+
                 city.pop('\u2229\u2557\u2510city_id')
                 city.pop('nation_id')
                 city.pop('date_created')
@@ -1090,7 +1133,8 @@ class General(commands.Cog):
                 city.pop('maxinfra')
                 city.pop('last_nuke_date')
 
-                city['powered'] = "am powered" #must be string to work when being in the webpage
+                # must be string to work when being in the webpage
+                city['powered'] = "am powered"
                 city['land'] = land
                 city['date'] = nation_age
                 city['infrastructure'] = round(float(city['infrastructure']))
@@ -1123,7 +1167,7 @@ class General(commands.Cog):
                 city['drydock'] = int(city.pop('drydocks'))
 
                 to_scan.append(city)
-        
+
         temp, colors, prices, treasures, radiation, seasonal_mod = await utils.pre_revenue_calc(api_key, message, query_for_nation=False, parsed_nation=nation)
 
         await message.edit(content="Calculating revenue...")
@@ -1137,13 +1181,17 @@ class General(commands.Cog):
             return
 
         unique_builds = [dict(t) for t in {tuple(d.items()) for d in cities}]
-        unique_builds = sorted(unique_builds, key=lambda k: k['net income'], reverse=True)
-                        
+        unique_builds = sorted(
+            unique_builds, key=lambda k: k['net income'], reverse=True)
+
         builds = {}
         for rs in rss:
-            sorted_builds = sorted(unique_builds, key=lambda k: k[rs], reverse=True)
-            best_builds = [city for city in sorted_builds if city[rs] == sorted_builds[0][rs]]
-            builds[rs] = sorted(best_builds, key=lambda k: k['net income'], reverse=True)[0]
+            sorted_builds = sorted(
+                unique_builds, key=lambda k: k[rs], reverse=True)
+            best_builds = [
+                city for city in sorted_builds if city[rs] == sorted_builds[0][rs]]
+            builds[rs] = sorted(
+                best_builds, key=lambda k: k['net income'], reverse=True)[0]
             builds[rs]['template'] = f"""
 {{
     "infra_needed": {builds[rs]['infrastructure']},
@@ -1181,20 +1229,24 @@ class General(commands.Cog):
             def get(arg):
                 with open('./data/templates/buildspage.txt', 'r', encoding='UTF-8') as file:
                     template = file.read()
-                result = Template(template).render(builds=builds, rss=rss, land=land, unique_builds=unique_builds, datetime=datetime)
+                result = Template(template).render(
+                    builds=builds, rss=rss, land=land, unique_builds=unique_builds, datetime=datetime)
                 return str(result)
-        #@app.route(f"/raids/{atck_ntn['id']}")
+        # @app.route(f"/raids/{atck_ntn['id']}")
         endpoint = datetime.utcnow().strftime('%d%H%M%S')
-        app.add_url_rule(f"/builds/{datetime.utcnow().strftime('%d%H%M%S')}", view_func=webbuild.as_view(str(datetime.utcnow())), methods=["GET", "POST"]) # this solution of adding a new page instead of updating an existing for the same nation is kinda dependent on the bot resetting every once in a while, bringing down all the endpoints
+        # this solution of adding a new page instead of updating an existing for the same nation is kinda dependent on the bot resetting every once in a while, bringing down all the endpoints
+        app.add_url_rule(f"/builds/{datetime.utcnow().strftime('%d%H%M%S')}",
+                         view_func=webbuild.as_view(str(datetime.utcnow())), methods=["GET", "POST"])
         if str(arg_infra).lower() in "any":
             infra = "any amount of"
         if str(mmr).lower() in "any":
             mmr = "no military requirement"
         else:
-            mmr = "a military requirement of " + '/'.join(mmr[i:i+1] for i in range(0, len(mmr), 1))
+            mmr = "a military requirement of " + \
+                '/'.join(mmr[i:i+1] for i in range(0, len(mmr), 1))
         await message.edit(content=f"{len(cities):,} valid cities and {len(unique_builds):,} unique builds fulfilled your criteria of {infra} infra and {mmr}.\n\nSee the best builds here (assuming you have {land} land): https://fuquiem.karemcbob.repl.co/builds/{endpoint}")
         return
 
-    
+
 def setup(bot):
     bot.add_cog(General(bot))

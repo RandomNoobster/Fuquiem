@@ -19,7 +19,7 @@ class Database(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
- 
+
     @commands.command(brief='Meant for debugging purposes')
     @commands.has_any_role('Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def debug(self, ctx):
@@ -28,7 +28,7 @@ class Database(commands.Cog):
         church = requests.get(
             f'http://politicsandwar.com/api/alliance-members/?allianceid=4729&key={api_key}').json()['nations']
         convent = requests.get(
-            f'http://politicsandwar.com/api/alliance-members/?allianceid=7531&key={convent_key}').json()['nations']
+            f'http://politicsandwar.com/api/alliance-members/?allianceid=8819&key={convent_key}').json()['nations']
         convent_ids = [str(nation['nationid']) for nation in convent]
         church_ids = [str(nation['nationid']) for nation in church]
         n = 0
@@ -69,7 +69,6 @@ class Database(commands.Cog):
             mongo.users.find_one_and_delete({"user": x['user']})
             mongo.users.insert_one(x)"""
 
-
     @commands.command(brief='Add someone to the db', help='First argument should be a ping, and the second argument should be a nation link.', aliases=['dab'])
     @commands.has_any_role('Internal Affairs', 'Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def dba(self, ctx, disc: discord.User, nation):
@@ -88,7 +87,8 @@ class Database(commands.Cog):
                 except:
                     print((await temp.json())['errors'])
                     return
-            mongo.users.insert_one({"user": disc.id, "nationid": nid, "name": nation['nation_name'], "leader": nation['leader_name'], "signups": 0, "wins": 0, "raids": [], "email": '', 'pwd': '', 'signedup': False, "audited": False, "beige_alerts": []})
+            mongo.users.insert_one({"user": disc.id, "nationid": nid, "name": nation['nation_name'], "leader": nation['leader_name'], "signups": 0, "wins": 0, "raids": [
+            ], "email": '', 'pwd': '', 'signedup': False, "audited": False, "beige_alerts": []})
             await ctx.send(content=f"I added <@{disc.id}> with the nation {nid}.", allowed_mentions=discord.AllowedMentions(everyone=False, users=False, roles=False))
 
     @commands.command(breif='Can only be used in DMs with the bot, accepts two arguments', help='This command can only be used in direct messages (DMs) with Fuquiem. It accepts two arguments, the first being your email and the second being your password. You can update the credentials anytime, and they can be reset by not including any arguments (simply saying "$setcredentials").', aliases=['setcred', 'sc'])
@@ -128,20 +128,21 @@ class Database(commands.Cog):
         members = []
         member_ids = []
         fields = []
-        
+
         for user in ctx.guild.members:
             if heathen_role not in user.roles and not user.bot:
                 members.append(user)
-        
+
         for x in current:
             member_ids.append(x['user'])
-        
+
         for member in members:
             if member.id not in member_ids:
-                fields.append({"name": member, "value": "**in the discord, but not not registered**"})
+                fields.append(
+                    {"name": member, "value": "**in the discord, but not not registered**"})
 
         async with aiohttp.ClientSession() as session:
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:500 alliance_id:[4729,7531]){{data{{id alliance_position}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(first:500 alliance_id:[4729,8819]){{data{{id alliance_position}}}}}}"}) as temp:
                 nations = (await temp.json())['data']['nations']['data']
 
         heathen_role = ctx.guild.get_role(434248817005690880)
@@ -171,7 +172,7 @@ class Database(commands.Cog):
             if un_register:
                 disc = discord_member or discord_user
                 fields.append({"name": f'{disc} ({disc.id})', "value": text})
-        
+
         if len(fields) == 0:
             await message.edit(content='All the right people are registered!')
             return
@@ -218,18 +219,20 @@ class Database(commands.Cog):
                             content += f"**FATAL** `{key}` is empty: `{result[key]}\u200b`\n"
                             fatal = True
                 if content:
-                    content = "I encountered the following issues:\n\n" + content + "\nI fixed any non-fatal issues. "
+                    content = "I encountered the following issues:\n\n" + \
+                        content + "\nI fixed any non-fatal issues. "
                 if fatal:
                     await message.edit(content=content)
                     return
-                
+
                 async with session.get(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': f"{{nations(first:1 id:{result['nationid']}){{data{{id leader_name nation_name alliance{{name id}}}}}}}}"}) as temp:
                     try:
                         nation = (await temp.json())['data']['nations']['data'][0]
                     except:
                         print((await temp.json())['errors'])
                         return
-                new_obj = {"user": result['user'], "nationid": result['nationid'], "name": nation['nation_name'], "leader": nation['leader_name'], "signups": result['signups'] or 0, "wins": result['wins'] or 0, "raids": result['raids'] or [], "email": result['email'] or '', 'pwd': result['pwd'] or '', 'signedup': result['signedup'] or False, "audited": result['audited'] or False, "beige_alerts": result['beige_alerts'] or []}
+                new_obj = {"user": result['user'], "nationid": result['nationid'], "name": nation['nation_name'], "leader": nation['leader_name'], "signups": result['signups'] or 0, "wins": result['wins'] or 0, "raids": result['raids'] or [
+                ], "email": result['email'] or '', 'pwd': result['pwd'] or '', 'signedup': result['signedup'] or False, "audited": result['audited'] or False, "beige_alerts": result['beige_alerts'] or []}
                 try:
                     await message.edit(content=f'I was able to find a match in the secondary database. {content}Do you want me to attempt to restore them to the primary database? (yes/no)\n```\n{new_obj}```')
                     msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel.id == ctx.channel.id, timeout=40)
@@ -261,9 +264,10 @@ class Database(commands.Cog):
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def db(self, ctx):
         current = list(mongo['users'].find({}))
-        fields = []        
+        fields = []
         for x in current:
-            fields.append({"name": "\u200b", "value": f"<@!{x['user']}> - [{x['name']}](https://politicsandwar.com/nation/id={x['nationid']})"})
+            fields.append(
+                {"name": "\u200b", "value": f"<@!{x['user']}> - [{x['name']}](https://politicsandwar.com/nation/id={x['nationid']})"})
         embeds = utils.embed_pager("Database", fields)
         message = await ctx.send(embed=embeds[0])
         await utils.reaction_checker(self, message, embeds)
@@ -272,7 +276,7 @@ class Database(commands.Cog):
     @commands.has_any_role('Acolyte', 'Cardinal', 'Pontifex Atomicus', 'Primus Inter Pares')
     async def removed_db(self, ctx):
         current = list(mongo['leaved_users'].find({}))
-        fields = []        
+        fields = []
         for x in current:
             fields.append({"name": x['leader'], "value": f"```{x}```"})
         embeds = utils.embed_pager("Database", fields, inline=False)
@@ -306,7 +310,8 @@ class Database(commands.Cog):
                 return
             else:
                 print(result)
-                embed = discord.Embed(title=result['leader'], description=f"[{result['nation']}](https://politicsandwar.com/nation/id={result['nationid']})")
+                embed = discord.Embed(
+                    title=result['leader'], description=f"[{result['nation']}](https://politicsandwar.com/nation/id={result['nationid']})")
                 await ctx.send(embed=embed)
                 return
         embed = discord.Embed(title=str(await self.bot.fetch_user(person['user'])), description=f"[{person['name']}](https://politicsandwar.com/nation/id={person['nationid']})")
@@ -318,10 +323,11 @@ class Database(commands.Cog):
         if not result:
             await ctx.send('I could not find that person in the list of deleted users.')
             return
-        else: 
+        else:
             embed = discord.Embed(title=str(await self.bot.fetch_user(result['user'])), description=f"```{result}```")
             await ctx.send(embed=embed)
             return
+
 
 def setup(bot):
     bot.add_cog(Database(bot))
