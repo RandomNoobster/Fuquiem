@@ -11,21 +11,27 @@ load_dotenv()
 api_key = os.getenv("api_key")
 client = pymongo.MongoClient(os.getenv("pymongolink"))
 # client2 = pymongo.MongoClient(os.getenv("pymongolink2"))
-async_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("pymongolink"), serverSelectionTimeoutMS=5000)
+async_client = motor.motor_asyncio.AsyncIOMotorClient(
+    os.getenv("pymongolink"), serverSelectionTimeoutMS=5000)
 # async_client_2 = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("pymongolink2"), serverSelectionTimeoutMS=5000)
+
 
 async def refresh(mongo):
     await asyncio.sleep(2)
-    members = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{nations(page:1 first:500 alliance_id:[4729,7531]){{data{{id leader_name nation_name}}}}}}"}).json()['data']['nations']['data']
+    members = requests.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={
+                            'query': f"{{nations(page:1 first:500 alliance_id:[4729,8819]){{data{{id leader_name nation_name}}}}}}"}).json()['data']['nations']['data']
     users = list(mongo.users.find({}))
     for user in users:
         for member in members:
             if member['id'] == user['nationid']:
                 if member['leader_name'] != user['leader']:
-                    mongo.users.find_one_and_update({"nationid": user["nationid"]}, {"$set": {"leader": member['leader_name']}})
+                    mongo.users.find_one_and_update({"nationid": user["nationid"]}, {
+                                                    "$set": {"leader": member['leader_name']}})
                 if member['nation_name'] != user['name']:
-                    mongo.users.find_one_and_update({"nationid": user["nationid"]}, {"$set": {"name": member['nation_name']}})
+                    mongo.users.find_one_and_update({"nationid": user["nationid"]}, {
+                                                    "$set": {"name": member['nation_name']}})
                 break
+
 
 async def get_users():
     async with aiohttp.ClientSession() as session:
@@ -43,7 +49,8 @@ async def get_users():
         futures = []
         for mongo in [async_client['main'], async_client['testing']]:
             for nation in data:
-                futures.append(asyncio.ensure_future(mongo.world_nations.find_one_and_replace({"id": nation['id']}, nation, upsert=True)))
+                futures.append(asyncio.ensure_future(mongo.world_nations.find_one_and_replace(
+                    {"id": nation['id']}, nation, upsert=True)))
         await asyncio.gather(*futures)
         for mongo in [client['main'], client['testing']]:
             entries = mongo.world_nations.find({})
@@ -54,7 +61,9 @@ async def get_users():
                         found = True
                         break
                 if not found:
-                    mongo.world_nations.find_one_and_delete({"id": entry['id']})
+                    mongo.world_nations.find_one_and_delete(
+                        {"id": entry['id']})
+
 
 async def get_alliances():
     async with aiohttp.ClientSession() as session:
@@ -85,12 +94,13 @@ async def get_alliances():
 #                 now = int(datetime.utcnow().timestamp())
 #                 futures = []
 #                 for nation in res['data']['nations']['data']:
-#                     nation['last_fetched'] = now                    
+#                     nation['last_fetched'] = now
 #                     mongo.nations.find_one_and_replace({"id": nation['id']}, nation, upsert=True)
 #                     futures.append(asyncio.ensure_future(async_client_2['main'].nations.find_one_and_replace({"id": nation['id']}, nation, upsert=True)))
-                    
+
 #                 await asyncio.gather(*futures)
 #                 has_more_pages = res['data']['nations']['paginatorInfo']['hasMorePages']
+
 
 async def auto_update():
     while True:
@@ -99,27 +109,30 @@ async def auto_update():
                 await refresh(mongo)
                 print('refresh done')
             except Exception as e:
-                print(f"I encountered an error whilst performing refresh():\n{e}")
+                print(
+                    f"I encountered an error whilst performing refresh():\n{e}")
 
         try:
             await get_users()
             print('get_users done')
         except Exception as e:
-            print(f"I encountered an error whilst performing get_users():\n{e}")
-            
+            print(
+                f"I encountered an error whilst performing get_users():\n{e}")
+
         try:
             await get_alliances()
             print('get_alliances done')
         except Exception as e:
-            print(f"I encountered an error whilst performing get_alliances():\n{e}")
+            print(
+                f"I encountered an error whilst performing get_alliances():\n{e}")
 
-        #try:
+        # try:
         #    await get_nation_details(client2['main'])
         #    print('get_nation_details done')
-        #except Exception as e:
+        # except Exception as e:
         #    print(f"I encountered an error whilst performing get_nation_details():\n{e}")
 
         await asyncio.sleep(60)
-            
+
 loop = asyncio.get_event_loop()
 loop.run_until_complete(auto_update())

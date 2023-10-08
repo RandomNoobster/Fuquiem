@@ -90,7 +90,7 @@
                     <td>${nation['user_object']['username']}</td>
                     <td>${nation['user_object']['discordid']}</td>
 
-                    % if nation['alliance_id'] == "7531" and nation['color'] not in ['beige','blue']:
+                    % if nation['alliance_id'] == "8819" and nation['color'] not in ['beige','blue']:
                     <td style="color:red">${nation['color']}</td>
                     % elif nation['alliance_id'] == "4729" and nation['color'] not in ['beige','green']:
                     <td style="color:red">${nation['color']}</td>
@@ -98,9 +98,9 @@
                     <td>${nation['color']}</td>
                     % endif
                     
-                    % if nation['num_cities'] >= 15 and nation['alliance_id'] == "7531":
+                    % if nation['num_cities'] >= 15 and nation['alliance_id'] == "8819":
                     <td style="color:red">Convent of Atom</td>
-                    % elif nation['alliance_id'] == "7531":
+                    % elif nation['alliance_id'] == "8819":
                     <td>Convent of Atom</td>
                     % elif nation['alliance_id'] == "4729":
                     <td>Church of Atom</td>
