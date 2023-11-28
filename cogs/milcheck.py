@@ -901,6 +901,26 @@ class Military(commands.Cog):
 
             await self.top_up(ctx, aa['nations'])
             await ctx.send("Finished!")
+    
+    @commands.command(
+        aliases=['fu', 'feed'],
+        brief="Sends food and uran to the people in need",
+        help="Requires admin perms, sends people some food and uran (if they need it)."
+    )
+    @commands.has_any_role(*utils.mid_gov_plus_perms)
+    async def food_and_uran(self, ctx, alliance=None):
+        async with aiohttp.ClientSession() as session:
+            if alliance is None:
+                alliance = 'church'
+                aa = requests.get(
+                    f'http://politicsandwar.com/api/alliance-members/?allianceid=4729&key={api_key}').json()
+            elif alliance.lower() in 'convent':
+                alliance = 'convent'
+                aa = requests.get(
+                    f'http://politicsandwar.com/api/alliance-members/?allianceid=8819&key={convent_key}').json()
+
+            await self.top_up(ctx, aa['nations'], False)
+            await ctx.send("Finished!")
 
     @commands.command(
         brief="Sends a warchest top up to the specified person",
@@ -930,7 +950,7 @@ class Military(commands.Cog):
             await self.top_up(ctx, [nation])
             await ctx.send("Finished!")
 
-    async def top_up(self, ctx, nations: list):
+    async def top_up(self, ctx, nations: list, war_time: bool = True):
         randy = utils.find_user(self, 465463547200012298)
         if len(randy['email']) <= 1 or len(randy['pwd']) <= 1:
             await ctx.send(content="<@465463547200012298>'s credentials are wrong?")
@@ -943,51 +963,54 @@ class Military(commands.Cog):
                     user = None
                     excess = ""
                     person = utils.find_user(self, nation['nationid'])
+                    
+                    if war_time:
+                        minmoney = round(city_count * 500000 -
+                                        float(nation['money']))
+                        maxmoney = round(city_count * 500000 *
+                                        3 - float(nation['money']))
+                        if maxmoney < 0:
+                            excess += "&d_money=" + str(abs(minmoney))
+                        if minmoney < 0:
+                            minmoney = 0
 
-                    minmoney = round(city_count * 500000 -
-                                     float(nation['money']))
-                    maxmoney = round(city_count * 500000 *
-                                     3 - float(nation['money']))
-                    if maxmoney < 0:
-                        excess += "&d_money=" + str(abs(minmoney))
-                    if minmoney < 0:
-                        minmoney = 0
+                        mingasoline = round(
+                            city_count * 325 * 2 - float(nation['gasoline']))
+                        maxgasoline = round(
+                            city_count * 325 * 3 - float(nation['gasoline']))
+                        if maxgasoline < 0:
+                            excess += "&d_gasoline=" + str(abs(mingasoline))
+                        if mingasoline < 0:
+                            mingasoline = 0
 
-                    mingasoline = round(
-                        city_count * 325 * 2 - float(nation['gasoline']))
-                    maxgasoline = round(
-                        city_count * 325 * 3 - float(nation['gasoline']))
-                    if maxgasoline < 0:
-                        excess += "&d_gasoline=" + str(abs(mingasoline))
-                    if mingasoline < 0:
-                        mingasoline = 0
+                        minmunitions = round(
+                            city_count * 380 * 2 - float(nation['munitions']))
+                        maxmunitions = round(
+                            city_count * 380 * 3 - float(nation['munitions']))
+                        if maxmunitions < 0:
+                            excess += "&d_munitions=" + str(abs(minmunitions))
+                        if minmunitions < 0:
+                            minmunitions = 0
 
-                    minmunitions = round(
-                        city_count * 380 * 2 - float(nation['munitions']))
-                    maxmunitions = round(
-                        city_count * 380 * 3 - float(nation['munitions']))
-                    if maxmunitions < 0:
-                        excess += "&d_munitions=" + str(abs(minmunitions))
-                    if minmunitions < 0:
-                        minmunitions = 0
+                        minsteel = round(city_count * 380 * 2 -
+                                        float(nation['steel']))
+                        maxsteel = round(city_count * 380 * 3 -
+                                        float(nation['steel']))
+                        if maxsteel < 0:
+                            excess += "&d_steel=" + str(abs(minsteel))
+                        if minsteel < 0:
+                            minsteel = 0
 
-                    minsteel = round(city_count * 380 * 2 -
-                                     float(nation['steel']))
-                    maxsteel = round(city_count * 380 * 3 -
-                                     float(nation['steel']))
-                    if maxsteel < 0:
-                        excess += "&d_steel=" + str(abs(minsteel))
-                    if minsteel < 0:
-                        minsteel = 0
-
-                    minaluminum = round(
-                        city_count * 300 * 2 - float(nation['aluminum']))
-                    maxaluminum = round(
-                        city_count * 300 * 3 - float(nation['aluminum']))
-                    if maxaluminum < 0:
-                        excess += "&d_aluminum=" + str(abs(minaluminum))
-                    if minaluminum < 0:
-                        minaluminum = 0
+                        minaluminum = round(
+                            city_count * 300 * 2 - float(nation['aluminum']))
+                        maxaluminum = round(
+                            city_count * 300 * 3 - float(nation['aluminum']))
+                        if maxaluminum < 0:
+                            excess += "&d_aluminum=" + str(abs(minaluminum))
+                        if minaluminum < 0:
+                            minaluminum = 0
+                    else:
+                        minmoney = minmunitions = mingasoline = minsteel = minaluminum = 0
 
                     minuranium = round(1250 + city_count *
                                        10 * 2 - float(nation['uranium']))
@@ -997,7 +1020,7 @@ class Military(commands.Cog):
                     if minuranium < 0:
                         minuranium = 0
 
-                    minfood = round(city_count * 400 * 5 -
+                    minfood = round(city_count * 400 * (8 - 3 * int(war_time)) -
                                     float(nation['food']))
                     maxfood = round(city_count * 400 * 10 -
                                     float(nation['food']))
@@ -1008,16 +1031,17 @@ class Military(commands.Cog):
 
                     if excess and person != {}:
                         user = await self.bot.fetch_user(person['user'])
-                        try:
-                            if user == None:
-                                pass
-                            else:
-                                await user.send(f"Hey, you have an excess of resources! Please use this pre-filled link to deposit the resources for safekeeping: <https://politicsandwar.com/alliance/id={nation['allianceid']}&display=bank{excess}>", silent=True)
-                                await ctx.send(f"Sent a message to {user}")
-                        except discord.Forbidden:
-                            await ctx.send(f"{user} does not allow my DMs")
-                        except:
-                            await ctx.send(f"cannot message {nation['nation']} yet they did not block me")
+                        if war_time:
+                            try:
+                                if user == None:
+                                    pass
+                                else:
+                                    await user.send(f"Hey, you have an excess of resources! Please use this pre-filled link to deposit the resources for safekeeping: <https://politicsandwar.com/alliance/id={nation['allianceid']}&display=bank{excess}>", silent=True)
+                                    await ctx.send(f"Sent a message to {user}")
+                            except discord.Forbidden:
+                                await ctx.send(f"{user} does not allow my DMs")
+                            except:
+                                await ctx.send(f"cannot message {nation['nation']} yet they did not block me")
                     elif person == {}:
                         await ctx.send(f"https://politicsandwar.com/nation/id={nation['nationid']} is not in registered.")
 
