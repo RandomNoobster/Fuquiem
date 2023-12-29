@@ -889,38 +889,38 @@ class Military(commands.Cog):
     )
     @commands.has_any_role(*utils.mid_gov_plus_perms)
     async def warchest(self, ctx, alliance=None):
-        async with aiohttp.ClientSession() as session:
-            if alliance is None:
-                alliance = 'church'
-                aa = requests.get(
-                    f'http://politicsandwar.com/api/alliance-members/?allianceid=4729&key={api_key}').json()
-            elif alliance.lower() in 'convent':
-                alliance = 'convent'
-                aa = requests.get(
-                    f'http://politicsandwar.com/api/alliance-members/?allianceid=8819&key={convent_key}').json()
+        if not alliance or alliance == 'church':
+            key = api_key
+            aa_id = 4729
+        elif alliance == 'convent':
+            key = convent_key
+            aa_id = 8819
+            
+        aa = (await utils.call(f"{{alliances(id: {aa_id}) {{data{{id nations{{nation_name alliance_position money food coal oil uranium lead iron bauxite gasoline munitions steel aluminum leader_name id vacation_mode_turns num_cities continent color warpolicy cia dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes wars{{date turnsleft attid winner att_gas_used att_mun_used att_steel_used att_alum_used def_infra_destroyed_value def_gas_used def_mun_used def_steel_used def_alum_used att_infra_destroyed_value attacks{{loot_info victor moneystolen}}}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}}}", key))['data']['alliances']['data'][0]
+        nations = [nation for nation in aa['nations'] if nation['alliance_position'] != "APPLICANT"]
 
-            await self.top_up(ctx, aa['nations'])
-            await ctx.send("Finished!")
+        await self.top_up(ctx, nations, True)
+        await ctx.send("Finished!")
     
     @commands.command(
-        aliases=['fu', 'feed'],
+        aliases=['fu', 'pc'],
         brief="Sends food and uran to the people in need",
         help="Requires admin perms, sends people some food and uran (if they need it)."
     )
     @commands.has_any_role(*utils.mid_gov_plus_perms)
-    async def food_and_uran(self, ctx, alliance=None):
-        async with aiohttp.ClientSession() as session:
-            if alliance is None:
-                alliance = 'church'
-                aa = requests.get(
-                    f'http://politicsandwar.com/api/alliance-members/?allianceid=4729&key={api_key}').json()
-            elif alliance.lower() in 'convent':
-                alliance = 'convent'
-                aa = requests.get(
-                    f'http://politicsandwar.com/api/alliance-members/?allianceid=8819&key={convent_key}').json()
+    async def peacechest(self, ctx, alliance=None):
+        if not alliance or alliance == 'church':
+            key = api_key
+            aa_id = 4729
+        elif alliance == 'convent':
+            key = convent_key
+            aa_id = 8819
+            
+        aa = (await utils.call(f"{{alliances(id: {aa_id}) {{data{{id nations{{nation_name alliance_position money food coal oil uranium lead iron bauxite gasoline munitions steel aluminum leader_name id vacation_mode_turns num_cities continent color warpolicy cia dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes wars{{date turnsleft attid winner att_gas_used att_mun_used att_steel_used att_alum_used def_infra_destroyed_value def_gas_used def_mun_used def_steel_used def_alum_used att_infra_destroyed_value attacks{{loot_info victor moneystolen}}}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}}}", key))['data']['alliances']['data'][0]
+        nations = [nation for nation in aa['nations'] if nation['alliance_position'] != "APPLICANT"]
 
-            await self.top_up(ctx, aa['nations'], False)
-            await ctx.send("Finished!")
+        await self.top_up(ctx, nations, False)
+        await ctx.send("Finished!")
 
     @commands.command(
         brief="Sends a warchest top up to the specified person",
@@ -928,124 +928,111 @@ class Military(commands.Cog):
     )
     @commands.has_any_role(*utils.mid_gov_plus_perms)
     async def resupply(self, ctx, *, arg):
-        async with aiohttp.ClientSession() as session:
-            person = utils.find_user(self, arg)
+        person = utils.find_user(self, arg)
 
-            async with session.get(f"http://politicsandwar.com/api/nation/id={person['nationid']}&key={api_key}") as temp:
-                nation = (await temp.json())
-            if nation['allianceid'] == '4729':
-                async with session.get(f"http://politicsandwar.com/api/alliance-members/?allianceid=4729&key={api_key}") as temp1:
-                    aa = (await temp1.json())
-            elif nation['allianceid'] == '8819':
-                async with session.get(f"http://politicsandwar.com/api/alliance-members/?allianceid=8819&key={convent_key}") as temp2:
-                    aa = (await temp2.json())
-            else:
-                await ctx.send(content="They are not in CoA.")
+        nation = (await utils.call(f"{{nations(id: {person['nationid']}) {{data{{nation_name money food coal oil uranium lead iron bauxite gasoline munitions steel aluminum leader_name id vacation_mode_turns num_cities continent color warpolicy cia dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes wars{{date turnsleft attid winner att_gas_used att_mun_used att_steel_used att_alum_used def_infra_destroyed_value def_gas_used def_mun_used def_steel_used def_alum_used att_infra_destroyed_value attacks{{loot_info victor moneystolen}}}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}"))['data']['nations']['data'][0]
+        
+        if nation['alliance_id'] not in ["4729", "8819"]:
+            await ctx.send("This person is not in the Church or the Hive.")
+            return
+        
+        if nation['alliance_id'] == "4729":
+            key = api_key
+        else:
+            key = convent_key
+            
+        aa = (await utils.call(f"{{alliances(id: {nation['alliance_id']}) {{data{{id nations{{nation_name money food coal oil uranium lead iron bauxite gasoline munitions steel aluminum leader_name id vacation_mode_turns num_cities continent color warpolicy cia dompolicy alliance_id alliance{{name id}} num_cities soldiers tanks aircraft ships missiles nukes wars{{date turnsleft attid winner att_gas_used att_mun_used att_steel_used att_alum_used def_infra_destroyed_value def_gas_used def_mun_used def_steel_used def_alum_used att_infra_destroyed_value attacks{{loot_info victor moneystolen}}}} ironw bauxitew armss egr massirr itc recycling_initiative telecom_satellite green_tech clinical_research_center specialized_police_training uap cities{{id date powered infrastructure land oilpower windpower coalpower nuclearpower coalmine oilwell uramine barracks farm policestation hospital recyclingcenter subway supermarket bank mall stadium leadmine ironmine bauxitemine gasrefinery aluminumrefinery steelmill munitionsfactory factory airforcebase drydock}}}}}}}}}}", key))['data']['alliances']['data'][0]
+        
+        for member in aa['nations']:
+            if member['id'] == nation['id']:
+                nation = member
+                break
 
-            for member in aa['nations']:
-                if str(member['nationid']) == nation['nationid']:
-                    nation = member
-                    break
+        await self.top_up(ctx, [nation])
+        await ctx.send("Finished!")
 
-            await self.top_up(ctx, [nation])
-            await ctx.send("Finished!")
+    def calculate_warchest(self, resource: str, per_city: int, city_count: int, current_amount: float, excess: str) -> Union[None, float]:
+        """
+        Returns `0` when there is an excess. Returns the deficit when there is a deficit.
+        """
+        min_amount = city_count * per_city
+        if (excess_amount := round(current_amount - min_amount * 1.5)) > 0:
+            excess += f"&d_{resource}={excess_amount}"
+            return 0, excess
+        elif (deficit_amount := round(current_amount - min_amount)) < 0:
+            return deficit_amount, excess
+        else:
+            return None, excess
+        
+    def calculate_revenue_based_wc(self, resource: str, current_amount: float, revenue: float, excess: str, war_time: bool) -> Union[None, float]:
+        """
+        Returns `None` when there is an excess, since the excess is added to the excess string. Returns the deficit when there is a deficit.
+        :param: revenue: The daily revenue of the resource.
+        """
+        if revenue > 0:
+            min_amount = math.ceil(revenue / 12)
+        else:
+            min_amount = abs(revenue) * 5 * (1 if war_time else 1.5)
+        if (excess_amount := round(current_amount - min_amount * 1.5)) > 0:
+            excess += f"&d_{resource}={excess_amount}"
+            return 0, excess
+        elif (deficit_amount := round(current_amount - min_amount)) < 0:
+            return deficit_amount, excess
+        else:
+            return None, excess
 
     async def top_up(self, ctx, nations: list, war_time: bool = True):
+        """
+        Sends a warchest top up to the specified person.
+        """
+        message = await ctx.send("Thinking...")
         randy = utils.find_user(self, 465463547200012298)
         if len(randy['email']) <= 1 or len(randy['pwd']) <= 1:
             await ctx.send(content="<@465463547200012298>'s credentials are wrong?")
+        _, colors, prices, treasures, radiation, seasonal_mod = await utils.pre_revenue_calc(api_key, message)
         async with aiohttp.ClientSession() as session:
             for nation in nations:
                 try:
-                    if int(nation['vacmode']) > 0:
+                    if int(nation['vacation_mode_turns']) > 0:
                         continue
-                    city_count = nation['cities']
+                    city_count = nation['num_cities']
                     user = None
                     excess = ""
-                    person = utils.find_user(self, nation['nationid'])
+                    person = utils.find_user(self, nation['id'])
                     
-                    if war_time:
-                        minmoney = round(city_count * 500000 -
-                                        float(nation['money']))
-                        maxmoney = round(city_count * 500000 *
-                                        3 - float(nation['money']))
-                        if maxmoney < 0:
-                            excess += "&d_money=" + str(abs(minmoney))
-                        if minmoney < 0:
-                            minmoney = 0
+                    revenue = await utils.revenue_calc(ctx, nation, radiation, treasures, prices, colors, seasonal_mod)
 
-                        mingasoline = round(
-                            city_count * 325 * 2 - float(nation['gasoline']))
-                        maxgasoline = round(
-                            city_count * 325 * 3 - float(nation['gasoline']))
-                        if maxgasoline < 0:
-                            excess += "&d_gasoline=" + str(abs(mingasoline))
-                        if mingasoline < 0:
-                            mingasoline = 0
-
-                        minmunitions = round(
-                            city_count * 380 * 2 - float(nation['munitions']))
-                        maxmunitions = round(
-                            city_count * 380 * 3 - float(nation['munitions']))
-                        if maxmunitions < 0:
-                            excess += "&d_munitions=" + str(abs(minmunitions))
-                        if minmunitions < 0:
-                            minmunitions = 0
-
-                        minsteel = round(city_count * 380 * 2 -
-                                        float(nation['steel']))
-                        maxsteel = round(city_count * 380 * 3 -
-                                        float(nation['steel']))
-                        if maxsteel < 0:
-                            excess += "&d_steel=" + str(abs(minsteel))
-                        if minsteel < 0:
-                            minsteel = 0
-
-                        minaluminum = round(
-                            city_count * 300 * 2 - float(nation['aluminum']))
-                        maxaluminum = round(
-                            city_count * 300 * 3 - float(nation['aluminum']))
-                        if maxaluminum < 0:
-                            excess += "&d_aluminum=" + str(abs(minaluminum))
-                        if minaluminum < 0:
-                            minaluminum = 0
-                    else:
-                        minmoney = minmunitions = mingasoline = minsteel = minaluminum = 0
-
-                    minuranium = round(1250 + city_count *
-                                       10 * 2 - float(nation['uranium']))
-                    maxuranium = round(3000 - float(nation['uranium']))
-                    if maxuranium < 0:
-                        excess += "&d_uranium=" + str(abs(minuranium))
-                    if minuranium < 0:
-                        minuranium = 0
-
-                    minfood = round(city_count * 400 * (8 - 3 * int(war_time)) -
-                                    float(nation['food']))
-                    maxfood = round(city_count * 400 * 10 -
-                                    float(nation['food']))
-                    if maxfood < 0:
-                        excess += "&d_food=" + str(abs(minfood))
-                    if minfood < 0:
-                        minfood = 0
-
+                    deficits = defaultdict(lambda: 0)
+                    for resource, per_city in [('money', 500000), ('gasoline', 650), ('munitions', 760), ('steel', 760), ('aluminum', 600)]:
+                        deficits[resource], excess = self.calculate_warchest(resource, per_city, city_count, float(nation[resource]), excess)
+                        deficits[resource] = 0 if deficits[resource] == None else -deficits[resource]
+                    
+                    for resource, revenue in [('food', revenue['food']), ('uranium', revenue['uranium']), ('coal', revenue['coal']), ('oil', revenue['oil']), ('lead', revenue['lead']), ('iron', revenue['iron']), ('bauxite', revenue['bauxite'])]:
+                        deficits[resource], excess = self.calculate_revenue_based_wc(resource, float(nation[resource]), revenue, excess, war_time)
+                        deficits[resource] = 0 if deficits[resource] == None else -deficits[resource]
+                    
                     if excess and person != {}:
                         user = await self.bot.fetch_user(person['user'])
-                        if war_time:
-                            try:
-                                if user == None:
-                                    pass
-                                else:
-                                    await user.send(f"Hey, you have an excess of resources! Please use this pre-filled link to deposit the resources for safekeeping: <https://politicsandwar.com/alliance/id={nation['allianceid']}&display=bank{excess}>", silent=True)
-                                    await ctx.send(f"Sent a message to {user}")
-                            except discord.Forbidden:
-                                await ctx.send(f"{user} does not allow my DMs")
-                            except:
-                                await ctx.send(f"cannot message {nation['nation']} yet they did not block me")
+                        try:
+                            if user == None:
+                                pass
+                            else:
+                                await user.send(f"Hey, you have an excess of resources! Please use this pre-filled link to deposit the resources for safekeeping: <https://politicsandwar.com/alliance/id={nation['alliance_id']}&display=bank{excess}>", silent=True)
+                                await ctx.send(f"Sent a message to {user}")
+                        except discord.Forbidden:
+                            await ctx.send(f"{user} does not allow my DMs")
+                        except:
+                            await ctx.send(f"cannot message {nation['nation']} yet they did not block me")
                     elif person == {}:
-                        await ctx.send(f"https://politicsandwar.com/nation/id={nation['nationid']} is not in registered.")
+                        await ctx.send(f"https://politicsandwar.com/nation/id={nation['id']} is not in registered.")
 
-                    if minmoney == 0 and mingasoline == 0 and minmunitions == 0 and minsteel == 0 and minaluminum == 0 and minuranium == 0 and minfood == 0:
+                    # Dont waste time doing a transaction of 0 resources
+                    broke = False
+                    for k,v in deficits.items():
+                        if v > 0:
+                            broke = True
+                            break
+                    if not broke:
                         continue
 
                     with requests.Session() as s:
@@ -1059,20 +1046,20 @@ class Military(commands.Cog):
 
                         withdraw_url = f'https://politicsandwar.com/alliance/id=4729&display=bank'
                         withdraw_data = {
-                            "withmoney": str(minmoney),
-                            "withfood": str(minfood),
-                            "withcoal": '0',
-                            "withoil": '0',
-                            "withuranium": str(minuranium),
-                            "withlead": '0',
-                            "withiron": '0',
-                            "withbauxite": '0',
-                            "withgasoline": str(mingasoline),
-                            "withmunitions": str(minmunitions),
-                            "withsteel": str(minsteel),
-                            "withaluminum": str(minaluminum),
+                            "withmoney": deficits['money'],
+                            "withfood": deficits['food'],
+                            "withcoal": deficits['coal'],
+                            "withoil": deficits['oil'],
+                            "withuranium": deficits['uranium'],
+                            "withlead": deficits['lead'],
+                            "withiron": deficits['iron'],
+                            "withbauxite": deficits['bauxite'],
+                            "withgasoline": deficits['gasoline'],
+                            "withmunitions": deficits['munitions'],
+                            "withsteel": deficits['steel'],
+                            "withaluminum": deficits['aluminum'],
                             "withtype": 'Nation',
-                            "withrecipient": nation['nation'],
+                            "withrecipient": nation['nation_name'],
                             "withnote": 'Resupplying warchest',
                             "withsubmit": 'Withdraw'
                         }
@@ -1082,15 +1069,15 @@ class Military(commands.Cog):
                         end_time = (datetime.utcnow() + timedelta(seconds=5))
                         await ctx.send(f"```{withdraw_data}```")
                         success = False
-                        async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={nation['nationid']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
+                        async with session.get(f"http://politicsandwar.com/api/v2/nation-bank-recs/{api_key}/&nation_id={nation['id']}&min_tx_date={datetime.today().strftime('%Y-%m-%d')}r_only=true") as txids:
                             txids = await txids.json()
                         for x in txids['data']:
                             if x['note'] == 'Resupplying warchest' and start_time <= datetime.strptime(x['tx_datetime'], '%Y-%m-%d %H:%M:%S') <= end_time:
                                 success = True
                         if success:
-                            await ctx.send(f"I can confirm that the transaction to {nation['nation']} ({nation['leader']}) has successfully commenced.")
+                            await ctx.send(f"I can confirm that the transaction to {nation['nation_name']} ({nation['leader_name']}) has successfully commenced.")
                         else:
-                            await ctx.send(f"<@465463547200012298> the transaction to **{nation['nation']} ({nation['leader']})** might have failed. Check this page to be sure:\n<https://politicsandwar.com/nation/id={nation['nationid']}&display=bank>")
+                            await ctx.send(f"<@465463547200012298> the transaction to **{nation['nation_name']} ({nation['leader_name']})** might have failed. Check this page to be sure:\n<https://politicsandwar.com/nation/id={nation['id']}&display=bank>")
                 except Exception as e:
                     print(e)
                     await ctx.send(e)
