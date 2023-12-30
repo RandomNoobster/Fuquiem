@@ -659,7 +659,7 @@ class Military(commands.Cog):
         else:
             alliance = "No alliance"
 
-        desc = f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) | {alliance}\n\nLast login: <t:{round(datetime.strptime(nation['last_active'], '%Y-%m-%dT%H:%M:%S%z').timestamp())}:R>\nOffensive wars: {len(nation['offensive_wars'])}/{max_offense}\nDefensive wars: {len(nation['defensive_wars'])}/3\nDefensive range: {round(nation['score'] / 1.75)} - {round(nation['score'] / 0.75)}\nCities: {nation['num_cities']}\nSpies: {spies}\nBeige (turns): {nation['beigeturns']}\n\nSoldiers: **{nation['soldiers']:,}** / {max_sol:,}\nTanks: **{nation['tanks']:,}** / {max_tnk:,}\nPlanes: **{nation['aircraft']:,}** / {max_pln:,}\nShips: **{nation['ships']:,}** / {max_shp:,}"
+        desc = f"[{nation['nation_name']}](https://politicsandwar.com/nation/id={nation['id']}) | {alliance}\n\nLast login: <t:{round(datetime.strptime(nation['last_active'], '%Y-%m-%dT%H:%M:%S%z').timestamp())}:R>\nOffensive wars: {len(nation['offensive_wars'])}/{max_offense}\nDefensive wars: {len(nation['defensive_wars'])}/3\nDefensive range: {round(nation['score'] / 2.5)} - {round(nation['score'] / 0.75)}\nCities: {nation['num_cities']}\nSpies: {spies}\nBeige (turns): {nation['beigeturns']}\n\nSoldiers: **{nation['soldiers']:,}** / {max_sol:,}\nTanks: **{nation['tanks']:,}** / {max_tnk:,}\nPlanes: **{nation['aircraft']:,}** / {max_pln:,}\nShips: **{nation['ships']:,}** / {max_shp:,}"
         embed = discord.Embed(
             title=f"{nation['nation_name']} ({nation['id']}) & their wars", description=desc, color=0x00ff00)
         embed1 = discord.Embed(
@@ -1199,7 +1199,7 @@ class Military(commands.Cog):
                     elif engagement['status'] == "defender":
                         shield = '\🛡️'
 
-                minscore = round(engagement['score'] / 1.75)
+                minscore = round(engagement['score'] / 2.5)
                 maxscore = round(engagement['score'] / 0.75)
                 content += f"{str_start}Priority target! {sword}{shield}{exclamation}{circle} Defensive range: {minscore} - {maxscore} <https://politicsandwar.com/nation/id={enemy['id']}>, {engagement['alliance']['name']}{applicant}{str_end}\n"
                 if n % 10 == 0:
