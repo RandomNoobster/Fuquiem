@@ -72,7 +72,7 @@ async def get_alliances():
         data = []
         while has_more_pages:
             await asyncio.sleep(2)
-            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{alliances(page:{n} first:100){{paginatorInfo{{hasMorePages}} data{{id name acronym}}}}}}"}) as temp:
+            async with session.post(f"https://api.politicsandwar.com/graphql?api_key={api_key}", json={'query': f"{{alliances(page:{n} first:100){{paginatorInfo{{hasMorePages}} data{{id name acronym color}}}}}}"}) as temp:
                 n += 1
                 res = await temp.json()
                 for nation in res['data']['alliances']['data']:
