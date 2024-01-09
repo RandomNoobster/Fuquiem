@@ -1083,26 +1083,20 @@ class Military(commands.Cog):
                     await ctx.send(e)
 
     async def spies_msg(self):  # enable in times of war
-        return
+        # return
         async with aiohttp.ClientSession() as session:
-            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_id:4729 vmode:false){data{id leader_name nation_name score warpolicy spies cia spy_satellite espionage_available}}}"}) as temp:
+            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_id:4729 vmode:false){data{id leader_name nation_name score warpolicy spies cia spy_satellite spy_attacks}}}"}) as temp:
                 church = (await temp.json())['data']['nations']['data']
-            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{nations(page:1 first:500 alliance_id:8819 vmode:false){data{id leader_name nation_name score warpolicy spies cia spy_satellite espionage_available}}}"}) as temp:
+            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{nations(page:1 first:500 alliance_id:8819 vmode:false){data{id leader_name nation_name score warpolicy spies cia spy_satellite spy_attacks}}}"}) as temp:
                 convent = (await temp.json())['data']['nations']['data']
             sum = church + convent
             for member in sum:
-                if member['espionage_available']:
+                if member['spy_attacks'] < 2:
                     person = utils.find_user(self, member['id'])
-                    # person['user']
                     user = await self.bot.fetch_user(person['user'])
-                    if member['spy_satellite']:
-                        spy_sat = "SS"
-                    else:
-                        spy_sat = "No SS"
-                    embed = discord.Embed(title="Remember to use your spy ops!",
-                                          description=f"You can spy on someone you're fighting, or you can say ```{round(float(member['score']))} / {member['spies']} / {spy_sat} / <@131589896950251520> <@220333267121864706>``` in <#668581622693625907>", color=0x00ff00)
                     try:
-                        await user.send(embed=embed)
+                        await user.send(content=f"Hey, please remember to do your spy attacks. You have {2 - member['spy_attacks']} potential attacks remaining today. You can copy the following command and run it in https://discord.com/channels/434071714893398016/850302301838114826", silent=True)
+                        await user.send(content=f"/spy find target targets: ~enemies operations: * prioritizekills: true", silent=True)
                     except:
                         pass
 
