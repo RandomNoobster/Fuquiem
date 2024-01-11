@@ -1082,23 +1082,31 @@ class Military(commands.Cog):
                     print(e)
                     await ctx.send(e)
 
+    @commands.command(brief='Manually update the #threats channel')
+    @commands.has_any_role(*utils.low_gov_plus_perms)
+    async def basic_spy_msg(self, ctx):
+        await self.spies_msg()
+        await ctx.send(f'Done!')
+
     async def spies_msg(self):  # enable in times of war
         # return
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={api_key}', json={'query': "{nations(page:1 first:500 alliance_id:4729 vmode:false){data{id leader_name nation_name score warpolicy spies cia spy_satellite spy_attacks}}}"}) as temp:
-                church = (await temp.json())['data']['nations']['data']
-            async with session.get(f'https://api.politicsandwar.com/graphql?api_key={convent_key}', json={'query': "{nations(page:1 first:500 alliance_id:8819 vmode:false){data{id leader_name nation_name score warpolicy spies cia spy_satellite spy_attacks}}}"}) as temp:
-                convent = (await temp.json())['data']['nations']['data']
-            sum = church + convent
-            for member in sum:
-                if member['spy_attacks'] < 2:
-                    person = utils.find_user(self, member['id'])
-                    user = await self.bot.fetch_user(person['user'])
-                    try:
-                        await user.send(content=f"Hey, please remember to do your spy attacks. You have {2 - member['spy_attacks']} potential attacks remaining today. You can copy the following command and run it in https://discord.com/channels/434071714893398016/850302301838114826", silent=True)
-                        await user.send(content=f"/spy find target targets: ~enemies operations: * prioritizekills: true", silent=True)
-                    except:
-                        pass
+        temp = await utils.call("{nations(page:1 first:500 alliance_id:4729 vmode:false){data{id leader_name nation_name score warpolicy spies cia spy_satellite spy_attacks}}}")
+        church = temp['data']['nations']['data']
+        temp = await utils.call("{nations(page:1 first:500 alliance_id:8819 vmode:false){data{id leader_name nation_name score warpolicy spies cia spy_satellite spy_attacks}}}", convent_key)
+        convent = temp['data']['nations']['data']
+        sum = church + convent
+        for member in sum:
+            if member['spy_attacks'] < 2:
+                if not (person := utils.find_user(self, member['id'])):
+                    continue
+                if not (user := await self.bot.fetch_user(person['user'])):
+                    continue
+                try:
+                    await user.send(content=f"Hey, please remember to do your spy attacks. You have {2 - member['spy_attacks']} potential attacks remaining today. You can copy the following command and run it in https://discord.com/channels/434071714893398016/850302301838114826", silent=True)
+                    await user.send(content=f"/spy find target targets: ~enemies operations: * prioritizekills: true", silent=True)
+                    print("Messaged", user)
+                except:
+                    pass
 
     @commands.command(brief='Manually update the #threats channel')
     @commands.has_any_role(*utils.low_gov_plus_perms)
