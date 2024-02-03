@@ -1089,7 +1089,7 @@ class Military(commands.Cog):
         await ctx.send(f'Done!')
 
     async def spies_msg(self):  # enable in times of war
-        # return
+        return
         temp = await utils.call("{nations(page:1 first:500 alliance_id:4729 vmode:false){data{id leader_name nation_name score warpolicy spies cia spy_satellite spy_attacks}}}")
         church = temp['data']['nations']['data']
         temp = await utils.call("{nations(page:1 first:500 alliance_id:8819 vmode:false){data{id leader_name nation_name score warpolicy spies cia spy_satellite spy_attacks}}}", convent_key)
