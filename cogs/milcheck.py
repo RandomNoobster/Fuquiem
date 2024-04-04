@@ -957,7 +957,7 @@ class Military(commands.Cog):
         """
         min_amount = city_count * per_city
         if (excess_amount := round(current_amount - min_amount * 1.5)) > 0:
-            excess += f"&d_{resource}={excess_amount}"
+            excess += f"&d_{resource}=@{min_amount}"
             return 0, excess
         elif (deficit_amount := round(current_amount - min_amount)) < 0:
             return deficit_amount, excess
@@ -974,7 +974,7 @@ class Military(commands.Cog):
         else:
             min_amount = abs(revenue) * 5 * (1 if war_time else 1.5)
         if (excess_amount := round(current_amount - min_amount * 1.5)) > 0:
-            excess += f"&d_{resource}={excess_amount}"
+            excess += f"&d_{resource}=@{min_amount}"
             return 0, excess
         elif (deficit_amount := round(current_amount - min_amount)) < 0:
             return deficit_amount, excess
