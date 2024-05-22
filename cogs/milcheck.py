@@ -964,13 +964,16 @@ class Military(commands.Cog):
         else:
             return None, excess
         
-    def calculate_revenue_based_wc(self, resource: str, current_amount: float, revenue: float, excess: str, war_time: bool) -> Union[None, float]:
+    def calculate_revenue_based_wc(self, resource: str, current_amount: float, revenue: float, excess: str, war_time: bool, city_count: int) -> Union[None, float]:
         """
         Returns `None` when there is an excess, since the excess is added to the excess string. Returns the deficit when there is a deficit.
         :param: revenue: The daily revenue of the resource.
         """
         if revenue > 0:
-            min_amount = math.ceil(revenue / 12)
+            if resource == "food":
+                min_amount = 100 * city_count
+            else:
+                min_amount = 3 * city_count
         else:
             min_amount = abs(revenue) * 5 * (1 if war_time else 1.5)
         if (excess_amount := round(current_amount - min_amount * 1.5)) > 0:
@@ -1008,7 +1011,7 @@ class Military(commands.Cog):
                         deficits[resource] = 0 if deficits[resource] == None else -deficits[resource]
                     
                     for resource, revenue in [('food', revenue['food']), ('uranium', revenue['uranium']), ('coal', revenue['coal']), ('oil', revenue['oil']), ('lead', revenue['lead']), ('iron', revenue['iron']), ('bauxite', revenue['bauxite'])]:
-                        deficits[resource], excess = self.calculate_revenue_based_wc(resource, float(nation[resource]), revenue, excess, war_time)
+                        deficits[resource], excess = self.calculate_revenue_based_wc(resource, float(nation[resource]), revenue, excess, war_time, city_count)
                         deficits[resource] = 0 if deficits[resource] == None else -deficits[resource]
                     
                     if excess and person != {}:
